@@ -5,31 +5,30 @@ import { createClient } from '@/lib/supabase/client';
 import { useRouter, usePathname } from 'next/navigation';
 import Link from 'next/link';
 import { 
-  Home, Calendar, CalendarDays, ClipboardList, 
-  BarChart2, BookOpen, HelpCircle, RotateCcw, 
-  TrendingUp, Timer, NotebookPen, Settings, LogOut, Menu, X, GraduationCap
+  LayoutDashboard, Calendar, CalendarDays, ClipboardList, 
+  BarChart2, HelpCircle, RotateCcw, TrendingUp, Timer, 
+  NotebookPen, Settings, LogOut, Menu, X, BookOpen, Search, Bell, Sun, ChevronDown, Flame, Leaf
 } from 'lucide-react';
 
 const UserContext = createContext(null);
 export const useUser = () => useContext(UserContext);
 
 const NAV_ITEMS = [
-  { href: '/dashboard', label: 'Ana Sayfa', icon: <Home size={20} /> },
-  { href: '/dashboard/gunluk-program', label: 'Günlük Program', icon: <Calendar size={20} /> },
-  { href: '/dashboard/haftalik-program', label: 'Haftalık Program', icon: <CalendarDays size={20} /> },
-  { href: '/dashboard/konu-takibi', label: 'Konu Takibi', icon: <ClipboardList size={20} /> },
-  { href: '/dashboard/deneme-analizi', label: 'Deneme Analizi', icon: <BarChart2 size={20} /> },
-  { href: '/dashboard/kaynaklarim', label: 'Kaynaklarım', icon: <BookOpen size={20} /> },
-  { href: '/dashboard/yapamadiklari', label: 'Yapamadıklarım', icon: <HelpCircle size={20} /> },
-  { href: '/dashboard/tekrarlarim', label: 'Tekrarlarım', icon: <RotateCcw size={20} /> },
-  { href: '/dashboard/istatistikler', label: 'İstatistikler', icon: <TrendingUp size={20} /> },
-  { href: '/dashboard/pomodoro', label: 'Pomodoro', icon: <Timer size={20} /> },
-  { href: '/dashboard/not-defteri', label: 'Not Defteri', icon: <NotebookPen size={20} /> },
-  { href: '/dashboard/ayarlar', label: 'Ayarlar', icon: <Settings size={20} /> },
+  { href: '/dashboard', label: 'Dashboard', icon: <LayoutDashboard size={19} /> },
+  { href: '/dashboard/gunluk-program', label: 'Günlük Program', icon: <Calendar size={19} /> },
+  { href: '/dashboard/haftalik-program', label: 'Haftalık Program', icon: <CalendarDays size={19} /> },
+  { href: '/dashboard/konu-takibi', label: 'Konu Takibi', icon: <ClipboardList size={19} /> },
+  { href: '/dashboard/deneme-analizi', label: 'Deneme Analizi', icon: <BarChart2 size={19} /> },
+  { href: '/dashboard/yapamadiklari', label: 'Yapamadığım Sorular', icon: <HelpCircle size={19} /> },
+  { href: '/dashboard/tekrarlarim', label: 'Tekrarlarım', icon: <RotateCcw size={19} /> },
+  { href: '/dashboard/istatistikler', label: 'İstatistikler', icon: <TrendingUp size={19} /> },
+  { href: '/dashboard/pomodoro', label: 'Pomodoro', icon: <Timer size={19} /> },
+  { href: '/dashboard/not-defteri', label: 'Not Defterim', icon: <NotebookPen size={19} /> },
+  { href: '/dashboard/ayarlar', label: 'Ayarlar', icon: <Settings size={19} /> },
 ];
 
 const MOBILE_NAV = [
-  { href: '/dashboard', label: 'Ana Sayfa', icon: <Home size={20} /> },
+  { href: '/dashboard', label: 'Dashboard', icon: <LayoutDashboard size={20} /> },
   { href: '/dashboard/gunluk-program', label: 'Program', icon: <Calendar size={20} /> },
   { href: '/dashboard/konu-takibi', label: 'Konular', icon: <ClipboardList size={20} /> },
   { href: '/dashboard/deneme-analizi', label: 'Denemeler', icon: <BarChart2 size={20} /> },
@@ -76,7 +75,6 @@ export default function DashboardLayout({ children }) {
     return (
       <div className="loading-screen">
         <div className="spinner spinner-lg"></div>
-        <p style={{ marginTop: '16px', color: 'var(--text-tertiary)', fontWeight: 500 }}>Çalışıyor hazırlanıyor...</p>
       </div>
     );
   }
@@ -84,7 +82,7 @@ export default function DashboardLayout({ children }) {
   return (
     <UserContext.Provider value={{ user, profile, setProfile }}>
       <div className="dashboard-layout">
-        {/* Sidebar Overlay on mobile */}
+        {/* Mobile Sidebar Overlay */}
         {sidebarOpen && (
           <div className="sidebar-overlay hide-desktop" onClick={() => setSidebarOpen(false)} />
         )}
@@ -93,12 +91,15 @@ export default function DashboardLayout({ children }) {
         <aside className={`sidebar ${sidebarOpen ? 'sidebar-open' : ''}`}>
           <div className="sidebar-header">
             <Link href="/dashboard" className="sidebar-logo">
-              <div className="logo-icon-wrapper">
-                <GraduationCap size={24} color="#ffffff" />
+              <div className="logo-icon-badge">
+                <Leaf size={20} color="#10b981" />
               </div>
-              <span className="sidebar-logo-text">calisiyo</span>
+              <div className="sidebar-logo-titles">
+                <span className="logo-title-main">TYT ÇALIŞMA</span>
+                <span className="logo-title-sub">KOÇUM</span>
+              </div>
             </Link>
-            <button className="sidebar-close hide-desktop" onClick={() => setSidebarOpen(false)} aria-label="Menüyü Kapat">
+            <button className="sidebar-close hide-desktop" onClick={() => setSidebarOpen(false)}>
               <X size={20} />
             </button>
           </div>
@@ -121,41 +122,68 @@ export default function DashboardLayout({ children }) {
           </nav>
 
           <div className="sidebar-footer">
-            <div className="sidebar-user">
-              <div className="sidebar-avatar">
-                {profile?.full_name?.charAt(0)?.toUpperCase() || '?'}
+            {/* User Info & XP Bar */}
+            <div className="user-profile-section">
+              <div className="user-profile-row">
+                <div className="sidebar-avatar">
+                  {profile?.full_name?.charAt(0)?.toUpperCase() || 'K'}
+                </div>
+                <div className="user-text-info">
+                  <span className="user-name-text">{profile?.full_name || 'Kerem Yılmaz'}</span>
+                  <span className="user-level-text">Seviye 12</span>
+                </div>
+                <button className="btn-logout-small" onClick={handleLogout} title="Çıkış Yap">
+                  <LogOut size={16} />
+                </button>
               </div>
-              <div className="sidebar-user-info">
-                <span className="sidebar-user-name">{profile?.full_name || 'Öğrenci'}</span>
-                <span className="sidebar-user-alan">
-                  {profile?.alan_secimi === 'sayisal' && 'Sayısal'}
-                  {profile?.alan_secimi === 'esit_agirlik' && 'Eşit Ağırlık'}
-                  {profile?.alan_secimi === 'sozel' && 'Sözel'}
-                  {profile?.alan_secimi === 'dil' && 'Dil'}
-                </span>
+              <div className="xp-progress-wrapper">
+                <div className="progress-bar progress-bar-sm">
+                  <div className="progress-bar-fill" style={{ width: '78%', background: '#10b981' }}></div>
+                </div>
+                <span className="xp-text">2340 / 3000 XP</span>
               </div>
             </div>
-            <button className="btn-logout" onClick={handleLogout} title="Çıkış Yap" aria-label="Çıkış Yap">
-              <LogOut size={18} />
-            </button>
+
+            {/* Streak Card */}
+            <div className="sidebar-streak-card">
+              <div className="streak-card-left">
+                <div className="streak-flame-circle">
+                  <Flame size={18} color="#10b981" />
+                </div>
+                <div>
+                  <div className="streak-card-val">42</div>
+                  <div className="streak-card-lbl">Günlük Seri</div>
+                </div>
+              </div>
+              <div className="streak-card-sub">Harika gidiyorsun! 🎉</div>
+            </div>
           </div>
         </aside>
 
         {/* Main Content Area */}
         <div className="main-wrapper">
-          {/* Topbar */}
-          <header className="topbar glass">
+          {/* Topbar matching Reference */}
+          <header className="topbar">
             <div className="topbar-left">
-              <button className="topbar-menu hide-desktop" onClick={() => setSidebarOpen(true)} aria-label="Menüyü Aç">
+              <button className="topbar-menu hide-desktop" onClick={() => setSidebarOpen(true)}>
                 <Menu size={22} />
               </button>
-              <h2 className="topbar-title">
-                {NAV_ITEMS.find(n => n.href === pathname)?.label || 'calisiyo'}
-              </h2>
             </div>
-            <div className="topbar-actions">
-              <Link href="/dashboard/ayarlar" className="topbar-avatar" title="Ayarlar">
-                {profile?.full_name?.charAt(0)?.toUpperCase() || '?'}
+            <div className="topbar-right">
+              <button className="topbar-circle-btn" title="Arama">
+                <Search size={18} color="#64748b" />
+              </button>
+              <button className="topbar-circle-btn" title="Bildirimler">
+                <Bell size={18} color="#64748b" />
+              </button>
+              <button className="topbar-circle-btn" title="Tema">
+                <Sun size={18} color="#64748b" />
+              </button>
+              <Link href="/dashboard/ayarlar" className="topbar-user-dropdown">
+                <div className="topbar-avatar-img">
+                  {profile?.full_name?.charAt(0)?.toUpperCase() || 'K'}
+                </div>
+                <ChevronDown size={14} color="#64748b" />
               </Link>
             </div>
           </header>
@@ -167,7 +195,7 @@ export default function DashboardLayout({ children }) {
         </div>
 
         {/* Mobile Bottom Nav */}
-        <nav className="mobile-nav glass hide-desktop">
+        <nav className="mobile-nav hide-desktop">
           {MOBILE_NAV.map((item) => {
             const isActive = pathname === item.href;
             return (
@@ -188,23 +216,22 @@ export default function DashboardLayout({ children }) {
         .loading-screen {
           min-height: 100vh;
           display: flex;
-          flex-direction: column;
           align-items: center;
           justify-content: center;
-          background: var(--bg-secondary);
+          background: #ffffff;
         }
 
         .dashboard-layout {
           display: flex;
           min-height: 100vh;
-          background: var(--bg-secondary);
+          background-color: #f8fafc;
         }
 
         /* Sidebar */
         .sidebar {
           width: var(--sidebar-width);
-          background: var(--bg-primary);
-          border-right: 1px solid var(--border-light);
+          background: #ffffff;
+          border-right: 1px solid #f1f5f9;
           display: flex;
           flex-direction: column;
           position: fixed;
@@ -212,15 +239,13 @@ export default function DashboardLayout({ children }) {
           left: 0;
           bottom: 0;
           z-index: 100;
-          box-shadow: var(--shadow-sm);
-          transition: transform var(--transition-slow);
+          transition: transform var(--transition-base);
         }
 
         .sidebar-overlay {
           position: fixed;
           inset: 0;
-          background: rgba(15, 23, 42, 0.5);
-          backdrop-filter: blur(4px);
+          background: rgba(15, 23, 42, 0.4);
           z-index: 99;
         }
 
@@ -228,52 +253,54 @@ export default function DashboardLayout({ children }) {
           display: flex;
           align-items: center;
           justify-content: space-between;
-          padding: 20px;
-          border-bottom: 1px solid var(--border-light);
+          padding: 24px 20px 16px;
         }
 
         .sidebar-logo {
           display: flex;
           align-items: center;
-          gap: 12px;
+          gap: 10px;
           text-decoration: none;
         }
 
-        .logo-icon-wrapper {
-          width: 38px;
-          height: 38px;
-          border-radius: var(--radius-md);
-          background: linear-gradient(135deg, var(--primary-500), var(--primary-700));
+        .logo-icon-badge {
+          width: 36px;
+          height: 36px;
+          border-radius: 10px;
+          background: #e6f9f0;
           display: flex;
           align-items: center;
           justify-content: center;
-          box-shadow: 0 4px 10px rgba(16, 185, 129, 0.25);
         }
 
-        .sidebar-logo-text {
-          font-size: 1.35rem;
+        .sidebar-logo-titles {
+          display: flex;
+          flex-direction: column;
+          line-height: 1.1;
+        }
+
+        .logo-title-main {
+          font-size: 0.9375rem;
           font-weight: 800;
-          color: var(--text-primary);
-          letter-spacing: -0.03em;
+          color: #0f172a;
+          letter-spacing: -0.01em;
+        }
+
+        .logo-title-sub {
+          font-size: 0.6875rem;
+          font-weight: 700;
+          color: #10b981;
+          letter-spacing: 0.05em;
         }
 
         .sidebar-close {
-          color: var(--text-tertiary);
-          padding: 6px;
-          border-radius: var(--radius-sm);
-          display: flex;
-          align-items: center;
-          justify-content: center;
-        }
-        
-        .sidebar-close:hover {
-          background: var(--gray-100);
-          color: var(--text-primary);
+          color: #94a3b8;
+          padding: 4px;
         }
 
         .sidebar-nav {
           flex: 1;
-          padding: 16px 12px;
+          padding: 12px 14px;
           overflow-y: auto;
           display: flex;
           flex-direction: column;
@@ -284,107 +311,147 @@ export default function DashboardLayout({ children }) {
           display: flex;
           align-items: center;
           gap: 12px;
-          padding: 10px 14px;
+          padding: 10px 16px;
           border-radius: var(--radius-md);
           font-size: 0.875rem;
           font-weight: 600;
-          color: var(--text-secondary);
+          color: #64748b;
           transition: all var(--transition-fast);
           text-decoration: none;
-          white-space: nowrap;
         }
 
         .sidebar-link:hover {
-          background: var(--gray-100);
-          color: var(--text-primary);
+          color: #0f172a;
+          background: #f8fafc;
         }
 
         .sidebar-link-active {
-          background: var(--primary-50);
-          color: var(--primary-700);
-          border: 1px solid var(--primary-100);
+          background: #e6f9f0;
+          color: #059669;
         }
 
         .sidebar-link-icon {
           display: flex;
           align-items: center;
           justify-content: center;
-          width: 20px;
-          height: 20px;
-          flex-shrink: 0;
-        }
-
-        .sidebar-link-text {
-          flex: 1;
-          overflow: hidden;
-          text-overflow: ellipsis;
         }
 
         .sidebar-footer {
-          padding: 16px;
-          border-top: 1px solid var(--border-light);
+          padding: 16px 14px 20px;
           display: flex;
-          align-items: center;
-          justify-content: space-between;
-          background: var(--gray-50);
+          flex-direction: column;
+          gap: 12px;
+          border-top: 1px solid #f1f5f9;
         }
 
-        .sidebar-user {
+        .user-profile-section {
+          padding: 8px 4px;
+        }
+
+        .user-profile-row {
           display: flex;
           align-items: center;
-          gap: 12px;
-          overflow: hidden;
+          gap: 10px;
+          margin-bottom: 8px;
         }
 
         .sidebar-avatar {
-          width: 38px;
-          height: 38px;
+          width: 36px;
+          height: 36px;
           border-radius: 50%;
-          background: linear-gradient(135deg, var(--primary-400), var(--primary-600));
-          color: white;
+          background: #e2e8f0;
+          color: #0f172a;
           display: flex;
           align-items: center;
           justify-content: center;
           font-weight: 700;
-          font-size: 0.9375rem;
-          box-shadow: var(--shadow-sm);
-          flex-shrink: 0;
+          font-size: 0.875rem;
+          overflow: hidden;
         }
 
-        .sidebar-user-info {
+        .user-text-info {
           display: flex;
           flex-direction: column;
-          overflow: hidden;
+          flex: 1;
+          line-height: 1.2;
         }
 
-        .sidebar-user-name {
+        .user-name-text {
           font-size: 0.875rem;
           font-weight: 700;
-          color: var(--text-primary);
-          white-space: nowrap;
-          overflow: hidden;
-          text-overflow: ellipsis;
+          color: #0f172a;
         }
 
-        .sidebar-user-alan {
+        .user-level-text {
           font-size: 0.75rem;
-          color: var(--text-tertiary);
+          color: #94a3b8;
           font-weight: 500;
         }
 
-        .btn-logout {
-          color: var(--text-tertiary);
-          padding: 8px;
+        .btn-logout-small {
+          color: #94a3b8;
+          padding: 4px;
+        }
+
+        .btn-logout-small:hover {
+          color: #ef4444;
+        }
+
+        .xp-progress-wrapper {
+          display: flex;
+          flex-direction: column;
+          gap: 4px;
+        }
+
+        .xp-text {
+          font-size: 0.6875rem;
+          color: #94a3b8;
+          text-align: right;
+          font-weight: 600;
+        }
+
+        .sidebar-streak-card {
+          background: #f0fdf4;
           border-radius: var(--radius-md);
+          padding: 12px 14px;
+          border: 1px solid #dcfce7;
+        }
+
+        .streak-card-left {
+          display: flex;
+          align-items: center;
+          gap: 10px;
+          margin-bottom: 4px;
+        }
+
+        .streak-flame-circle {
+          width: 32px;
+          height: 32px;
+          border-radius: 50%;
+          background: #ffffff;
           display: flex;
           align-items: center;
           justify-content: center;
-          transition: all var(--transition-fast);
+          box-shadow: var(--shadow-xs);
         }
 
-        .btn-logout:hover {
-          color: var(--error);
-          background: var(--error-light);
+        .streak-card-val {
+          font-size: 1.125rem;
+          font-weight: 800;
+          color: #0f172a;
+          line-height: 1;
+        }
+
+        .streak-card-lbl {
+          font-size: 0.75rem;
+          color: #64748b;
+          font-weight: 600;
+        }
+
+        .streak-card-sub {
+          font-size: 0.75rem;
+          color: #059669;
+          font-weight: 500;
         }
 
         /* Main wrapper */
@@ -394,76 +461,68 @@ export default function DashboardLayout({ children }) {
           display: flex;
           flex-direction: column;
           min-height: 100vh;
-          width: calc(100% - var(--sidebar-width));
         }
 
         /* Topbar */
         .topbar {
           height: var(--topbar-height);
-          border-bottom: 1px solid var(--border-light);
+          padding: 0 32px;
           display: flex;
           align-items: center;
           justify-content: space-between;
-          padding: 0 32px;
-          position: sticky;
-          top: 0;
-          z-index: 50;
         }
 
-        .topbar-left {
+        .topbar-right {
           display: flex;
           align-items: center;
-          gap: 16px;
+          gap: 12px;
+          margin-left: auto;
         }
 
-        .topbar-menu {
-          color: var(--text-secondary);
-          padding: 6px;
-          border-radius: var(--radius-md);
+        .topbar-circle-btn {
+          width: 40px;
+          height: 40px;
+          border-radius: 50%;
+          background: #ffffff;
+          border: 1px solid #f1f5f9;
           display: flex;
           align-items: center;
           justify-content: center;
+          box-shadow: var(--shadow-xs);
+          transition: all var(--transition-fast);
         }
 
-        .topbar-title {
-          font-size: 1.25rem;
-          font-weight: 800;
-          color: var(--text-primary);
-          letter-spacing: -0.02em;
+        .topbar-circle-btn:hover {
+          background: #f8fafc;
         }
 
-        .topbar-actions {
+        .topbar-user-dropdown {
           display: flex;
           align-items: center;
+          gap: 6px;
+          cursor: pointer;
+          margin-left: 4px;
         }
 
-        .topbar-avatar {
-          width: 38px;
-          height: 38px;
+        .topbar-avatar-img {
+          width: 40px;
+          height: 40px;
           border-radius: 50%;
-          background: linear-gradient(135deg, var(--primary-400), var(--primary-600));
+          background: #38bdf8;
           color: white;
           display: flex;
           align-items: center;
           justify-content: center;
           font-weight: 700;
           font-size: 0.9375rem;
-          box-shadow: var(--shadow-sm);
-          transition: all var(--transition-bounce);
-        }
-
-        .topbar-avatar:hover {
-          transform: scale(1.08);
-          box-shadow: var(--shadow-md);
         }
 
         /* Main Content */
         .main-content {
           flex: 1;
-          padding: 32px;
-          max-width: 1200px;
+          padding: 0 32px 40px;
+          max-width: 1240px;
           width: 100%;
-          margin: 0 auto;
         }
 
         /* Mobile Nav */
@@ -473,42 +532,29 @@ export default function DashboardLayout({ children }) {
           left: 0;
           right: 0;
           height: var(--mobile-nav-height);
-          border-top: 1px solid var(--border-light);
+          background: #ffffff;
+          border-top: 1px solid #f1f5f9;
           display: flex;
           align-items: center;
           justify-content: space-around;
           z-index: 90;
-          padding: 0 12px;
-          background: rgba(255, 255, 255, 0.9);
         }
 
         .mobile-nav-item {
           display: flex;
           flex-direction: column;
           align-items: center;
-          justify-content: center;
           gap: 4px;
-          padding: 8px 12px;
-          border-radius: var(--radius-md);
-          color: var(--text-tertiary);
+          color: #94a3b8;
           font-size: 0.6875rem;
           font-weight: 600;
-          transition: color var(--transition-fast);
-          min-width: 64px;
           text-decoration: none;
         }
 
         .mobile-nav-item-active {
-          color: var(--primary-600);
+          color: #10b981;
         }
 
-        .mobile-nav-icon {
-          display: flex;
-          align-items: center;
-          justify-content: center;
-        }
-
-        /* Responsive Breakpoints */
         @media (max-width: 768px) {
           .sidebar {
             transform: translateX(-100%);
@@ -520,7 +566,6 @@ export default function DashboardLayout({ children }) {
 
           .main-wrapper {
             margin-left: 0;
-            width: 100%;
             padding-bottom: var(--mobile-nav-height);
           }
 
@@ -529,7 +574,7 @@ export default function DashboardLayout({ children }) {
           }
 
           .main-content {
-            padding: 20px 16px;
+            padding: 0 16px 24px;
           }
         }
       `}</style>
