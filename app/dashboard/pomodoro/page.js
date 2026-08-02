@@ -1,6 +1,8 @@
 'use client';
 
 import { useState, useEffect, useRef } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
+import { Play, Pause, RotateCcw, Coffee, BookOpen, Clock, Settings2 } from 'lucide-react';
 
 export default function PomodoroPage() {
   const [presets] = useState([
@@ -51,7 +53,7 @@ export default function PomodoroPage() {
 
   function handleStart() {
     if (!isRunning && !isBreak) {
-      setTimeLeft(currentPreset.work * 60);
+      if (timeLeft === 0) setTimeLeft(currentPreset.work * 60);
     }
     setIsRunning(true);
   }
@@ -89,11 +91,39 @@ export default function PomodoroPage() {
   const strokeDashoffset = circumference - (progressPct / 100) * circumference;
 
   return (
-    <div className="page animate-fade-in">
+    <motion.div 
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      className="page"
+    >
       <div className="pomo-container">
+        <motion.div 
+          initial={{ y: -20, opacity: 0 }}
+          animate={{ y: 0, opacity: 1 }}
+          className="pomo-header"
+        >
+          <Clock size={32} color={isBreak ? "var(--info)" : "var(--primary-500)"} />
+          <h1>Pomodoro</h1>
+        </motion.div>
+
         {/* Timer Circle */}
-        <div className="pomo-timer-wrapper">
+        <motion.div 
+          initial={{ scale: 0.9, opacity: 0 }}
+          animate={{ scale: 1, opacity: 1 }}
+          transition={{ type: 'spring', stiffness: 200, damping: 20 }}
+          className="pomo-timer-wrapper"
+        >
           <svg className="pomo-circle" viewBox="0 0 300 300">
+            <defs>
+              <linearGradient id="pomo-gradient-work" x1="0%" y1="0%" x2="100%" y2="100%">
+                <stop offset="0%" stopColor="var(--primary-400)" />
+                <stop offset="100%" stopColor="var(--primary-600)" />
+              </linearGradient>
+              <linearGradient id="pomo-gradient-break" x1="0%" y1="0%" x2="100%" y2="100%">
+                <stop offset="0%" stopColor="#3B82F6" />
+                <stop offset="100%" stopColor="#2563EB" />
+              </linearGradient>
+            </defs>
             <circle cx="150" cy="150" r="140" className="pomo-track" />
             <circle
               cx="150" cy="150" r="140"
@@ -101,81 +131,155 @@ export default function PomodoroPage() {
               style={{
                 strokeDasharray: circumference,
                 strokeDashoffset: strokeDashoffset,
-                stroke: isBreak ? 'var(--info)' : 'var(--primary-500)',
+                stroke: isBreak ? 'url(#pomo-gradient-break)' : 'url(#pomo-gradient-work)',
               }}
             />
           </svg>
           <div className="pomo-time-display">
-            <span className="pomo-status">{isBreak ? '☕ Mola' : '📖 Çalışma'}</span>
+            <AnimatePresence mode="wait">
+              <motion.div
+                key={isBreak ? 'break' : 'work'}
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -10 }}
+                className="pomo-status"
+              >
+                {isBreak ? (
+                  <><Coffee size={18} /> Mola Zamanı</>
+                ) : (
+                  <><BookOpen size={18} /> Odaklanma Zamanı</>
+                )}
+              </motion.div>
+            </AnimatePresence>
             <span className="pomo-time">
               {String(minutes).padStart(2, '0')}:{String(seconds).padStart(2, '0')}
             </span>
           </div>
-        </div>
+        </motion.div>
 
         {/* Controls */}
         <div className="pomo-controls">
           {!isRunning ? (
-            <button className="btn btn-primary btn-lg" onClick={handleStart}>
-              ▶ {timeLeft === currentPreset.work * 60 && !isBreak ? 'Başla' : 'Devam'}
-            </button>
+            <motion.button 
+              whileHover={{ scale: 1.05 }}
+              whileTap={{ scale: 0.95 }}
+              className="btn btn-primary btn-lg pomo-btn" 
+              onClick={handleStart}
+            >
+              <Play size={20} /> {timeLeft === currentPreset.work * 60 && !isBreak ? 'Başla' : 'Devam Et'}
+            </motion.button>
           ) : (
-            <button className="btn btn-secondary btn-lg" onClick={handlePause}>⏸ Duraklat</button>
+            <motion.button 
+              whileHover={{ scale: 1.05 }}
+              whileTap={{ scale: 0.95 }}
+              className="btn btn-secondary btn-lg pomo-btn" 
+              onClick={handlePause}
+            >
+              <Pause size={20} /> Duraklat
+            </motion.button>
           )}
-          <button className="btn btn-ghost btn-lg" onClick={handleReset}>↺ Sıfırla</button>
-        </div>
-
-        {/* Presets */}
-        <div className="pomo-presets">
-          <h3 className="pomo-section-title">Hazır Süreler</h3>
-          <div className="preset-grid">
-            {presets.map((p, i) => (
-              <button
-                key={i}
-                className={`preset-card card ${selectedPreset === i && !isCustom ? 'preset-active' : ''}`}
-                onClick={() => selectPreset(i)}
-              >
-                <span className="preset-label">{p.label}</span>
-                <span className="preset-desc">{p.work}dk çalışma / {p.break_}dk mola</span>
-              </button>
-            ))}
-          </div>
-        </div>
-
-        {/* Custom */}
-        <div className="pomo-custom card">
-          <h3 className="pomo-section-title">Özel Süre</h3>
-          <div style={{ display: 'flex', gap: '12px', alignItems: 'flex-end' }}>
-            <div className="input-group" style={{ flex: 1 }}>
-              <label className="input-label">Çalışma (dk)</label>
-              <input className="input" type="number" value={customWork} onChange={(e) => setCustomWork(e.target.value)} placeholder="25" />
-            </div>
-            <div className="input-group" style={{ flex: 1 }}>
-              <label className="input-label">Mola (dk)</label>
-              <input className="input" type="number" value={customBreak} onChange={(e) => setCustomBreak(e.target.value)} placeholder="5" />
-            </div>
-            <button className="btn btn-primary" onClick={applyCustom}>Uygula</button>
-          </div>
+          <motion.button 
+            whileHover={{ scale: 1.05 }}
+            whileTap={{ scale: 0.95 }}
+            className="btn btn-ghost btn-lg pomo-btn-ghost" 
+            onClick={handleReset}
+          >
+            <RotateCcw size={20} />
+          </motion.button>
         </div>
 
         {/* Sessions */}
-        <div className="pomo-sessions">
-          <span>Tamamlanan: <strong>{totalSessions}</strong> oturum</span>
+        <motion.div 
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ delay: 0.2 }}
+          className="pomo-sessions"
+        >
+          <div className="pomo-session-badge">
+            <BookOpen size={16} color="var(--primary-600)" />
+            <span>Tamamlanan: <strong>{totalSessions}</strong> oturum</span>
+          </div>
+        </motion.div>
+
+        {/* Settings Area */}
+        <div className="pomo-settings-area">
+          {/* Presets */}
+          <motion.div 
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.3 }}
+            className="pomo-presets"
+          >
+            <h3 className="pomo-section-title">
+              <Clock size={16} /> Hazır Süreler
+            </h3>
+            <div className="preset-grid">
+              {presets.map((p, i) => (
+                <button
+                  key={i}
+                  className={`preset-card card card-interactive ${selectedPreset === i && !isCustom ? 'preset-active' : ''}`}
+                  onClick={() => selectPreset(i)}
+                >
+                  <span className="preset-label">{p.label}</span>
+                  <span className="preset-desc">{p.work}dk / {p.break_}dk</span>
+                </button>
+              ))}
+            </div>
+          </motion.div>
+
+          {/* Custom */}
+          <motion.div 
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.4 }}
+            className="pomo-custom card"
+          >
+            <h3 className="pomo-section-title">
+              <Settings2 size={16} /> Özel Süre
+            </h3>
+            <div style={{ display: 'flex', gap: '12px', alignItems: 'flex-end', flexWrap: 'wrap' }}>
+              <div className="input-group" style={{ flex: 1, minWidth: '100px' }}>
+                <label className="input-label">Çalışma (dk)</label>
+                <input className="input" type="number" value={customWork} onChange={(e) => setCustomWork(e.target.value)} placeholder="25" />
+              </div>
+              <div className="input-group" style={{ flex: 1, minWidth: '100px' }}>
+                <label className="input-label">Mola (dk)</label>
+                <input className="input" type="number" value={customBreak} onChange={(e) => setCustomBreak(e.target.value)} placeholder="5" />
+              </div>
+              <button className="btn btn-secondary" onClick={applyCustom} style={{ height: '42px', padding: '0 16px' }}>Uygula</button>
+            </div>
+          </motion.div>
         </div>
       </div>
 
       <style jsx>{`
         .pomo-container {
-          max-width: 480px;
+          max-width: 520px;
           margin: 0 auto;
           text-align: center;
+          padding: 20px 0;
+        }
+        
+        .pomo-header {
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          gap: 12px;
+          margin-bottom: 32px;
+        }
+        
+        .pomo-header h1 {
+          font-size: 1.75rem;
+          font-weight: 800;
+          color: var(--text-primary);
         }
 
         .pomo-timer-wrapper {
           position: relative;
-          width: 280px;
-          height: 280px;
-          margin: 0 auto 32px;
+          width: 300px;
+          height: 300px;
+          margin: 0 auto 40px;
+          filter: drop-shadow(0 20px 40px rgba(0,0,0,0.05));
         }
 
         .pomo-circle {
@@ -186,13 +290,13 @@ export default function PomodoroPage() {
 
         .pomo-track {
           fill: none;
-          stroke: var(--gray-200);
-          stroke-width: 8;
+          stroke: var(--gray-100);
+          stroke-width: 6;
         }
 
         .pomo-progress {
           fill: none;
-          stroke-width: 8;
+          stroke-width: 12;
           stroke-linecap: round;
           transition: stroke-dashoffset 1s linear;
         }
@@ -207,74 +311,164 @@ export default function PomodoroPage() {
         }
 
         .pomo-status {
-          font-size: 0.875rem;
-          color: var(--text-tertiary);
-          margin-bottom: 4px;
+          font-size: 1rem;
+          font-weight: 600;
+          color: var(--text-secondary);
+          margin-bottom: 8px;
+          display: flex;
+          align-items: center;
+          gap: 8px;
         }
 
         .pomo-time {
-          font-size: 3rem;
-          font-weight: 700;
+          font-size: 4rem;
+          font-weight: 800;
           font-variant-numeric: tabular-nums;
-          letter-spacing: 2px;
+          letter-spacing: -2px;
+          color: var(--text-primary);
+          line-height: 1;
         }
 
         .pomo-controls {
           display: flex;
           justify-content: center;
-          gap: 12px;
+          align-items: center;
+          gap: 16px;
+          margin-bottom: 32px;
+        }
+        
+        .pomo-btn {
+          display: flex;
+          align-items: center;
+          gap: 8px;
+          padding: 0 32px;
+          border-radius: var(--radius-full);
+          font-size: 1.125rem;
+          height: 56px;
+        }
+        
+        .pomo-btn-ghost {
+          width: 56px;
+          height: 56px;
+          padding: 0;
+          border-radius: 50%;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          background: var(--gray-100);
+          color: var(--text-secondary);
+        }
+        
+        .pomo-btn-ghost:hover {
+          background: var(--gray-200);
+          color: var(--text-primary);
+        }
+
+        .pomo-sessions {
           margin-bottom: 40px;
+          display: flex;
+          justify-content: center;
+        }
+        
+        .pomo-session-badge {
+          display: flex;
+          align-items: center;
+          gap: 8px;
+          padding: 8px 16px;
+          background: var(--primary-50);
+          color: var(--primary-700);
+          border-radius: var(--radius-full);
+          font-size: 0.875rem;
+          border: 1px solid var(--primary-100);
+        }
+        
+        .pomo-settings-area {
+          background: var(--gray-50);
+          padding: 24px;
+          border-radius: var(--radius-lg);
+          border: 1px solid var(--border-light);
         }
 
         .pomo-section-title {
           font-size: 0.9375rem;
-          font-weight: 600;
-          margin-bottom: 12px;
+          font-weight: 700;
+          margin-bottom: 16px;
           text-align: left;
+          color: var(--text-secondary);
+          display: flex;
+          align-items: center;
+          gap: 8px;
         }
 
         .pomo-presets {
-          margin-bottom: 20px;
+          margin-bottom: 24px;
         }
 
         .preset-grid {
           display: grid;
           grid-template-columns: repeat(3, 1fr);
-          gap: 10px;
+          gap: 12px;
         }
 
         .preset-card {
-          padding: 14px;
+          padding: 16px 12px;
           text-align: center;
           cursor: pointer;
-          transition: all var(--transition-fast);
+          border: 2px solid transparent;
         }
 
         .preset-active {
-          border-color: var(--primary-500);
+          border-color: var(--primary-400);
           background: var(--primary-50);
+          box-shadow: var(--shadow-md);
+        }
+        
+        .preset-active .preset-label {
+          color: var(--primary-700);
         }
 
         .preset-label {
-          font-size: 1rem;
-          font-weight: 700;
+          font-size: 1.125rem;
+          font-weight: 800;
           display: block;
+          color: var(--text-primary);
+          margin-bottom: 2px;
         }
 
         .preset-desc {
-          font-size: 0.6875rem;
+          font-size: 0.75rem;
           color: var(--text-tertiary);
+          font-weight: 500;
         }
 
         .pomo-custom {
-          margin-bottom: 20px;
+          padding: 20px;
+          text-align: left;
         }
 
-        .pomo-sessions {
-          font-size: 0.875rem;
-          color: var(--text-secondary);
+        @media (max-width: 480px) {
+          .pomo-timer-wrapper {
+            width: 250px;
+            height: 250px;
+          }
+          
+          .pomo-time {
+            font-size: 3.5rem;
+          }
+          
+          .preset-grid {
+            gap: 8px;
+          }
+          
+          .preset-card {
+            padding: 12px 8px;
+          }
+          
+          .pomo-settings-area {
+            padding: 16px;
+          }
         }
       `}</style>
-    </div>
+    </motion.div>
   );
 }

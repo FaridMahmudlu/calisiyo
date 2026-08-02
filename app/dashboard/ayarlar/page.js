@@ -4,13 +4,28 @@ import { useState } from 'react';
 import { useUser } from '../layout';
 import { createClient } from '@/lib/supabase/client';
 import { useRouter } from 'next/navigation';
+import { motion } from 'framer-motion';
+import { Settings, User, Lock, LogOut, CheckCircle, AlertCircle } from 'lucide-react';
+
+const containerVariants = {
+  hidden: { opacity: 0 },
+  show: {
+    opacity: 1,
+    transition: { staggerChildren: 0.1 }
+  }
+};
+
+const itemVariants = {
+  hidden: { opacity: 0, y: 20 },
+  show: { opacity: 1, y: 0, transition: { type: 'spring', stiffness: 300, damping: 24 } }
+};
 
 export default function AyarlarPage() {
   const { profile, setProfile } = useUser();
   const supabase = createClient();
   const router = useRouter();
   const [loading, setLoading] = useState(false);
-  const [success, setSuccess] = useState('');
+  const [message, setMessage] = useState({ text: '', type: '' });
   const [form, setForm] = useState({
     full_name: profile?.full_name || '',
     alan_secimi: profile?.alan_secimi || 'sayisal',
@@ -20,7 +35,7 @@ export default function AyarlarPage() {
   async function handleProfileUpdate(e) {
     e.preventDefault();
     setLoading(true);
-    setSuccess('');
+    setMessage({ text: '', type: '' });
 
     const { error } = await supabase
       .from('profiles')
@@ -29,7 +44,9 @@ export default function AyarlarPage() {
 
     if (!error) {
       setProfile({ ...profile, full_name: form.full_name, alan_secimi: form.alan_secimi });
-      setSuccess('Profil güncellendi!');
+      setMessage({ text: 'Profil başarıyla güncellendi.', type: 'success' });
+    } else {
+      setMessage({ text: 'Profil güncellenirken bir hata oluştu.', type: 'error' });
     }
     setLoading(false);
   }
@@ -37,18 +54,20 @@ export default function AyarlarPage() {
   async function handlePasswordChange(e) {
     e.preventDefault();
     if (passwordForm.password !== passwordForm.confirm) {
-      setSuccess('Şifreler eşleşmiyor!');
+      setMessage({ text: 'Şifreler eşleşmiyor.', type: 'error' });
       return;
     }
     if (passwordForm.password.length < 6) {
-      setSuccess('Şifre en az 6 karakter olmalıdır.');
+      setMessage({ text: 'Şifre en az 6 karakter olmalıdır.', type: 'error' });
       return;
     }
     setLoading(true);
     const { error } = await supabase.auth.updateUser({ password: passwordForm.password });
     if (!error) {
-      setSuccess('Şifre güncellendi!');
+      setMessage({ text: 'Şifre başarıyla güncellendi.', type: 'success' });
       setPasswordForm({ password: '', confirm: '' });
+    } else {
+      setMessage({ text: 'Şifre güncellenirken bir hata oluştu.', type: 'error' });
     }
     setLoading(false);
   }
@@ -67,57 +86,175 @@ export default function AyarlarPage() {
   ];
 
   return (
-    <div className="page animate-fade-in" style={{ maxWidth: '560px' }}>
-      {success && (
-        <div className="card" style={{ padding: '12px 16px', marginBottom: '20px', background: 'var(--success-light)', color: 'var(--primary-700)', fontSize: '0.875rem', borderColor: 'var(--primary-300)' }}>
-          {success}
-        </div>
+    <motion.div 
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      className="page"
+      style={{ maxWidth: '640px', margin: '0 auto' }}
+    >
+      <div className="page-header" style={{ marginBottom: '24px' }}>
+        <h1 style={{ fontSize: '1.5rem', fontWeight: 700, display: 'flex', alignItems: 'center', gap: '8px' }}>
+          <Settings size={24} color="var(--primary-500)" />
+          Ayarlar
+        </h1>
+      </div>
+
+      {message.text && (
+        <motion.div 
+          initial={{ opacity: 0, y: -10 }}
+          animate={{ opacity: 1, y: 0 }}
+          className={`alert ${message.type === 'success' ? 'alert-success' : 'alert-error'}`}
+        >
+          {message.type === 'success' ? <CheckCircle size={18} /> : <AlertCircle size={18} />}
+          <span>{message.text}</span>
+        </motion.div>
       )}
 
-      {/* Profile */}
-      <div className="card" style={{ marginBottom: '20px' }}>
-        <h3 style={{ fontSize: '1rem', fontWeight: 600, marginBottom: '20px' }}>👤 Profil Düzenle</h3>
-        <form onSubmit={handleProfileUpdate} style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-          <div className="input-group">
-            <label className="input-label">Ad Soyad</label>
-            <input className="input" value={form.full_name} onChange={(e) => setForm({ ...form, full_name: e.target.value })} />
-          </div>
-          <div className="input-group">
-            <label className="input-label">Alan Seçimi</label>
-            <select className="select" value={form.alan_secimi} onChange={(e) => setForm({ ...form, alan_secimi: e.target.value })}>
-              {alanOptions.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
-            </select>
-          </div>
-          <button className="btn btn-primary" type="submit" disabled={loading}>
-            {loading ? <span className="spinner"></span> : 'Güncelle'}
-          </button>
-        </form>
-      </div>
+      <motion.div 
+        variants={containerVariants}
+        initial="hidden"
+        animate="show"
+        style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}
+      >
+        {/* Profile */}
+        <motion.div variants={itemVariants} className="card settings-card">
+          <h3 className="settings-title">
+            <User size={20} color="var(--primary-500)" /> Profil Bilgileri
+          </h3>
+          <form onSubmit={handleProfileUpdate} className="settings-form">
+            <div className="input-group">
+              <label className="input-label">Ad Soyad</label>
+              <input 
+                className="input" 
+                value={form.full_name} 
+                onChange={(e) => setForm({ ...form, full_name: e.target.value })} 
+                placeholder="Adınız Soyadınız"
+              />
+            </div>
+            <div className="input-group">
+              <label className="input-label">Alan Seçimi</label>
+              <select 
+                className="select" 
+                value={form.alan_secimi} 
+                onChange={(e) => setForm({ ...form, alan_secimi: e.target.value })}
+              >
+                {alanOptions.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
+              </select>
+            </div>
+            <button className="btn btn-primary settings-btn" type="submit" disabled={loading}>
+              {loading ? <span className="spinner spinner-sm"></span> : 'Bilgileri Güncelle'}
+            </button>
+          </form>
+        </motion.div>
 
-      {/* Password */}
-      <div className="card" style={{ marginBottom: '20px' }}>
-        <h3 style={{ fontSize: '1rem', fontWeight: 600, marginBottom: '20px' }}>🔒 Şifre Değiştir</h3>
-        <form onSubmit={handlePasswordChange} style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-          <div className="input-group">
-            <label className="input-label">Yeni Şifre</label>
-            <input className="input" type="password" value={passwordForm.password} onChange={(e) => setPasswordForm({ ...passwordForm, password: e.target.value })} placeholder="En az 6 karakter" />
-          </div>
-          <div className="input-group">
-            <label className="input-label">Şifre Tekrar</label>
-            <input className="input" type="password" value={passwordForm.confirm} onChange={(e) => setPasswordForm({ ...passwordForm, confirm: e.target.value })} placeholder="Tekrar girin" />
-          </div>
-          <button className="btn btn-primary" type="submit" disabled={loading}>
-            {loading ? <span className="spinner"></span> : 'Şifreyi Değiştir'}
-          </button>
-        </form>
-      </div>
+        {/* Password */}
+        <motion.div variants={itemVariants} className="card settings-card">
+          <h3 className="settings-title">
+            <Lock size={20} color="var(--primary-500)" /> Şifre Değiştir
+          </h3>
+          <form onSubmit={handlePasswordChange} className="settings-form">
+            <div className="input-group">
+              <label className="input-label">Yeni Şifre</label>
+              <input 
+                className="input" 
+                type="password" 
+                value={passwordForm.password} 
+                onChange={(e) => setPasswordForm({ ...passwordForm, password: e.target.value })} 
+                placeholder="En az 6 karakter" 
+              />
+            </div>
+            <div className="input-group">
+              <label className="input-label">Şifre Tekrar</label>
+              <input 
+                className="input" 
+                type="password" 
+                value={passwordForm.confirm} 
+                onChange={(e) => setPasswordForm({ ...passwordForm, confirm: e.target.value })} 
+                placeholder="Şifrenizi tekrar girin" 
+              />
+            </div>
+            <button className="btn btn-primary settings-btn" type="submit" disabled={loading}>
+              {loading ? <span className="spinner spinner-sm"></span> : 'Şifreyi Değiştir'}
+            </button>
+          </form>
+        </motion.div>
 
-      {/* Logout */}
-      <div className="card">
-        <button className="btn btn-danger" style={{ width: '100%' }} onClick={handleLogout}>
-          🚪 Çıkış Yap
-        </button>
-      </div>
-    </div>
+        {/* Logout */}
+        <motion.div variants={itemVariants} className="card settings-card" style={{ border: '1px solid var(--error-light)' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <div>
+              <h3 style={{ fontSize: '1rem', fontWeight: 600, color: 'var(--text-primary)', marginBottom: '4px' }}>Hesaptan Çıkış</h3>
+              <p style={{ fontSize: '0.8125rem', color: 'var(--text-secondary)' }}>Mevcut oturumunuzu güvenle sonlandırın.</p>
+            </div>
+            <button className="btn btn-danger" onClick={handleLogout} style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+              <LogOut size={16} /> Çıkış Yap
+            </button>
+          </div>
+        </motion.div>
+      </motion.div>
+
+      <style jsx>{`
+        .alert {
+          padding: 14px 16px;
+          border-radius: var(--radius-md);
+          margin-bottom: 24px;
+          display: flex;
+          align-items: center;
+          gap: 10px;
+          font-size: 0.875rem;
+          font-weight: 500;
+        }
+        
+        .alert-success {
+          background: var(--success-light);
+          color: var(--primary-700);
+          border: 1px solid var(--primary-300);
+        }
+        
+        .alert-error {
+          background: var(--error-light);
+          color: var(--error);
+          border: 1px solid rgba(239, 68, 68, 0.3);
+        }
+
+        .settings-card {
+          padding: 24px;
+        }
+
+        .settings-title {
+          font-size: 1.125rem;
+          font-weight: 700;
+          color: var(--text-primary);
+          margin-bottom: 20px;
+          display: flex;
+          align-items: center;
+          gap: 10px;
+          padding-bottom: 16px;
+          border-bottom: 1px dashed var(--border-light);
+        }
+
+        .settings-form {
+          display: flex;
+          flex-direction: column;
+          gap: 16px;
+        }
+        
+        .settings-btn {
+          align-self: flex-start;
+          margin-top: 8px;
+        }
+
+        @media (max-width: 480px) {
+          .settings-card {
+            padding: 20px;
+          }
+          
+          .settings-btn {
+            align-self: stretch;
+            width: 100%;
+          }
+        }
+      `}</style>
+    </motion.div>
   );
 }

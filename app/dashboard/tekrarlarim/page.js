@@ -5,6 +5,21 @@ import { useUser } from '../layout';
 import { createClient } from '@/lib/supabase/client';
 import { getExamTabs } from '@/lib/constants/alanlar';
 import { formatDate, todayStr } from '@/lib/utils/date';
+import { motion, AnimatePresence } from 'framer-motion';
+import { Repeat, Plus, CheckCircle2, Circle, Calendar, Clock, BookOpen } from 'lucide-react';
+
+const containerVariants = {
+  hidden: { opacity: 0 },
+  show: {
+    opacity: 1,
+    transition: { staggerChildren: 0.05 }
+  }
+};
+
+const itemVariants = {
+  hidden: { opacity: 0, y: 10 },
+  show: { opacity: 1, y: 0, transition: { type: 'spring', stiffness: 300, damping: 24 } }
+};
 
 export default function TekrarlarimPage() {
   const { profile } = useUser();
@@ -64,100 +79,260 @@ export default function TekrarlarimPage() {
   }
 
   async function toggleTamamlandi(id, current) {
-    await supabase.from('tekrarlar').update({ tamamlandi: !current }).eq('id', id);
+    // Optimistic update
     setTekrarlar(tekrarlar.map(t => t.id === id ? { ...t, tamamlandi: !current } : t));
+    await supabase.from('tekrarlar').update({ tamamlandi: !current }).eq('id', id);
   }
 
   return (
-    <div className="page animate-fade-in">
-      <div className="tabs" style={{ marginBottom: '16px' }}>
-        {examTabs.map(tab => (
-          <button key={tab} className={`tab ${activeTab === tab ? 'tab-active' : ''}`} onClick={() => setActiveTab(tab)}>{tab}</button>
-        ))}
+    <motion.div 
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      className="page"
+    >
+      <div className="page-header" style={{ marginBottom: '24px' }}>
+        <div className="tabs">
+          {examTabs.map(tab => (
+            <button key={tab} className={`tab ${activeTab === tab ? 'tab-active' : ''}`} onClick={() => setActiveTab(tab)}>{tab}</button>
+          ))}
+        </div>
       </div>
 
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px', flexWrap: 'wrap', gap: '10px' }}>
-        <div className="tabs">
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px', flexWrap: 'wrap', gap: '16px' }}>
+        <div className="tabs tabs-sm">
           <button className={`tab ${filter === 'bugun' ? 'tab-active' : ''}`} onClick={() => setFilter('bugun')}>Bugün</button>
-          <button className={`tab ${filter === 'yaklasan' ? 'tab-active' : ''}`} onClick={() => setFilter('yaklasan')}>Yaklaşan</button>
-          <button className={`tab ${filter === 'gecen' ? 'tab-active' : ''}`} onClick={() => setFilter('gecen')}>Geçen</button>
+          <button className={`tab ${filter === 'yaklasan' ? 'tab-active' : ''}`} onClick={() => setFilter('yaklasan')}>Yaklaşanlar</button>
+          <button className={`tab ${filter === 'gecen' ? 'tab-active' : ''}`} onClick={() => setFilter('gecen')}>Geçmiş</button>
         </div>
-        <button className="btn btn-primary" onClick={() => setShowModal(true)}>+ Tekrar Ekle</button>
+        <button className="btn btn-primary" onClick={() => setShowModal(true)}>
+          <Plus size={18} /> Yeni Tekrar
+        </button>
       </div>
 
       {loading ? (
-        <div style={{ display: 'flex', justifyContent: 'center', padding: '60px' }}><div className="spinner spinner-lg"></div></div>
+        <div style={{ display: 'flex', justifyContent: 'center', padding: '60px' }}>
+          <div className="spinner spinner-lg"></div>
+        </div>
       ) : tekrarlar.length === 0 ? (
-        <div className="card empty-state">
-          <div className="empty-state-icon">🔄</div>
+        <motion.div 
+          initial={{ opacity: 0, scale: 0.95 }}
+          animate={{ opacity: 1, scale: 1 }}
+          className="card empty-state"
+        >
+          <Repeat size={48} className="empty-state-icon" />
           <div className="empty-state-title">Tekrar bulunamadı</div>
-          <div className="empty-state-text">Konu tekrarlarını ekleyerek takip et.</div>
-        </div>
+          <div className="empty-state-text">Öğrendiklerini pekiştirmek için düzenli konu tekrarları oluştur.</div>
+          <button className="btn btn-primary" style={{ marginTop: '20px' }} onClick={() => setShowModal(true)}>
+            <Plus size={18} /> Yeni Tekrar Ekle
+          </button>
+        </motion.div>
       ) : (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-          {tekrarlar.map(t => (
-            <div key={t.id} className={`card ${t.tamamlandi ? 'tekrar-done' : ''}`} style={{ display: 'flex', alignItems: 'center', gap: '12px', padding: '14px 18px' }}>
-              <button className={`check-btn ${t.tamamlandi ? 'check-done' : ''}`} onClick={() => toggleTamamlandi(t.id, t.tamamlandi)}>
-                {t.tamamlandi ? '✓' : '○'}
-              </button>
-              <div style={{ flex: 1 }}>
-                <span style={{ fontWeight: 600, fontSize: '0.875rem', color: t.dersler?.renk }}>{t.dersler?.ikon} {t.dersler?.ad}</span>
-                <div style={{ fontSize: '0.8125rem', color: 'var(--text-secondary)' }}>{t.konu}</div>
-                <div style={{ fontSize: '0.75rem', color: 'var(--text-tertiary)' }}>
-                  {formatDate(t.tekrar_tarihi)} {t.tekrar_saati && `• ${t.tekrar_saati.slice(0,5)}`}
-                  {t.kaynak && ` • ${t.kaynak}`}
+        <motion.div 
+          variants={containerVariants}
+          initial="hidden"
+          animate="show"
+          className="tekrarlar-list"
+        >
+          <AnimatePresence>
+            {tekrarlar.map(t => (
+              <motion.div 
+                variants={itemVariants}
+                layout
+                key={t.id} 
+                className={`card tekrar-card ${t.tamamlandi ? 'tekrar-done' : ''}`}
+                style={{ borderLeftColor: t.dersler?.renk || 'var(--primary-500)' }}
+              >
+                <button 
+                  className={`check-btn ${t.tamamlandi ? 'check-done' : ''}`} 
+                  onClick={() => toggleTamamlandi(t.id, t.tamamlandi)}
+                  title={t.tamamlandi ? 'Geri al' : 'Tamamla'}
+                >
+                  {t.tamamlandi ? <CheckCircle2 size={24} /> : <Circle size={24} />}
+                </button>
+                <div className="tekrar-content">
+                  <div className="tekrar-header">
+                    <span className="tekrar-ders" style={{ color: t.dersler?.renk || 'var(--primary-600)' }}>
+                      {t.dersler?.ikon} {t.dersler?.ad}
+                    </span>
+                    {t.kaynak && (
+                      <span className="badge badge-neutral">
+                        <BookOpen size={12} style={{ marginRight: '4px' }} />
+                        {t.kaynak}
+                      </span>
+                    )}
+                  </div>
+                  <h3 className="tekrar-konu">{t.konu}</h3>
+                  <div className="tekrar-meta">
+                    <span className="meta-item">
+                      <Calendar size={14} /> {formatDate(t.tekrar_tarihi)}
+                    </span>
+                    {t.tekrar_saati && (
+                      <span className="meta-item">
+                        <Clock size={14} /> {t.tekrar_saati.slice(0,5)}
+                      </span>
+                    )}
+                  </div>
                 </div>
-              </div>
-            </div>
-          ))}
-        </div>
+              </motion.div>
+            ))}
+          </AnimatePresence>
+        </motion.div>
       )}
 
+      {/* Modal */}
       {showModal && (
         <div className="modal-overlay" onClick={() => setShowModal(false)}>
           <div className="modal" onClick={(e) => e.stopPropagation()}>
             <div className="modal-header">
-              <h3 className="modal-title">Yeni Tekrar</h3>
+              <h3 className="modal-title">Yeni Tekrar Ekle</h3>
               <button className="modal-close" onClick={() => setShowModal(false)}>✕</button>
             </div>
-            <form onSubmit={handleAdd} style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
+            <form onSubmit={handleAdd} className="modal-form">
               <div className="input-group">
                 <label className="input-label">Ders</label>
-                <select className="select" value={form.ders_id} onChange={(e) => setForm({ ...form, ders_id: e.target.value })}>
+                <select className="select" value={form.ders_id} onChange={(e) => setForm({ ...form, ders_id: e.target.value })} required>
                   <option value="">Seçin</option>
                   {dersler.map(d => <option key={d.id} value={d.id}>{d.ad}</option>)}
                 </select>
               </div>
               <div className="input-group">
                 <label className="input-label">Konu</label>
-                <input className="input" value={form.konu} onChange={(e) => setForm({ ...form, konu: e.target.value })} required placeholder="ör. Türev" />
+                <input className="input" value={form.konu} onChange={(e) => setForm({ ...form, konu: e.target.value })} required placeholder="ör. Limit ve Süreklilik" />
               </div>
               <div className="input-group">
                 <label className="input-label">Kaynak</label>
-                <input className="input" value={form.kaynak} onChange={(e) => setForm({ ...form, kaynak: e.target.value })} placeholder="ör. 3D AYT" />
+                <input className="input" value={form.kaynak} onChange={(e) => setForm({ ...form, kaynak: e.target.value })} placeholder="ör. Apotemi Fasikülü (Opsiyonel)" />
               </div>
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
                 <div className="input-group">
-                  <label className="input-label">Tarih</label>
+                  <label className="input-label">Tekrar Tarihi</label>
                   <input className="input" type="date" value={form.tekrar_tarihi} onChange={(e) => setForm({ ...form, tekrar_tarihi: e.target.value })} required />
                 </div>
                 <div className="input-group">
-                  <label className="input-label">Saat</label>
+                  <label className="input-label">Saat (Opsiyonel)</label>
                   <input className="input" type="time" value={form.tekrar_saati} onChange={(e) => setForm({ ...form, tekrar_saati: e.target.value })} />
                 </div>
               </div>
-              <button className="btn btn-primary" type="submit" style={{ width: '100%' }}>Ekle</button>
+              <div style={{ display: 'flex', gap: '12px', marginTop: '8px' }}>
+                <button type="button" className="btn btn-secondary" style={{ flex: 1 }} onClick={() => setShowModal(false)}>İptal</button>
+                <button className="btn btn-primary" type="submit" style={{ flex: 1 }}>Ekle</button>
+              </div>
             </form>
           </div>
         </div>
       )}
 
       <style jsx>{`
-        .tekrar-done { opacity: 0.5; }
-        .check-btn { width: 28px; height: 28px; border-radius: 50%; border: 2px solid var(--gray-300); display: flex; align-items: center; justify-content: center; cursor: pointer; background: none; color: var(--gray-400); font-size: 0.875rem; transition: all var(--transition-fast); }
-        .check-btn:hover { border-color: var(--primary-400); }
-        .check-done { border-color: var(--primary-500); background: var(--primary-500); color: white; }
+        .tabs-sm .tab {
+          padding: 6px 12px;
+          font-size: 0.8125rem;
+        }
+
+        .tekrarlar-list {
+          display: flex;
+          flex-direction: column;
+          gap: 12px;
+        }
+
+        .tekrar-card {
+          display: flex;
+          align-items: center;
+          gap: 16px;
+          padding: 16px 20px;
+          border-left: 4px solid;
+          transition: all var(--transition-fast);
+        }
+        
+        .tekrar-card:hover {
+          transform: translateX(4px);
+        }
+
+        .tekrar-done { 
+          opacity: 0.6; 
+          background: var(--gray-50);
+        }
+        
+        .tekrar-done .tekrar-konu {
+          text-decoration: line-through;
+          color: var(--text-tertiary);
+        }
+
+        .check-btn { 
+          display: flex; 
+          align-items: center; 
+          justify-content: center; 
+          cursor: pointer; 
+          background: none; 
+          border: none;
+          color: var(--gray-300); 
+          transition: all var(--transition-fast); 
+          padding: 0;
+          border-radius: 50%;
+        }
+        
+        .check-btn:hover { 
+          color: var(--primary-500); 
+          background: var(--primary-50);
+        }
+        
+        .check-done { 
+          color: var(--success); 
+        }
+        
+        .check-done:hover {
+          background: var(--success-light);
+        }
+
+        .tekrar-content {
+          flex: 1;
+        }
+
+        .tekrar-header {
+          display: flex;
+          align-items: center;
+          gap: 12px;
+          margin-bottom: 4px;
+        }
+
+        .tekrar-ders {
+          font-weight: 700;
+          font-size: 0.875rem;
+        }
+
+        .tekrar-konu {
+          font-size: 1rem;
+          font-weight: 600;
+          color: var(--text-primary);
+          margin-bottom: 8px;
+        }
+
+        .tekrar-meta {
+          display: flex;
+          align-items: center;
+          gap: 16px;
+        }
+        
+        .meta-item {
+          display: flex;
+          align-items: center;
+          gap: 6px;
+          font-size: 0.75rem;
+          color: var(--text-tertiary);
+          font-weight: 500;
+        }
+
+        .modal-form {
+          display: flex;
+          flex-direction: column;
+          gap: 16px;
+        }
+
+        @media (max-width: 480px) {
+          .tekrar-card {
+            padding: 14px 16px;
+          }
+        }
       `}</style>
-    </div>
+    </motion.div>
   );
 }

@@ -4,7 +4,21 @@ import { useState, useEffect } from 'react';
 import { useUser } from './layout';
 import { createClient } from '@/lib/supabase/client';
 import { daysUntilYKS, todayStr, formatDuration, formatTime } from '@/lib/utils/date';
-import { getExamTabs } from '@/lib/constants/alanlar';
+import { motion } from 'framer-motion';
+import { Target, Activity, PenTool, Timer, Flame, CheckCircle, ListTodo, PartyPopper } from 'lucide-react';
+
+const containerVariants = {
+  hidden: { opacity: 0 },
+  show: {
+    opacity: 1,
+    transition: { staggerChildren: 0.1 }
+  }
+};
+
+const itemVariants = {
+  hidden: { opacity: 0, y: 20 },
+  show: { opacity: 1, y: 0, transition: { type: 'spring', stiffness: 300, damping: 24 } }
+};
 
 export default function DashboardPage() {
   const { profile } = useUser();
@@ -97,113 +111,144 @@ export default function DashboardPage() {
   }
 
   return (
-    <div className="dashboard-page">
+    <motion.div 
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      className="dashboard-page"
+    >
       {/* Greeting */}
       <div className="greeting">
-        <h1 className="greeting-title">
+        <motion.h1 
+          initial={{ opacity: 0, x: -20 }}
+          animate={{ opacity: 1, x: 0 }}
+          className="greeting-title"
+        >
           Merhaba, {profile?.full_name?.split(' ')[0]} 👋
-        </h1>
-        <p className="greeting-sub">Bugün harika bir gün olacak!</p>
+        </motion.h1>
+        <motion.p 
+          initial={{ opacity: 0, x: -20 }}
+          animate={{ opacity: 1, x: 0 }}
+          transition={{ delay: 0.1 }}
+          className="greeting-sub"
+        >
+          Bugün harika bir gün olacak!
+        </motion.p>
       </div>
 
       {/* Stats Grid */}
-      <div className="stats-grid">
+      <motion.div 
+        variants={containerVariants}
+        initial="hidden"
+        animate="show"
+        className="stats-grid"
+      >
         {/* YKS Countdown */}
-        <div className="stat-card stat-countdown">
-          <div className="stat-icon">🎯</div>
+        <motion.div variants={itemVariants} className="stat-card stat-countdown">
+          <div className="stat-icon"><Target size={28} /></div>
           <div className="stat-value">{daysLeft}</div>
-          <div className="stat-label">YKS&apos;ye Kalan Gün</div>
-        </div>
+          <div className="stat-label">YKS'ye Kalan Gün</div>
+        </motion.div>
 
         {/* Daily Progress */}
-        <div className="stat-card">
-          <div className="stat-icon">📊</div>
+        <motion.div variants={itemVariants} className="stat-card">
+          <div className="stat-icon stat-icon-primary"><Activity size={28} /></div>
           <div className="stat-value">{completionPercent}%</div>
           <div className="stat-label">Günlük İlerleme</div>
-          <div className="progress-bar progress-bar-sm" style={{ marginTop: '8px' }}>
+          <div className="progress-bar progress-bar-sm" style={{ marginTop: '12px' }}>
             <div className="progress-bar-fill" style={{ width: `${completionPercent}%` }}></div>
           </div>
-        </div>
+        </motion.div>
 
         {/* Questions */}
-        <div className="stat-card">
-          <div className="stat-icon">✏️</div>
+        <motion.div variants={itemVariants} className="stat-card">
+          <div className="stat-icon stat-icon-blue"><PenTool size={28} /></div>
           <div className="stat-value">{stats.todayQuestions}</div>
           <div className="stat-label">Günlük Soru</div>
-        </div>
+        </motion.div>
 
         {/* Study Time */}
-        <div className="stat-card">
-          <div className="stat-icon">⏱️</div>
+        <motion.div variants={itemVariants} className="stat-card">
+          <div className="stat-icon stat-icon-purple"><Timer size={28} /></div>
           <div className="stat-value">{formatDuration(stats.todayMinutes)}</div>
           <div className="stat-label">Çalışma Süresi</div>
-        </div>
+        </motion.div>
 
         {/* Streak */}
-        <div className="stat-card stat-streak">
-          <div className="stat-icon">🔥</div>
+        <motion.div variants={itemVariants} className="stat-card stat-streak">
+          <div className="stat-icon"><Flame size={28} /></div>
           <div className="stat-value">{stats.streak}</div>
           <div className="stat-label">Günlük Seri</div>
-        </div>
+        </motion.div>
 
         {/* Tasks Progress */}
-        <div className="stat-card">
-          <div className="stat-icon">✅</div>
+        <motion.div variants={itemVariants} className="stat-card">
+          <div className="stat-icon stat-icon-green"><CheckCircle size={28} /></div>
           <div className="stat-value">{stats.todayCompleted}/{stats.todayTotal}</div>
           <div className="stat-label">Görevler</div>
-        </div>
-      </div>
+        </motion.div>
+      </motion.div>
 
       {/* Upcoming Tasks */}
-      <div className="section">
-        <h2 className="section-title">📋 Yaklaşan Görevler</h2>
+      <motion.div 
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ delay: 0.4 }}
+        className="section"
+      >
+        <div className="section-header">
+          <h2 className="section-title"><ListTodo size={20} className="section-icon" /> Yaklaşan Görevler</h2>
+        </div>
+        
         {upcomingTasks.length === 0 ? (
-          <div className="card empty-state" style={{ padding: '40px' }}>
-            <div className="empty-state-icon">🎉</div>
-            <div className="empty-state-title">Bugünkü görevlerin tamamlandı!</div>
+          <div className="card empty-state" style={{ padding: '60px 20px' }}>
+            <PartyPopper size={48} className="empty-state-icon" />
+            <div className="empty-state-title">Harika, bugünkü görevlerin tamamlandı!</div>
             <div className="empty-state-text">
-              Yeni görev eklemek için Günlük Program sayfasına git.
+              Yeni görev eklemek için Günlük Program sayfasına gidebilirsin.
             </div>
           </div>
         ) : (
-          <div className="task-list">
+          <motion.div 
+            variants={containerVariants}
+            initial="hidden"
+            animate="show"
+            className="task-list"
+          >
             {upcomingTasks.map((task) => (
-              <div key={task.id} className="task-card card">
+              <motion.div variants={itemVariants} key={task.id} className="task-card card card-interactive">
                 <div className="task-time">
                   {formatTime(task.baslangic_saat)} - {formatTime(task.bitis_saat)}
                 </div>
+                <div className="task-divider"></div>
                 <div className="task-info">
                   <span className="task-ders" style={{ color: task.dersler?.renk || 'var(--primary-500)' }}>
                     {task.dersler?.ikon} {task.dersler?.ad}
                   </span>
                   {task.konu && <span className="task-konu">{task.konu}</span>}
-                  {task.soru_sayisi && (
+                  {task.soru_sayisi > 0 && (
                     <span className="task-meta">{task.soru_sayisi} soru</span>
                   )}
                 </div>
-              </div>
+              </motion.div>
             ))}
-          </div>
+          </motion.div>
         )}
-      </div>
+      </motion.div>
 
       <style jsx>{`
-        .dashboard-page {
-          animation: fadeIn 300ms ease;
-        }
-
         .greeting {
-          margin-bottom: 28px;
+          margin-bottom: 32px;
         }
 
         .greeting-title {
-          font-size: 1.5rem;
-          font-weight: 700;
+          font-size: 1.75rem;
+          font-weight: 800;
           color: var(--text-primary);
+          letter-spacing: -0.02em;
         }
 
         .greeting-sub {
-          font-size: 0.875rem;
+          font-size: 1rem;
           color: var(--text-tertiary);
           margin-top: 4px;
         }
@@ -211,24 +256,30 @@ export default function DashboardPage() {
         .stats-grid {
           display: grid;
           grid-template-columns: repeat(3, 1fr);
-          gap: 16px;
-          margin-bottom: 32px;
+          gap: 20px;
+          margin-bottom: 40px;
         }
 
         .stat-card {
-          background: var(--bg-card);
-          border-radius: var(--radius-lg);
-          border: 1px solid var(--border-light);
-          padding: 20px;
+          padding: 24px;
           text-align: center;
-          box-shadow: var(--shadow-sm);
-          transition: all var(--transition-fast);
+          display: flex;
+          flex-direction: column;
+          align-items: center;
+          justify-content: center;
+          position: relative;
+          overflow: hidden;
         }
 
-        .stat-card:hover {
-          box-shadow: var(--shadow-md);
-          transform: translateY(-2px);
+        .stat-icon {
+          margin-bottom: 12px;
+          color: var(--text-secondary);
         }
+
+        .stat-icon-primary { color: var(--primary-500); }
+        .stat-icon-blue { color: #3b82f6; }
+        .stat-icon-purple { color: #8b5cf6; }
+        .stat-icon-green { color: #10b981; }
 
         .stat-countdown {
           background: linear-gradient(135deg, var(--primary-500), var(--primary-600));
@@ -236,8 +287,9 @@ export default function DashboardPage() {
           border: none;
         }
 
+        .stat-countdown .stat-icon,
         .stat-countdown .stat-label {
-          color: rgba(255, 255, 255, 0.8);
+          color: rgba(255, 255, 255, 0.9);
         }
 
         .stat-streak {
@@ -246,57 +298,72 @@ export default function DashboardPage() {
           border: none;
         }
 
+        .stat-streak .stat-icon,
         .stat-streak .stat-label {
-          color: rgba(255, 255, 255, 0.8);
-        }
-
-        .stat-icon {
-          font-size: 1.5rem;
-          margin-bottom: 8px;
+          color: rgba(255, 255, 255, 0.9);
         }
 
         .stat-value {
-          font-size: 1.75rem;
-          font-weight: 700;
+          font-size: 2rem;
+          font-weight: 800;
           line-height: 1.2;
+          letter-spacing: -0.02em;
         }
 
         .stat-label {
-          font-size: 0.75rem;
+          font-size: 0.875rem;
           color: var(--text-tertiary);
-          margin-top: 4px;
+          margin-top: 6px;
           font-weight: 500;
         }
 
         .section {
-          margin-bottom: 24px;
+          margin-bottom: 32px;
+        }
+        
+        .section-header {
+          margin-bottom: 20px;
         }
 
         .section-title {
-          font-size: 1.125rem;
-          font-weight: 600;
-          margin-bottom: 16px;
+          font-size: 1.25rem;
+          font-weight: 700;
+          display: flex;
+          align-items: center;
+          gap: 10px;
+          color: var(--text-primary);
+        }
+        
+        .section-icon {
+          color: var(--primary-500);
         }
 
         .task-list {
           display: flex;
           flex-direction: column;
-          gap: 10px;
+          gap: 12px;
         }
 
         .task-card {
           display: flex;
           align-items: center;
-          gap: 16px;
-          padding: 16px 20px;
+          gap: 20px;
+          padding: 18px 24px;
         }
 
         .task-time {
-          font-size: 0.8125rem;
+          font-size: 0.875rem;
           font-weight: 600;
           color: var(--text-secondary);
           white-space: nowrap;
-          min-width: 100px;
+          min-width: 110px;
+        }
+
+        .task-divider {
+          width: 4px;
+          height: 24px;
+          background: var(--gray-200);
+          border-radius: 4px;
         }
 
         .task-info {
@@ -304,57 +371,73 @@ export default function DashboardPage() {
           align-items: center;
           gap: 12px;
           flex-wrap: wrap;
+          flex: 1;
         }
 
         .task-ders {
-          font-weight: 600;
-          font-size: 0.875rem;
+          font-weight: 700;
+          font-size: 0.9375rem;
+          display: flex;
+          align-items: center;
+          gap: 6px;
         }
 
         .task-konu {
-          font-size: 0.8125rem;
+          font-size: 0.875rem;
           color: var(--text-secondary);
+          font-weight: 500;
         }
 
         .task-meta {
           font-size: 0.75rem;
+          font-weight: 600;
           color: var(--text-tertiary);
           background: var(--gray-100);
-          padding: 2px 8px;
+          padding: 4px 10px;
           border-radius: var(--radius-full);
+          margin-left: auto;
         }
 
         @media (max-width: 768px) {
           .stats-grid {
             grid-template-columns: repeat(2, 1fr);
+            gap: 16px;
           }
 
           .greeting-title {
-            font-size: 1.25rem;
+            font-size: 1.5rem;
           }
 
           .task-card {
             flex-direction: column;
             align-items: flex-start;
-            gap: 8px;
+            gap: 12px;
+          }
+          
+          .task-divider {
+            display: none;
+          }
+          
+          .task-meta {
+            margin-left: 0;
           }
         }
 
         @media (max-width: 480px) {
           .stats-grid {
             grid-template-columns: repeat(2, 1fr);
-            gap: 10px;
+            gap: 12px;
           }
 
           .stat-card {
-            padding: 14px;
+            padding: 16px;
           }
 
           .stat-value {
-            font-size: 1.375rem;
+            font-size: 1.5rem;
           }
         }
       `}</style>
-    </div>
+    </motion.div>
   );
 }

@@ -4,31 +4,36 @@ import { useState, useEffect, createContext, useContext } from 'react';
 import { createClient } from '@/lib/supabase/client';
 import { useRouter, usePathname } from 'next/navigation';
 import Link from 'next/link';
+import { 
+  Home, Calendar, CalendarDays, ClipboardList, 
+  BarChart2, BookOpen, HelpCircle, RotateCcw, 
+  TrendingUp, Timer, NotebookPen, Settings, LogOut, Menu, X, BookMarked
+} from 'lucide-react';
 
 const UserContext = createContext(null);
 export const useUser = () => useContext(UserContext);
 
 const NAV_ITEMS = [
-  { href: '/dashboard', label: 'Ana Sayfa', icon: '🏠' },
-  { href: '/dashboard/gunluk-program', label: 'Günlük Program', icon: '📅' },
-  { href: '/dashboard/haftalik-program', label: 'Haftalık Program', icon: '🗓️' },
-  { href: '/dashboard/konu-takibi', label: 'Konu Takibi', icon: '📋' },
-  { href: '/dashboard/deneme-analizi', label: 'Deneme Analizi', icon: '📊' },
-  { href: '/dashboard/kaynaklarim', label: 'Kaynaklarım', icon: '📚' },
-  { href: '/dashboard/yapamadiklari', label: 'Yapamadıklarım', icon: '❓' },
-  { href: '/dashboard/tekrarlarim', label: 'Tekrarlarım', icon: '🔄' },
-  { href: '/dashboard/istatistikler', label: 'İstatistikler', icon: '📈' },
-  { href: '/dashboard/pomodoro', label: 'Pomodoro', icon: '🍅' },
-  { href: '/dashboard/not-defteri', label: 'Not Defteri', icon: '📝' },
-  { href: '/dashboard/ayarlar', label: 'Ayarlar', icon: '⚙️' },
+  { href: '/dashboard', label: 'Ana Sayfa', icon: <Home size={20} /> },
+  { href: '/dashboard/gunluk-program', label: 'Günlük Program', icon: <Calendar size={20} /> },
+  { href: '/dashboard/haftalik-program', label: 'Haftalık Program', icon: <CalendarDays size={20} /> },
+  { href: '/dashboard/konu-takibi', label: 'Konu Takibi', icon: <ClipboardList size={20} /> },
+  { href: '/dashboard/deneme-analizi', label: 'Deneme Analizi', icon: <BarChart2 size={20} /> },
+  { href: '/dashboard/kaynaklarim', label: 'Kaynaklarım', icon: <BookOpen size={20} /> },
+  { href: '/dashboard/yapamadiklari', label: 'Yapamadıklarım', icon: <HelpCircle size={20} /> },
+  { href: '/dashboard/tekrarlarim', label: 'Tekrarlarım', icon: <RotateCcw size={20} /> },
+  { href: '/dashboard/istatistikler', label: 'İstatistikler', icon: <TrendingUp size={20} /> },
+  { href: '/dashboard/pomodoro', label: 'Pomodoro', icon: <Timer size={20} /> },
+  { href: '/dashboard/not-defteri', label: 'Not Defteri', icon: <NotebookPen size={20} /> },
+  { href: '/dashboard/ayarlar', label: 'Ayarlar', icon: <Settings size={20} /> },
 ];
 
 const MOBILE_NAV = [
-  { href: '/dashboard', label: 'Ana Sayfa', icon: '🏠' },
-  { href: '/dashboard/gunluk-program', label: 'Program', icon: '📅' },
-  { href: '/dashboard/konu-takibi', label: 'Konular', icon: '📋' },
-  { href: '/dashboard/deneme-analizi', label: 'Denemeler', icon: '📊' },
-  { href: '/dashboard/pomodoro', label: 'Pomodoro', icon: '🍅' },
+  { href: '/dashboard', label: 'Ana Sayfa', icon: <Home size={20} /> },
+  { href: '/dashboard/gunluk-program', label: 'Program', icon: <Calendar size={20} /> },
+  { href: '/dashboard/konu-takibi', label: 'Konular', icon: <ClipboardList size={20} /> },
+  { href: '/dashboard/deneme-analizi', label: 'Denemeler', icon: <BarChart2 size={20} /> },
+  { href: '/dashboard/pomodoro', label: 'Pomodoro', icon: <Timer size={20} /> },
 ];
 
 export default function DashboardLayout({ children }) {
@@ -59,7 +64,7 @@ export default function DashboardLayout({ children }) {
       setLoading(false);
     }
     loadUser();
-  }, []);
+  }, [router, supabase]);
 
   const handleLogout = async () => {
     await supabase.auth.signOut();
@@ -88,10 +93,14 @@ export default function DashboardLayout({ children }) {
         <aside className={`sidebar ${sidebarOpen ? 'sidebar-open' : ''}`}>
           <div className="sidebar-header">
             <Link href="/dashboard" className="sidebar-logo">
-              <span className="sidebar-logo-icon">📖</span>
+              <span className="sidebar-logo-icon">
+                <BookMarked size={28} className="logo-svg" />
+              </span>
               <span className="sidebar-logo-text">calisiyo</span>
             </Link>
-            <button className="sidebar-close hide-desktop" onClick={() => setSidebarOpen(false)}>✕</button>
+            <button className="sidebar-close hide-desktop" onClick={() => setSidebarOpen(false)}>
+              <X size={24} />
+            </button>
           </div>
 
           <nav className="sidebar-nav">
@@ -123,8 +132,8 @@ export default function DashboardLayout({ children }) {
                 </span>
               </div>
             </div>
-            <button className="btn btn-ghost btn-sm" onClick={handleLogout} title="Çıkış Yap">
-              🚪
+            <button className="btn btn-ghost btn-icon" onClick={handleLogout} title="Çıkış Yap">
+              <LogOut size={20} />
             </button>
           </div>
         </aside>
@@ -132,9 +141,9 @@ export default function DashboardLayout({ children }) {
         {/* Main Content */}
         <div className="main-wrapper">
           {/* Topbar */}
-          <header className="topbar">
+          <header className="topbar glass">
             <button className="topbar-menu hide-desktop" onClick={() => setSidebarOpen(true)}>
-              ☰
+              <Menu size={24} />
             </button>
             <h2 className="topbar-title">
               {NAV_ITEMS.find(n => n.href === pathname)?.label || 'calisiyo'}
@@ -153,7 +162,7 @@ export default function DashboardLayout({ children }) {
         </div>
 
         {/* Mobile Bottom Nav */}
-        <nav className="mobile-nav hide-desktop">
+        <nav className="mobile-nav glass hide-desktop">
           {MOBILE_NAV.map((item) => (
             <Link
               key={item.href}
@@ -200,6 +209,7 @@ export default function DashboardLayout({ children }) {
           position: fixed;
           inset: 0;
           background: rgba(0, 0, 0, 0.4);
+          backdrop-filter: blur(4px);
           z-index: 99;
           animation: fadeIn 200ms ease;
         }
@@ -208,18 +218,17 @@ export default function DashboardLayout({ children }) {
           display: flex;
           align-items: center;
           justify-content: space-between;
-          padding: 20px 20px 16px;
-          border-bottom: 1px solid var(--border-light);
+          padding: 24px 20px 20px;
         }
 
         .sidebar-logo {
           display: flex;
           align-items: center;
-          gap: 10px;
+          gap: 12px;
         }
 
-        .sidebar-logo-icon {
-          font-size: 1.5rem;
+        .logo-svg {
+          color: var(--primary-500);
         }
 
         .sidebar-logo-text {
@@ -229,10 +238,10 @@ export default function DashboardLayout({ children }) {
           -webkit-background-clip: text;
           -webkit-text-fill-color: transparent;
           background-clip: text;
+          letter-spacing: -0.03em;
         }
 
         .sidebar-close {
-          font-size: 1.25rem;
           color: var(--text-tertiary);
           padding: 4px;
         }
@@ -243,17 +252,17 @@ export default function DashboardLayout({ children }) {
           overflow-y: auto;
           display: flex;
           flex-direction: column;
-          gap: 2px;
+          gap: 4px;
         }
 
         .sidebar-link {
           display: flex;
           align-items: center;
           gap: 12px;
-          padding: 10px 12px;
+          padding: 12px 14px;
           border-radius: var(--radius-md);
           font-size: 0.875rem;
-          font-weight: 450;
+          font-weight: 500;
           color: var(--text-secondary);
           transition: all var(--transition-fast);
         }
@@ -261,18 +270,23 @@ export default function DashboardLayout({ children }) {
         .sidebar-link:hover {
           background: var(--gray-50);
           color: var(--text-primary);
+          transform: translateX(4px);
         }
 
         .sidebar-link-active {
           background: var(--primary-50);
           color: var(--primary-700);
-          font-weight: 550;
+          font-weight: 600;
+        }
+
+        .sidebar-link-active:hover {
+          transform: none;
         }
 
         .sidebar-link-icon {
-          font-size: 1.125rem;
-          width: 24px;
-          text-align: center;
+          display: flex;
+          align-items: center;
+          justify-content: center;
         }
 
         .sidebar-footer {
@@ -286,12 +300,12 @@ export default function DashboardLayout({ children }) {
         .sidebar-user {
           display: flex;
           align-items: center;
-          gap: 10px;
+          gap: 12px;
         }
 
         .sidebar-avatar {
-          width: 36px;
-          height: 36px;
+          width: 40px;
+          height: 40px;
           border-radius: 50%;
           background: linear-gradient(135deg, var(--primary-400), var(--primary-600));
           color: white;
@@ -299,7 +313,8 @@ export default function DashboardLayout({ children }) {
           align-items: center;
           justify-content: center;
           font-weight: 600;
-          font-size: 0.875rem;
+          font-size: 1rem;
+          box-shadow: var(--shadow-sm);
         }
 
         .sidebar-user-info {
@@ -308,13 +323,13 @@ export default function DashboardLayout({ children }) {
         }
 
         .sidebar-user-name {
-          font-size: 0.8125rem;
+          font-size: 0.875rem;
           font-weight: 600;
           color: var(--text-primary);
         }
 
         .sidebar-user-alan {
-          font-size: 0.6875rem;
+          font-size: 0.75rem;
           color: var(--text-tertiary);
         }
 
@@ -330,7 +345,6 @@ export default function DashboardLayout({ children }) {
         /* Topbar */
         .topbar {
           height: var(--topbar-height);
-          background: var(--bg-primary);
           border-bottom: 1px solid var(--border-light);
           display: flex;
           align-items: center;
@@ -342,7 +356,6 @@ export default function DashboardLayout({ children }) {
         }
 
         .topbar-menu {
-          font-size: 1.5rem;
           color: var(--text-secondary);
           padding: 4px;
         }
@@ -350,6 +363,12 @@ export default function DashboardLayout({ children }) {
         .topbar-title {
           font-size: 1.125rem;
           font-weight: 600;
+          letter-spacing: -0.01em;
+        }
+
+        .topbar-actions {
+          display: flex;
+          align-items: center;
         }
 
         .topbar-avatar {
@@ -363,17 +382,19 @@ export default function DashboardLayout({ children }) {
           justify-content: center;
           font-weight: 600;
           font-size: 0.875rem;
-          transition: transform var(--transition-fast);
+          transition: transform var(--transition-bounce), box-shadow var(--transition-fast);
+          box-shadow: var(--shadow-sm);
         }
 
         .topbar-avatar:hover {
-          transform: scale(1.05);
+          transform: scale(1.1);
+          box-shadow: var(--shadow-md);
         }
 
         /* Main Content */
         .main-content {
           flex: 1;
-          padding: 24px;
+          padding: 32px;
           max-width: 1200px;
           width: 100%;
           margin: 0 auto;
@@ -386,7 +407,6 @@ export default function DashboardLayout({ children }) {
           left: 0;
           right: 0;
           height: var(--mobile-nav-height);
-          background: var(--bg-primary);
           border-top: 1px solid var(--border-light);
           display: flex;
           align-items: center;
@@ -399,13 +419,14 @@ export default function DashboardLayout({ children }) {
           display: flex;
           flex-direction: column;
           align-items: center;
-          gap: 2px;
-          padding: 6px 8px;
-          border-radius: var(--radius-sm);
+          justify-content: center;
+          gap: 4px;
+          padding: 8px 12px;
+          border-radius: var(--radius-md);
           color: var(--text-tertiary);
-          font-size: 0.625rem;
+          font-size: 0.6875rem;
           transition: color var(--transition-fast);
-          min-width: 56px;
+          min-width: 64px;
         }
 
         .mobile-nav-item-active {
@@ -413,7 +434,9 @@ export default function DashboardLayout({ children }) {
         }
 
         .mobile-nav-icon {
-          font-size: 1.25rem;
+          display: flex;
+          align-items: center;
+          justify-content: center;
         }
 
         .mobile-nav-label {
@@ -436,7 +459,7 @@ export default function DashboardLayout({ children }) {
           }
 
           .main-content {
-            padding: 16px;
+            padding: 20px 16px;
           }
         }
       `}</style>

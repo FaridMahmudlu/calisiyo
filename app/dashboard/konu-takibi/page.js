@@ -4,6 +4,21 @@ import { useState, useEffect } from 'react';
 import { useUser } from '../layout';
 import { createClient } from '@/lib/supabase/client';
 import { getExamTabs } from '@/lib/constants/alanlar';
+import { motion, AnimatePresence } from 'framer-motion';
+import { Circle, PlayCircle, CheckCircle2, BookOpen, ChevronDown, ChevronUp } from 'lucide-react';
+
+const containerVariants = {
+  hidden: { opacity: 0 },
+  show: {
+    opacity: 1,
+    transition: { staggerChildren: 0.05 }
+  }
+};
+
+const itemVariants = {
+  hidden: { opacity: 0, y: 10 },
+  show: { opacity: 1, y: 0, transition: { type: 'spring', stiffness: 300, damping: 24 } }
+};
 
 export default function KonuTakibiPage() {
   const { profile } = useUser();
@@ -15,6 +30,7 @@ export default function KonuTakibiPage() {
   const [konular, setKonular] = useState({});
   const [takip, setTakip] = useState({});
   const [loading, setLoading] = useState(true);
+  const [openDersId, setOpenDersId] = useState(null);
 
   useEffect(() => {
     if (!profile) return;
@@ -34,6 +50,11 @@ export default function KonuTakibiPage() {
 
     if (dersData) {
       setDersler(dersData);
+      
+      // Auto-open first subject if none is open
+      if (dersData.length > 0 && !openDersId) {
+        setOpenDersId(dersData[0].id);
+      }
 
       const dersIds = dersData.map(d => d.id);
       const { data: konuData } = await supabase
@@ -71,6 +92,9 @@ export default function KonuTakibiPage() {
 
   async function handleStatusChange(konuId, newDurum) {
     const existing = takip[konuId];
+    
+    // Optimistic update
+    setTakip(prev => ({ ...prev, [konuId]: newDurum }));
 
     if (existing) {
       await supabase
@@ -83,8 +107,6 @@ export default function KonuTakibiPage() {
         .from('konu_takibi')
         .insert({ user_id: profile.id, konu_id: konuId, durum: newDurum });
     }
-
-    setTakip({ ...takip, [konuId]: newDurum });
   }
 
   function getDersStats(dersId) {
@@ -97,26 +119,39 @@ export default function KonuTakibiPage() {
   }
 
   const durumLabels = {
-    baslanmadi: { label: 'Başlanmadı', badge: 'badge-neutral', icon: '○' },
-    devam_ediyor: { label: 'Devam', badge: 'badge-warning', icon: '◐' },
-    tamamlandi: { label: 'Tamam', badge: 'badge-success', icon: '✓' },
+    baslanmadi: { label: 'Başlanmadı', badge: 'badge-neutral', icon: <Circle size={14} /> },
+    devam_ediyor: { label: 'Devam Ediyor', badge: 'badge-warning', icon: <PlayCircle size={14} /> },
+    tamamlandi: { label: 'Tamamlandı', badge: 'badge-success', icon: <CheckCircle2 size={14} /> },
   };
 
   const durumCycle = ['baslanmadi', 'devam_ediyor', 'tamamlandi'];
+  
+  function toggleAccordion(id) {
+    if (openDersId === id) {
+      setOpenDersId(null);
+    } else {
+      setOpenDersId(id);
+    }
+  }
 
   return (
-    <div className="page animate-fade-in">
-      {/* Tabs */}
-      <div className="tabs" style={{ marginBottom: '24px' }}>
-        {examTabs.map(tab => (
-          <button
-            key={tab}
-            className={`tab ${activeTab === tab ? 'tab-active' : ''}`}
-            onClick={() => setActiveTab(tab)}
-          >
-            {tab}
-          </button>
-        ))}
+    <motion.div 
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      className="page"
+    >
+      <div className="page-header" style={{ marginBottom: '24px' }}>
+        <div className="tabs">
+          {examTabs.map(tab => (
+            <button
+              key={tab}
+              className={`tab ${activeTab === tab ? 'tab-active' : ''}`}
+              onClick={() => setActiveTab(tab)}
+            >
+              {tab}
+            </button>
+          ))}
+        </div>
       </div>
 
       {loading ? (
@@ -124,132 +159,270 @@ export default function KonuTakibiPage() {
           <div className="spinner spinner-lg"></div>
         </div>
       ) : (
-        <div className="ders-list">
-          {dersler.map((ders) => {
-            const stats = getDersStats(ders.id);
-            const dersKonular = konular[ders.id] || [];
+        <motion.div 
+          variants={containerVariants}
+          initial="hidden"
+          animate="show"
+          className="ders-list"
+        >
+          {dersler.length === 0 ? (
+            <div className="card empty-state">
+              <BookOpen size={48} className="empty-state-icon" />
+              <div className="empty-state-title">Ders bulunamadı</div>
+              <div className="empty-state-text">Seçtiğiniz alan ve sınav türüne ait ders bulunamadı. Lütfen profilinizden alanınızı kontrol edin.</div>
+            </div>
+          ) : (
+            dersler.map((ders) => {
+              const stats = getDersStats(ders.id);
+              const dersKonular = konular[ders.id] || [];
+              const isOpen = openDersId === ders.id;
 
-            return (
-              <details key={ders.id} className="ders-accordion card">
-                <summary className="ders-summary">
-                  <div className="ders-info">
-                    <span className="ders-icon">{ders.ikon}</span>
-                    <span className="ders-name">{ders.ad}</span>
-                    <span className="badge badge-neutral">{stats.tamamlanan}/{stats.total}</span>
-                  </div>
-                  <div className="ders-progress-wrapper">
-                    <div className="progress-bar progress-bar-sm" style={{ flex: 1 }}>
-                      <div className="progress-bar-fill" style={{ width: `${stats.percent}%` }}></div>
-                    </div>
-                    <span className="ders-percent">{stats.percent}%</span>
-                  </div>
-                </summary>
-                <div className="konu-list">
-                  {dersKonular.map((konu) => {
-                    const currentDurum = takip[konu.id] || 'baslanmadi';
-                    const durumInfo = durumLabels[currentDurum];
-
-                    return (
-                      <div key={konu.id} className="konu-item">
-                        <span className="konu-name">{konu.ad}</span>
-                        <button
-                          className={`badge ${durumInfo.badge}`}
-                          onClick={() => {
-                            const currentIdx = durumCycle.indexOf(currentDurum);
-                            const nextDurum = durumCycle[(currentIdx + 1) % durumCycle.length];
-                            handleStatusChange(konu.id, nextDurum);
-                          }}
-                          style={{ cursor: 'pointer', border: 'none' }}
-                        >
-                          {durumInfo.icon} {durumInfo.label}
-                        </button>
+              return (
+                <motion.div variants={itemVariants} key={ders.id} className="card ders-accordion">
+                  <div 
+                    className="ders-summary" 
+                    onClick={() => toggleAccordion(ders.id)}
+                  >
+                    <div className="ders-info">
+                      <div className="ders-icon-container" style={{ background: `${ders.renk}15`, color: ders.renk }}>
+                        <span className="ders-icon">{ders.ikon}</span>
                       </div>
-                    );
-                  })}
-                </div>
-              </details>
-            );
-          })}
-        </div>
+                      <div style={{ display: 'flex', flexDirection: 'column' }}>
+                        <span className="ders-name">{ders.ad}</span>
+                        <span className="ders-stats-text">{stats.tamamlanan} / {stats.total} Konu</span>
+                      </div>
+                    </div>
+                    <div className="ders-progress-wrapper">
+                      <div className="progress-bar progress-bar-md" style={{ width: '120px' }}>
+                        <div className="progress-bar-fill" style={{ width: `${stats.percent}%`, background: ders.renk }}></div>
+                      </div>
+                      <span className="ders-percent" style={{ color: ders.renk }}>{stats.percent}%</span>
+                      <div className="accordion-icon">
+                        {isOpen ? <ChevronUp size={20} /> : <ChevronDown size={20} />}
+                      </div>
+                    </div>
+                  </div>
+                  
+                  <AnimatePresence>
+                    {isOpen && (
+                      <motion.div 
+                        initial={{ height: 0, opacity: 0 }}
+                        animate={{ height: 'auto', opacity: 1 }}
+                        exit={{ height: 0, opacity: 0 }}
+                        transition={{ duration: 0.2 }}
+                        className="konu-list-container"
+                      >
+                        <div className="konu-list">
+                          {dersKonular.length === 0 ? (
+                            <div className="konu-empty">Bu derse ait konu bulunamadı.</div>
+                          ) : (
+                            dersKonular.map((konu) => {
+                              const currentDurum = takip[konu.id] || 'baslanmadi';
+                              const durumInfo = durumLabels[currentDurum];
+
+                              return (
+                                <div key={konu.id} className={`konu-item ${currentDurum === 'tamamlandi' ? 'konu-completed' : ''}`}>
+                                  <span className="konu-name">{konu.ad}</span>
+                                  <button
+                                    className={`badge ${durumInfo.badge} status-btn`}
+                                    onClick={() => {
+                                      const currentIdx = durumCycle.indexOf(currentDurum);
+                                      const nextDurum = durumCycle[(currentIdx + 1) % durumCycle.length];
+                                      handleStatusChange(konu.id, nextDurum);
+                                    }}
+                                  >
+                                    {durumInfo.icon} {durumInfo.label}
+                                  </button>
+                                </div>
+                              );
+                            })
+                          )}
+                        </div>
+                      </motion.div>
+                    )}
+                  </AnimatePresence>
+                </motion.div>
+              );
+            })
+          )}
+        </motion.div>
       )}
 
       <style jsx>{`
         .ders-list {
           display: flex;
           flex-direction: column;
-          gap: 12px;
+          gap: 16px;
         }
 
         .ders-accordion {
           padding: 0;
           overflow: hidden;
+          transition: all var(--transition-fast);
+        }
+
+        .ders-accordion:hover {
+          border-color: var(--primary-300);
         }
 
         .ders-summary {
-          padding: 18px 20px;
+          padding: 20px 24px;
           cursor: pointer;
-          list-style: none;
           display: flex;
-          flex-direction: column;
-          gap: 10px;
-        }
-
-        .ders-summary::-webkit-details-marker {
-          display: none;
+          justify-content: space-between;
+          align-items: center;
+          user-select: none;
         }
 
         .ders-info {
           display: flex;
           align-items: center;
-          gap: 10px;
+          gap: 16px;
         }
 
-        .ders-icon {
-          font-size: 1.25rem;
+        .ders-icon-container {
+          width: 48px;
+          height: 48px;
+          border-radius: var(--radius-md);
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          font-size: 1.5rem;
         }
 
         .ders-name {
-          font-weight: 600;
-          font-size: 0.9375rem;
-          flex: 1;
+          font-weight: 700;
+          font-size: 1.125rem;
+          color: var(--text-primary);
+        }
+        
+        .ders-stats-text {
+          font-size: 0.8125rem;
+          color: var(--text-tertiary);
+          font-weight: 500;
+          margin-top: 2px;
         }
 
         .ders-progress-wrapper {
           display: flex;
           align-items: center;
-          gap: 10px;
+          gap: 16px;
         }
 
         .ders-percent {
-          font-size: 0.8125rem;
-          font-weight: 600;
-          color: var(--primary-600);
-          min-width: 36px;
+          font-size: 1rem;
+          font-weight: 800;
+          min-width: 44px;
           text-align: right;
+        }
+        
+        .accordion-icon {
+          color: var(--text-tertiary);
+          display: flex;
+          align-items: center;
+          justify-content: center;
+        }
+        
+        .konu-list-container {
+          overflow: hidden;
         }
 
         .konu-list {
           border-top: 1px solid var(--border-light);
-          padding: 8px 20px 16px;
+          padding: 16px 24px 24px;
+          background: var(--gray-50);
+        }
+        
+        .konu-empty {
+          color: var(--text-tertiary);
+          font-size: 0.875rem;
+          text-align: center;
+          padding: 20px;
         }
 
         .konu-item {
           display: flex;
           align-items: center;
           justify-content: space-between;
-          padding: 10px 0;
-          border-bottom: 1px solid var(--gray-100);
+          padding: 14px 16px;
+          background: white;
+          border: 1px solid var(--border-light);
+          border-radius: var(--radius-md);
+          margin-bottom: 8px;
+          transition: all var(--transition-fast);
         }
 
         .konu-item:last-child {
-          border-bottom: none;
+          margin-bottom: 0;
+        }
+        
+        .konu-item:hover {
+          border-color: var(--primary-300);
+          box-shadow: var(--shadow-sm);
+        }
+        
+        .konu-completed {
+          opacity: 0.8;
+          background: var(--success-light);
+          border-color: rgba(16, 185, 129, 0.2);
+        }
+        
+        .konu-completed .konu-name {
+          text-decoration: line-through;
+          color: var(--text-tertiary);
         }
 
         .konu-name {
-          font-size: 0.875rem;
+          font-size: 0.9375rem;
+          font-weight: 500;
           color: var(--text-secondary);
+          transition: all var(--transition-fast);
+        }
+        
+        .status-btn {
+          cursor: pointer;
+          border: none;
+          display: flex;
+          align-items: center;
+          gap: 6px;
+          padding: 6px 12px;
+          font-size: 0.75rem;
+          transition: all var(--transition-fast);
+        }
+        
+        .status-btn:hover {
+          transform: scale(1.05);
+        }
+
+        @media (max-width: 768px) {
+          .ders-summary {
+            flex-direction: column;
+            align-items: flex-start;
+            gap: 16px;
+          }
+          
+          .ders-progress-wrapper {
+            width: 100%;
+            justify-content: space-between;
+          }
+          
+          .progress-bar {
+            flex: 1;
+            width: auto !important;
+          }
+          
+          .konu-item {
+            flex-direction: column;
+            align-items: flex-start;
+            gap: 12px;
+          }
+          
+          .status-btn {
+            width: 100%;
+            justify-content: center;
+          }
         }
       `}</style>
-    </div>
+    </motion.div>
   );
 }

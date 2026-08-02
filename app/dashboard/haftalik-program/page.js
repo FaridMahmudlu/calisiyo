@@ -4,6 +4,21 @@ import { useState, useEffect } from 'react';
 import { useUser } from '../layout';
 import { createClient } from '@/lib/supabase/client';
 import { getCurrentWeekDates, GUN_KISA, formatTime, formatDuration, formatShortDate, todayStr } from '@/lib/utils/date';
+import { motion } from 'framer-motion';
+import { ChevronLeft, ChevronRight, CheckCircle2, ListTodo, HelpCircle, Trophy } from 'lucide-react';
+
+const containerVariants = {
+  hidden: { opacity: 0 },
+  show: {
+    opacity: 1,
+    transition: { staggerChildren: 0.1 }
+  }
+};
+
+const itemVariants = {
+  hidden: { opacity: 0, scale: 0.95 },
+  show: { opacity: 1, scale: 1, transition: { type: 'spring', stiffness: 300, damping: 24 } }
+};
 
 export default function HaftalikProgramPage() {
   const { profile } = useUser();
@@ -58,47 +73,78 @@ export default function HaftalikProgramPage() {
   const today = todayStr();
 
   return (
-    <div className="page animate-fade-in">
+    <motion.div 
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      className="page"
+    >
       {/* Week Nav */}
       <div className="week-nav">
-        <button className="btn btn-ghost btn-icon" onClick={() => changeWeek(-1)}>←</button>
+        <button className="btn btn-ghost btn-icon-lg date-btn" onClick={() => changeWeek(-1)}>
+          <ChevronLeft size={24} />
+        </button>
         <span className="week-range">{formatShortDate(weekDates[0])} – {formatShortDate(weekDates[6])}</span>
-        <button className="btn btn-ghost btn-icon" onClick={() => changeWeek(1)}>→</button>
+        <button className="btn btn-ghost btn-icon-lg date-btn" onClick={() => changeWeek(1)}>
+          <ChevronRight size={24} />
+        </button>
       </div>
 
       {/* Week Stats */}
-      <div className="card week-stats">
+      <motion.div 
+        initial={{ opacity: 0, y: -20 }}
+        animate={{ opacity: 1, y: 0 }}
+        className="card week-stats"
+      >
         <div className="week-stat-item">
-          <span className="week-stat-value">{completedTasks.length}/{allTasks.length}</span>
-          <span className="week-stat-label">Görevler</span>
+          <div className="week-stat-icon"><ListTodo size={24} color="#3B82F6" /></div>
+          <div>
+            <span className="week-stat-value">{completedTasks.length}/{allTasks.length}</span>
+            <span className="week-stat-label">Görevler</span>
+          </div>
         </div>
+        <div className="week-stat-divider"></div>
         <div className="week-stat-item">
-          <span className="week-stat-value">{totalQuestions}</span>
-          <span className="week-stat-label">Toplam Soru</span>
+          <div className="week-stat-icon"><HelpCircle size={24} color="#F59E0B" /></div>
+          <div>
+            <span className="week-stat-value">{totalQuestions}</span>
+            <span className="week-stat-label">Toplam Soru</span>
+          </div>
         </div>
+        <div className="week-stat-divider"></div>
         <div className="week-stat-item">
-          <span className="week-stat-value">{weekPercent}%</span>
-          <span className="week-stat-label">Başarı</span>
+          <div className="week-stat-icon"><Trophy size={24} color="#10B981" /></div>
+          <div>
+            <span className="week-stat-value">{weekPercent}%</span>
+            <span className="week-stat-label">Başarı</span>
+          </div>
         </div>
-      </div>
+      </motion.div>
 
       {loading ? (
         <div style={{ display: 'flex', justifyContent: 'center', padding: '60px' }}><div className="spinner spinner-lg"></div></div>
       ) : (
-        <div className="week-grid">
+        <motion.div 
+          variants={containerVariants}
+          initial="hidden"
+          animate="show"
+          className="week-grid"
+        >
           {weekDates.map((date, idx) => {
             const dateStr = date.toISOString().split('T')[0];
             const dayTasks = weekTasks[dateStr] || [];
             const isToday = dateStr === today;
             const dayCompleted = dayTasks.filter(t => t.tamamlandi).length;
+            const progressPct = dayTasks.length > 0 ? (dayCompleted / dayTasks.length) * 100 : 0;
 
             return (
-              <div key={dateStr} className={`card day-column ${isToday ? 'day-today' : ''}`}>
+              <motion.div variants={itemVariants} key={dateStr} className={`card day-column ${isToday ? 'day-today' : ''}`}>
                 <div className="day-header">
                   <span className="day-name">{GUN_KISA[idx]}</span>
                   <span className="day-date">{date.getDate()}</span>
                   {dayTasks.length > 0 && (
-                    <span className="day-count">{dayCompleted}/{dayTasks.length}</span>
+                    <div className="day-progress-mini">
+                      <div className="day-progress-fill" style={{ width: `${progressPct}%` }}></div>
+                    </div>
                   )}
                 </div>
                 <div className="day-tasks">
@@ -107,46 +153,223 @@ export default function HaftalikProgramPage() {
                   ) : (
                     dayTasks.map(t => (
                       <div key={t.id} className={`day-task ${t.tamamlandi ? 'day-task-done' : ''}`} style={{ borderLeftColor: t.dersler?.renk || 'var(--gray-300)' }}>
-                        <span className="day-task-time">{formatTime(t.baslangic_saat)}</span>
-                        <span className="day-task-ders">{t.dersler?.ad}</span>
+                        <div className="day-task-header">
+                          <span className="day-task-time">{formatTime(t.baslangic_saat)}</span>
+                          {t.tamamlandi && <CheckCircle2 size={12} color="var(--success)" />}
+                        </div>
+                        <span className="day-task-ders">{t.dersler?.ikon} {t.dersler?.ad}</span>
                       </div>
                     ))
                   )}
                 </div>
-              </div>
+              </motion.div>
             );
           })}
-        </div>
+        </motion.div>
       )}
 
       <style jsx>{`
-        .week-nav { display: flex; align-items: center; justify-content: center; gap: 16px; margin-bottom: 16px; }
-        .week-range { font-size: 1rem; font-weight: 600; }
-        .week-stats { display: flex; justify-content: space-around; padding: 16px; margin-bottom: 20px; }
-        .week-stat-item { text-align: center; }
-        .week-stat-value { font-size: 1.25rem; font-weight: 700; color: var(--primary-600); display: block; }
-        .week-stat-label { font-size: 0.75rem; color: var(--text-tertiary); }
-        .week-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 8px; }
-        .day-column { padding: 12px 8px; min-height: 180px; }
-        .day-today { border-color: var(--primary-400); background: var(--primary-50); }
-        .day-header { text-align: center; margin-bottom: 10px; padding-bottom: 8px; border-bottom: 1px solid var(--border-light); }
-        .day-name { font-size: 0.75rem; font-weight: 600; color: var(--text-secondary); display: block; }
-        .day-date { font-size: 1.125rem; font-weight: 700; display: block; }
-        .day-count { font-size: 0.625rem; color: var(--text-tertiary); }
-        .day-tasks { display: flex; flex-direction: column; gap: 4px; }
-        .day-empty { text-align: center; color: var(--text-tertiary); font-size: 0.8125rem; }
-        .day-task { padding: 6px 8px; border-left: 3px solid; border-radius: 0 var(--radius-xs) var(--radius-xs) 0; background: var(--gray-50); }
-        .day-task-done { opacity: 0.5; text-decoration: line-through; }
-        .day-task-time { font-size: 0.625rem; color: var(--text-tertiary); display: block; }
-        .day-task-ders { font-size: 0.75rem; font-weight: 500; }
+        .week-nav { 
+          display: flex; 
+          align-items: center; 
+          justify-content: center; 
+          gap: 20px; 
+          margin-bottom: 24px; 
+        }
+        
+        .date-btn {
+          color: var(--text-secondary);
+        }
+        
+        .date-btn:hover {
+          color: var(--text-primary);
+          background: var(--gray-100);
+        }
+        
+        .week-range { 
+          font-size: 1.25rem; 
+          font-weight: 700; 
+          color: var(--text-primary);
+        }
+        
+        .week-stats { 
+          display: flex; 
+          justify-content: space-around; 
+          align-items: center;
+          padding: 20px; 
+          margin-bottom: 24px; 
+        }
+        
+        .week-stat-item { 
+          display: flex;
+          align-items: center;
+          gap: 16px;
+          text-align: left; 
+        }
+        
+        .week-stat-icon {
+          padding: 12px;
+          border-radius: var(--radius-full);
+          background: var(--gray-50);
+        }
+        
+        .week-stat-divider {
+          width: 1px;
+          height: 40px;
+          background: var(--border-light);
+        }
+        
+        .week-stat-value { 
+          font-size: 1.5rem; 
+          font-weight: 800; 
+          color: var(--text-primary); 
+          display: block; 
+          line-height: 1.2;
+        }
+        
+        .week-stat-label { 
+          font-size: 0.875rem; 
+          color: var(--text-tertiary); 
+          font-weight: 500;
+        }
+        
+        .week-grid { 
+          display: grid; 
+          grid-template-columns: repeat(7, 1fr); 
+          gap: 12px; 
+        }
+        
+        .day-column { 
+          padding: 16px 12px; 
+          min-height: 240px; 
+          display: flex;
+          flex-direction: column;
+        }
+        
+        .day-today { 
+          border: 2px solid var(--primary-400); 
+          background: var(--primary-50); 
+        }
+        
+        .day-header { 
+          text-align: center; 
+          margin-bottom: 16px; 
+          padding-bottom: 12px; 
+          border-bottom: 1px dashed var(--border-light); 
+        }
+        
+        .day-name { 
+          font-size: 0.8125rem; 
+          font-weight: 600; 
+          color: var(--text-secondary); 
+          display: block; 
+          text-transform: uppercase;
+          letter-spacing: 0.05em;
+        }
+        
+        .day-date { 
+          font-size: 1.5rem; 
+          font-weight: 800; 
+          display: block; 
+          color: var(--text-primary);
+        }
+        
+        .day-progress-mini {
+          width: 100%;
+          height: 4px;
+          background: var(--gray-200);
+          border-radius: 2px;
+          margin-top: 8px;
+          overflow: hidden;
+        }
+        
+        .day-progress-fill {
+          height: 100%;
+          background: var(--primary-500);
+          border-radius: 2px;
+        }
+        
+        .day-tasks { 
+          display: flex; 
+          flex-direction: column; 
+          gap: 8px; 
+          flex: 1;
+        }
+        
+        .day-empty { 
+          text-align: center; 
+          color: var(--text-tertiary); 
+          font-size: 0.875rem; 
+          margin-top: 20px;
+        }
+        
+        .day-task { 
+          padding: 8px 10px; 
+          border-left: 4px solid; 
+          border-radius: 0 var(--radius-sm) var(--radius-sm) 0; 
+          background: var(--bg-secondary); 
+          box-shadow: var(--shadow-xs);
+          transition: transform var(--transition-fast);
+        }
+        
+        .day-task:hover {
+          transform: translateX(2px);
+        }
+        
+        .day-task-done { 
+          opacity: 0.6; 
+          background: var(--gray-50);
+        }
+        
+        .day-task-done .day-task-ders {
+          text-decoration: line-through;
+          color: var(--text-tertiary);
+        }
+        
+        .day-task-header {
+          display: flex;
+          justify-content: space-between;
+          align-items: center;
+          margin-bottom: 2px;
+        }
+        
+        .day-task-time { 
+          font-size: 0.6875rem; 
+          color: var(--text-tertiary); 
+          font-weight: 600;
+        }
+        
+        .day-task-ders { 
+          font-size: 0.8125rem; 
+          font-weight: 600; 
+          color: var(--text-primary);
+        }
+
+        @media (max-width: 1024px) {
+          .week-grid { grid-template-columns: repeat(4, 1fr); }
+        }
 
         @media (max-width: 768px) {
-          .week-grid { grid-template-columns: 1fr; gap: 10px; }
-          .day-column { min-height: auto; flex-direction: row; display: flex; align-items: flex-start; gap: 12px; }
-          .day-header { border-bottom: none; padding-bottom: 0; min-width: 50px; }
-          .day-tasks { flex: 1; flex-direction: row; flex-wrap: wrap; gap: 6px; }
+          .week-stats {
+            flex-direction: column;
+            gap: 16px;
+            align-items: flex-start;
+          }
+          .week-stat-divider {
+            width: 100%;
+            height: 1px;
+          }
+          .week-grid { grid-template-columns: 1fr; gap: 12px; }
+          .day-column { min-height: auto; flex-direction: row; align-items: stretch; gap: 16px; padding: 16px; }
+          .day-header { border-bottom: none; padding-bottom: 0; min-width: 60px; display: flex; flex-direction: column; justify-content: center; border-right: 1px dashed var(--border-light); padding-right: 16px; margin-bottom: 0; }
+          .day-tasks { flex: 1; flex-direction: row; flex-wrap: wrap; gap: 8px; align-items: center; }
+          .day-task { width: calc(50% - 4px); }
+        }
+        
+        @media (max-width: 480px) {
+          .day-task { width: 100%; }
         }
       `}</style>
-    </div>
+    </motion.div>
   );
 }

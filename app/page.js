@@ -1,4 +1,24 @@
+'use client';
+
 import Link from 'next/link';
+import { motion } from 'framer-motion';
+import { BookMarked, CalendarDays, BarChart2, ClipboardList, Timer, BookOpen, TrendingUp, ArrowRight } from 'lucide-react';
+
+const container = {
+  hidden: { opacity: 0 },
+  show: {
+    opacity: 1,
+    transition: {
+      staggerChildren: 0.1,
+      delayChildren: 0.2
+    }
+  }
+};
+
+const item = {
+  hidden: { opacity: 0, y: 20 },
+  show: { opacity: 1, y: 0, transition: { type: 'spring', stiffness: 300, damping: 24 } }
+};
 
 export default function HomePage() {
   return (
@@ -6,69 +26,100 @@ export default function HomePage() {
       <header className="landing-header">
         <div className="landing-container">
           <Link href="/" className="landing-logo">
-            <span>📖</span>
+            <BookMarked size={28} className="logo-svg" />
             <span className="landing-logo-text">calisiyo</span>
           </Link>
           <div className="landing-nav">
             <Link href="/giris" className="landing-nav-link">Giriş Yap</Link>
-            <Link href="/kayit" className="landing-nav-cta">Başla →</Link>
+            <Link href="/kayit" className="landing-nav-cta">Başla <ArrowRight size={16} /></Link>
           </div>
         </div>
       </header>
 
       <main className="landing-hero">
         <div className="landing-container">
-          <div className="hero-badge">🎯 YKS 2027 Hazırlığın</div>
-          <h1 className="hero-title">
+          <motion.div 
+            initial={{ opacity: 0, y: -20 }} 
+            animate={{ opacity: 1, y: 0 }} 
+            transition={{ duration: 0.5, ease: 'easeOut' }}
+            className="hero-badge"
+          >
+            🎯 YKS 2027 Hazırlığın
+          </motion.div>
+          
+          <motion.h1 
+            initial={{ opacity: 0, y: 20 }} 
+            animate={{ opacity: 1, y: 0 }} 
+            transition={{ duration: 0.6, delay: 0.1, ease: 'easeOut' }}
+            className="hero-title"
+          >
             Çalışma planını <br />
             <span className="hero-highlight">tek yerden</span> yönet.
-          </h1>
-          <p className="hero-desc">
+          </motion.h1>
+          
+          <motion.p 
+            initial={{ opacity: 0, y: 20 }} 
+            animate={{ opacity: 1, y: 0 }} 
+            transition={{ duration: 0.6, delay: 0.2, ease: 'easeOut' }}
+            className="hero-desc"
+          >
             Günlük program, deneme analizi, konu takibi, kaynak yönetimi ve daha fazlası.
             Minimal, hızlı ve mobil uyumlu.
-          </p>
-          <div className="hero-actions">
+          </motion.p>
+          
+          <motion.div 
+            initial={{ opacity: 0, scale: 0.9 }} 
+            animate={{ opacity: 1, scale: 1 }} 
+            transition={{ duration: 0.5, delay: 0.3, type: 'spring' }}
+            className="hero-actions"
+          >
             <Link href="/kayit" className="hero-btn-primary">
-              Ücretsiz Başla →
+              Ücretsiz Başla <ArrowRight size={18} />
             </Link>
             <Link href="/giris" className="hero-btn-secondary">
               Giriş Yap
             </Link>
-          </div>
+          </motion.div>
 
-          <div className="hero-features">
-            <div className="feature-item">
-              <span className="feature-icon">📅</span>
+          <motion.div 
+            variants={container}
+            initial="hidden"
+            animate="show"
+            className="hero-features"
+          >
+            <motion.div variants={item} className="feature-item glass">
+              <CalendarDays size={18} className="feature-icon" />
               <span>Günlük Program</span>
-            </div>
-            <div className="feature-item">
-              <span className="feature-icon">📊</span>
+            </motion.div>
+            <motion.div variants={item} className="feature-item glass">
+              <BarChart2 size={18} className="feature-icon" />
               <span>Deneme Analizi</span>
-            </div>
-            <div className="feature-item">
-              <span className="feature-icon">📋</span>
+            </motion.div>
+            <motion.div variants={item} className="feature-item glass">
+              <ClipboardList size={18} className="feature-icon" />
               <span>Konu Takibi</span>
-            </div>
-            <div className="feature-item">
-              <span className="feature-icon">🍅</span>
+            </motion.div>
+            <motion.div variants={item} className="feature-item glass">
+              <Timer size={18} className="feature-icon" />
               <span>Pomodoro</span>
-            </div>
-            <div className="feature-item">
-              <span className="feature-icon">📚</span>
+            </motion.div>
+            <motion.div variants={item} className="feature-item glass">
+              <BookOpen size={18} className="feature-icon" />
               <span>Kaynak Yönetimi</span>
-            </div>
-            <div className="feature-item">
-              <span className="feature-icon">📈</span>
+            </motion.div>
+            <motion.div variants={item} className="feature-item glass">
+              <TrendingUp size={18} className="feature-icon" />
               <span>İstatistikler</span>
-            </div>
-          </div>
+            </motion.div>
+          </motion.div>
         </div>
       </main>
 
-      <style>{`
+      <style jsx>{`
         .landing {
           min-height: 100vh;
-          background: linear-gradient(180deg, #ECFDF5 0%, #FFFFFF 40%, #FFFFFF 100%);
+          background: linear-gradient(180deg, #ecfdf5 0%, #ffffff 50%, #ffffff 100%);
+          overflow: hidden;
         }
 
         .landing-container {
@@ -78,7 +129,7 @@ export default function HomePage() {
         }
 
         .landing-header {
-          padding: 20px 0;
+          padding: 24px 0;
         }
 
         .landing-header .landing-container {
@@ -90,18 +141,23 @@ export default function HomePage() {
         .landing-logo {
           display: flex;
           align-items: center;
-          gap: 10px;
-          font-size: 1.5rem;
+          gap: 12px;
           text-decoration: none;
           color: inherit;
+        }
+        
+        .logo-svg {
+          color: #10B981;
         }
 
         .landing-logo-text {
           font-weight: 800;
+          font-size: 1.5rem;
           background: linear-gradient(135deg, #059669, #34D399);
           -webkit-background-clip: text;
           -webkit-text-fill-color: transparent;
           background-clip: text;
+          letter-spacing: -0.03em;
         }
 
         .landing-nav {
@@ -111,59 +167,65 @@ export default function HomePage() {
         }
 
         .landing-nav-link {
-          font-size: 0.875rem;
+          font-size: 0.9375rem;
           font-weight: 500;
           color: #4B5563;
           text-decoration: none;
           padding: 8px 16px;
-          border-radius: 10px;
-          transition: background 150ms;
+          border-radius: 12px;
+          transition: all 200ms;
         }
 
         .landing-nav-link:hover {
-          background: #F3F4F6;
+          background: rgba(0,0,0,0.03);
+          color: #111827;
         }
 
         .landing-nav-cta {
-          font-size: 0.875rem;
+          display: flex;
+          align-items: center;
+          gap: 6px;
+          font-size: 0.9375rem;
           font-weight: 600;
           color: white;
           background: linear-gradient(135deg, #10B981, #059669);
-          padding: 10px 20px;
-          border-radius: 12px;
+          padding: 10px 24px;
+          border-radius: 99px;
           text-decoration: none;
-          box-shadow: 0 2px 8px rgba(16, 185, 129, 0.3);
-          transition: all 150ms;
+          box-shadow: 0 4px 14px rgba(16, 185, 129, 0.3);
+          transition: all 200ms;
         }
 
         .landing-nav-cta:hover {
-          transform: translateY(-1px);
-          box-shadow: 0 4px 12px rgba(16, 185, 129, 0.4);
+          transform: translateY(-2px);
+          box-shadow: 0 6px 20px rgba(16, 185, 129, 0.4);
         }
 
         .landing-hero {
-          padding: 80px 0 100px;
+          padding: 100px 0 120px;
           text-align: center;
         }
 
         .hero-badge {
           display: inline-block;
-          padding: 6px 16px;
-          background: #D1FAE5;
+          padding: 8px 20px;
+          background: rgba(209, 250, 229, 0.8);
           color: #047857;
           border-radius: 100px;
-          font-size: 0.8125rem;
+          font-size: 0.875rem;
           font-weight: 600;
           margin-bottom: 24px;
+          border: 1px solid rgba(16, 185, 129, 0.2);
+          backdrop-filter: blur(8px);
         }
 
         .hero-title {
-          font-size: 3.5rem;
+          font-size: 4rem;
           font-weight: 800;
           line-height: 1.15;
           color: #111827;
-          margin-bottom: 20px;
-          letter-spacing: -0.02em;
+          margin-bottom: 24px;
+          letter-spacing: -0.03em;
         }
 
         .hero-highlight {
@@ -174,10 +236,10 @@ export default function HomePage() {
         }
 
         .hero-desc {
-          font-size: 1.125rem;
+          font-size: 1.25rem;
           color: #6B7280;
-          max-width: 520px;
-          margin: 0 auto 36px;
+          max-width: 560px;
+          margin: 0 auto 40px;
           line-height: 1.7;
         }
 
@@ -186,91 +248,107 @@ export default function HomePage() {
           align-items: center;
           justify-content: center;
           gap: 16px;
-          margin-bottom: 60px;
+          margin-bottom: 80px;
         }
 
         .hero-btn-primary {
-          padding: 14px 32px;
+          display: flex;
+          align-items: center;
+          gap: 8px;
+          padding: 16px 36px;
           background: linear-gradient(135deg, #10B981, #059669);
           color: white;
-          border-radius: 14px;
+          border-radius: 99px;
           font-weight: 600;
-          font-size: 1rem;
+          font-size: 1.0625rem;
           text-decoration: none;
-          box-shadow: 0 4px 14px rgba(16, 185, 129, 0.35);
-          transition: all 200ms;
+          box-shadow: 0 8px 24px rgba(16, 185, 129, 0.35);
+          transition: all 300ms;
         }
 
         .hero-btn-primary:hover {
           transform: translateY(-2px);
-          box-shadow: 0 6px 20px rgba(16, 185, 129, 0.45);
+          box-shadow: 0 12px 32px rgba(16, 185, 129, 0.45);
         }
 
         .hero-btn-secondary {
-          padding: 14px 32px;
+          padding: 16px 36px;
           background: white;
           color: #374151;
-          border-radius: 14px;
-          font-weight: 500;
-          font-size: 1rem;
+          border-radius: 99px;
+          font-weight: 600;
+          font-size: 1.0625rem;
           text-decoration: none;
-          border: 1.5px solid #E5E7EB;
-          transition: all 150ms;
+          border: 1px solid #E5E7EB;
+          box-shadow: 0 2px 8px rgba(0,0,0,0.02);
+          transition: all 200ms;
         }
 
         .hero-btn-secondary:hover {
           border-color: #D1D5DB;
           background: #F9FAFB;
+          box-shadow: 0 4px 12px rgba(0,0,0,0.04);
         }
 
         .hero-features {
           display: flex;
           flex-wrap: wrap;
           justify-content: center;
-          gap: 12px;
-          max-width: 620px;
+          gap: 16px;
+          max-width: 640px;
           margin: 0 auto;
         }
 
         .feature-item {
           display: flex;
           align-items: center;
-          gap: 8px;
-          padding: 10px 18px;
-          background: white;
-          border: 1px solid #E5E7EB;
-          border-radius: 12px;
-          font-size: 0.8125rem;
+          gap: 10px;
+          padding: 12px 20px;
+          background: rgba(255, 255, 255, 0.8);
+          border: 1px solid rgba(0,0,0,0.04);
+          border-radius: 16px;
+          font-size: 0.875rem;
           font-weight: 500;
-          color: #374151;
-          box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
+          color: #4B5563;
+          box-shadow: 0 4px 16px -4px rgba(0, 0, 0, 0.05);
+          transition: all 200ms;
+        }
+
+        .feature-item:hover {
+          transform: translateY(-2px);
+          box-shadow: 0 8px 24px -6px rgba(0, 0, 0, 0.08);
+          border-color: rgba(16, 185, 129, 0.2);
+          color: #111827;
         }
 
         .feature-icon {
-          font-size: 1rem;
+          color: #10B981;
         }
 
         @media (max-width: 768px) {
           .hero-title {
-            font-size: 2.25rem;
+            font-size: 2.75rem;
           }
 
           .hero-desc {
-            font-size: 1rem;
+            font-size: 1.0625rem;
           }
 
           .landing-hero {
-            padding: 48px 0 60px;
+            padding: 60px 0 80px;
           }
 
           .hero-actions {
             flex-direction: column;
+            width: 100%;
+            max-width: 320px;
+            margin: 0 auto 60px;
           }
 
           .hero-btn-primary,
           .hero-btn-secondary {
             width: 100%;
-            text-align: center;
+            justify-content: center;
           }
         }
       `}</style>

@@ -3,6 +3,21 @@
 import { useState, useEffect } from 'react';
 import { useUser } from '../layout';
 import { createClient } from '@/lib/supabase/client';
+import { motion, AnimatePresence } from 'framer-motion';
+import { Library, Plus, Trash2, Book, Bookmark } from 'lucide-react';
+
+const containerVariants = {
+  hidden: { opacity: 0 },
+  show: {
+    opacity: 1,
+    transition: { staggerChildren: 0.05 }
+  }
+};
+
+const itemVariants = {
+  hidden: { opacity: 0, scale: 0.95 },
+  show: { opacity: 1, scale: 1, transition: { type: 'spring', stiffness: 300, damping: 24 } }
+};
 
 export default function KaynaklarimPage() {
   const { profile } = useUser();
@@ -60,8 +75,8 @@ export default function KaynaklarimPage() {
   }
 
   async function handleRemove(id) {
+    setKaynaklar(kaynaklar.filter(k => k.id !== id));
     await supabase.from('kaynaklarim').delete().eq('id', id);
-    loadData();
   }
 
   function getKaynakInfo(k) {
@@ -77,46 +92,88 @@ export default function KaynaklarimPage() {
       ad: k.custom_ad,
       yayin: k.custom_yayin,
       sinav: k.custom_sinav_turu,
-      ders: null,
+      ders: k.custom_ders_id ? dersler.find(d => d.id === k.custom_ders_id) : null,
     };
   }
 
   return (
-    <div className="page animate-fade-in">
-      <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: '20px' }}>
-        <button className="btn btn-primary" onClick={() => { setShowModal(true); setIsCustom(false); }}>+ Kaynak Ekle</button>
+    <motion.div 
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      className="page"
+    >
+      <div className="page-header" style={{ marginBottom: '24px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+        <h1 style={{ fontSize: '1.5rem', fontWeight: 700, display: 'flex', alignItems: 'center', gap: '8px' }}>
+          <Library size={24} color="var(--primary-500)" />
+          Kaynaklarım
+        </h1>
+        <button className="btn btn-primary" onClick={() => { setShowModal(true); setIsCustom(false); }}>
+          <Plus size={18} /> Kaynak Ekle
+        </button>
       </div>
 
       {loading ? (
-        <div style={{ display: 'flex', justifyContent: 'center', padding: '60px' }}><div className="spinner spinner-lg"></div></div>
+        <div style={{ display: 'flex', justifyContent: 'center', padding: '60px' }}>
+          <div className="spinner spinner-lg"></div>
+        </div>
       ) : kaynaklar.length === 0 ? (
-        <div className="card empty-state">
-          <div className="empty-state-icon">📚</div>
+        <motion.div 
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="card empty-state"
+        >
+          <Book size={48} className="empty-state-icon" />
           <div className="empty-state-title">Henüz kaynak eklenmemiş</div>
-          <div className="empty-state-text">Kullandığın kaynakları ekleyerek programında kullan.</div>
-        </div>
+          <div className="empty-state-text">Kullandığın kitapları ve denemeleri buraya ekleyerek programında kullanabilirsin.</div>
+          <button className="btn btn-primary" style={{ marginTop: '20px' }} onClick={() => { setShowModal(true); setIsCustom(false); }}>
+            <Plus size={18} /> Kaynak Ekle
+          </button>
+        </motion.div>
       ) : (
-        <div className="kaynak-grid">
-          {kaynaklar.map(k => {
-            const info = getKaynakInfo(k);
-            return (
-              <div key={k.id} className="card kaynak-card card-interactive">
-                <div className="kaynak-top">
-                  <div className="kaynak-icon-wrapper">📕</div>
-                  <button className="btn btn-ghost btn-sm" onClick={() => handleRemove(k.id)} title="Kaldır">✕</button>
-                </div>
-                <h3 className="kaynak-name">{info.ad}</h3>
-                <p className="kaynak-yayin">{info.yayin}</p>
-                <div className="kaynak-badges">
-                  <span className="badge badge-info">{info.sinav}</span>
-                  {info.ders && <span className="badge badge-neutral">{info.ders.ad}</span>}
-                </div>
-              </div>
-            );
-          })}
-        </div>
+        <motion.div 
+          variants={containerVariants}
+          initial="hidden"
+          animate="show"
+          className="kaynak-grid"
+        >
+          <AnimatePresence>
+            {kaynaklar.map(k => {
+              const info = getKaynakInfo(k);
+              const cardColor = info.ders?.renk || 'var(--primary-500)';
+              
+              return (
+                <motion.div 
+                  variants={itemVariants}
+                  layout
+                  exit={{ opacity: 0, scale: 0.8, transition: { duration: 0.2 } }}
+                  key={k.id} 
+                  className="card kaynak-card card-interactive"
+                  style={{ borderTop: `4px solid ${cardColor}` }}
+                >
+                  <div className="kaynak-top">
+                    <div className="kaynak-icon-wrapper" style={{ background: `${cardColor}15`, color: cardColor }}>
+                      <Bookmark size={20} />
+                    </div>
+                    <button className="btn btn-ghost btn-icon btn-sm btn-delete" onClick={() => handleRemove(k.id)} title="Kaldır">
+                      <Trash2 size={16} />
+                    </button>
+                  </div>
+                  <div className="kaynak-content">
+                    <h3 className="kaynak-name">{info.ad}</h3>
+                    <p className="kaynak-yayin">{info.yayin}</p>
+                  </div>
+                  <div className="kaynak-badges">
+                    <span className="badge badge-info">{info.sinav}</span>
+                    {info.ders && <span className="badge badge-neutral" style={{ color: cardColor }}>{info.ders.ad}</span>}
+                  </div>
+                </motion.div>
+              );
+            })}
+          </AnimatePresence>
+        </motion.div>
       )}
 
+      {/* Modal */}
       {showModal && (
         <div className="modal-overlay" onClick={() => setShowModal(false)}>
           <div className="modal" onClick={(e) => e.stopPropagation()}>
@@ -125,35 +182,37 @@ export default function KaynaklarimPage() {
               <button className="modal-close" onClick={() => setShowModal(false)}>✕</button>
             </div>
 
-            <div className="tabs" style={{ marginBottom: '20px' }}>
-              <button className={`tab ${!isCustom ? 'tab-active' : ''}`} onClick={() => setIsCustom(false)}>Listeden Seç</button>
+            <div className="tabs" style={{ marginBottom: '24px' }}>
+              <button className={`tab ${!isCustom ? 'tab-active' : ''}`} onClick={() => setIsCustom(false)}>Sistemden Seç</button>
               <button className={`tab ${isCustom ? 'tab-active' : ''}`} onClick={() => setIsCustom(true)}>Özel Ekle</button>
             </div>
 
             {!isCustom ? (
               <div>
-                <div className="input-group" style={{ marginBottom: '16px' }}>
+                <div className="input-group" style={{ marginBottom: '24px' }}>
                   <label className="input-label">Kaynak Seçin</label>
                   <select className="select" value={selectedSistem} onChange={(e) => setSelectedSistem(e.target.value)}>
-                    <option value="">-- Kaynak seçin --</option>
+                    <option value="">-- Listeden kaynak seçin --</option>
                     {sistemKaynaklar.map(s => (
                       <option key={s.id} value={s.id}>{s.ad} - {s.yayin}</option>
                     ))}
                   </select>
                 </div>
-                <button className="btn btn-primary" style={{ width: '100%' }} onClick={handleAddSistem} disabled={!selectedSistem}>Ekle</button>
+                <button className="btn btn-primary" style={{ width: '100%' }} onClick={handleAddSistem} disabled={!selectedSistem}>
+                  <Plus size={18} /> Kaynağı Ekle
+                </button>
               </div>
             ) : (
-              <form onSubmit={handleAddCustom} style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
+              <form onSubmit={handleAddCustom} style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
                 <div className="input-group">
                   <label className="input-label">Kitap Adı</label>
-                  <input className="input" value={customForm.ad} onChange={(e) => setCustomForm({ ...customForm, ad: e.target.value })} required placeholder="ör. 3D TYT Matematik" />
+                  <input className="input" value={customForm.ad} onChange={(e) => setCustomForm({ ...customForm, ad: e.target.value })} required placeholder="ör. 3D TYT Matematik Soru Bankası" />
                 </div>
                 <div className="input-group">
-                  <label className="input-label">Yayın</label>
-                  <input className="input" value={customForm.yayin} onChange={(e) => setCustomForm({ ...customForm, yayin: e.target.value })} required placeholder="ör. 3D" />
+                  <label className="input-label">Yayın Adı</label>
+                  <input className="input" value={customForm.yayin} onChange={(e) => setCustomForm({ ...customForm, yayin: e.target.value })} required placeholder="ör. 3D Yayınları" />
                 </div>
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
                   <div className="input-group">
                     <label className="input-label">Sınav Türü</label>
                     <select className="select" value={customForm.sinav_turu} onChange={(e) => setCustomForm({ ...customForm, sinav_turu: e.target.value })}>
@@ -163,14 +222,16 @@ export default function KaynaklarimPage() {
                     </select>
                   </div>
                   <div className="input-group">
-                    <label className="input-label">Ders</label>
+                    <label className="input-label">İlgili Ders</label>
                     <select className="select" value={customForm.ders_id} onChange={(e) => setCustomForm({ ...customForm, ders_id: e.target.value })}>
-                      <option value="">Seçin</option>
+                      <option value="">Seçin (Opsiyonel)</option>
                       {dersler.map(d => <option key={d.id} value={d.id}>{d.ad}</option>)}
                     </select>
                   </div>
                 </div>
-                <button className="btn btn-primary" type="submit" style={{ width: '100%' }}>Ekle</button>
+                <button className="btn btn-primary" type="submit" style={{ width: '100%', marginTop: '8px' }}>
+                  <Plus size={18} /> Özel Kaynağı Ekle
+                </button>
               </form>
             )}
           </div>
@@ -180,44 +241,73 @@ export default function KaynaklarimPage() {
       <style jsx>{`
         .kaynak-grid {
           display: grid;
-          grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
-          gap: 16px;
+          grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+          gap: 20px;
         }
 
         .kaynak-card {
-          padding: 20px;
+          padding: 24px;
           display: flex;
           flex-direction: column;
-          gap: 8px;
+          gap: 16px;
         }
 
         .kaynak-top {
           display: flex;
           justify-content: space-between;
-          align-items: center;
+          align-items: flex-start;
         }
 
         .kaynak-icon-wrapper {
-          font-size: 2rem;
+          width: 40px;
+          height: 40px;
+          border-radius: var(--radius-md);
+          display: flex;
+          align-items: center;
+          justify-content: center;
+        }
+        
+        .btn-delete {
+          color: var(--text-tertiary);
+        }
+        
+        .btn-delete:hover {
+          color: var(--error);
+          background: var(--error-light);
+        }
+
+        .kaynak-content {
+          flex: 1;
         }
 
         .kaynak-name {
-          font-size: 0.9375rem;
-          font-weight: 600;
+          font-size: 1rem;
+          font-weight: 700;
+          color: var(--text-primary);
+          margin-bottom: 4px;
+          line-height: 1.4;
         }
 
         .kaynak-yayin {
           font-size: 0.8125rem;
           color: var(--text-tertiary);
+          font-weight: 500;
         }
 
         .kaynak-badges {
           display: flex;
-          gap: 6px;
+          gap: 8px;
           flex-wrap: wrap;
-          margin-top: 4px;
+          padding-top: 12px;
+          border-top: 1px dashed var(--border-light);
+        }
+        
+        @media (max-width: 480px) {
+          .kaynak-grid {
+            grid-template-columns: 1fr;
+          }
         }
       `}</style>
-    </div>
+    </motion.div>
   );
 }
