@@ -1,7 +1,7 @@
-@import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@500;600;700;800&display=swap');
 
 :root {
-  /* Primary - Vibrant Modern Emerald Green */
+  /* Primary - Emerald Green (Stitch Design System) */
   --primary-50: #ecfdf5;
   --primary-100: #d1fae5;
   --primary-200: #a7f3d0;
@@ -19,8 +19,9 @@
   --accent-purple: #8b5cf6;
   --accent-amber: #f59e0b;
   --accent-rose: #f43f5e;
+  --accent-teal: #14b8a6;
 
-  /* Neutral Palette */
+  /* Neutral Palette (Deep Work Slate) */
   --gray-50: #f8fafc;
   --gray-100: #f1f5f9;
   --gray-200: #e2e8f0;
@@ -32,7 +33,7 @@
   --gray-800: #1e293b;
   --gray-900: #0f172a;
 
-  /* Semantic */
+  /* Semantic Colors */
   --success: #10b981;
   --success-light: #d1fae5;
   --warning: #f59e0b;
@@ -42,7 +43,7 @@
   --info: #3b82f6;
   --info-light: #dbeafe;
 
-  /* Subject colors */
+  /* Subject Color Tokens */
   --color-turkce: #10B981;
   --color-matematik: #3B82F6;
   --color-fizik: #8B5CF6;
@@ -62,7 +63,11 @@
   --bg-card: #ffffff;
   --bg-glass: rgba(255, 255, 255, 0.85);
 
-  /* Text */
+  /* Typography */
+  --font-sans: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  --font-mono: 'JetBrains Mono', monospace;
+
+  /* Text Colors */
   --text-primary: #0f172a;
   --text-secondary: #475569;
   --text-tertiary: #94a3b8;
@@ -73,19 +78,19 @@
   --border-medium: #cbd5e1;
   --border-focus: rgba(16, 185, 129, 0.35);
 
-  /* Premium Shadows */
-  --shadow-xs: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
-  --shadow-sm: 0 1px 3px 0 rgba(0, 0, 0, 0.06), 0 1px 2px -1px rgba(0, 0, 0, 0.06);
-  --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.07), 0 2px 4px -2px rgba(0, 0, 0, 0.05);
-  --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.08), 0 4px 6px -4px rgba(0, 0, 0, 0.04);
-  --shadow-xl: 0 20px 25px -5px rgba(0, 0, 0, 0.09), 0 8px 10px -6px rgba(0, 0, 0, 0.04);
+  /* Premium Stitch Elevation Shadows */
+  --shadow-xs: 0 1px 2px 0 rgba(0, 0, 0, 0.04);
+  --shadow-sm: 0 2px 6px 0 rgba(15, 23, 42, 0.04), 0 1px 2px -1px rgba(15, 23, 42, 0.04);
+  --shadow-md: 0 6px 12px -2px rgba(15, 23, 42, 0.05), 0 3px 6px -3px rgba(15, 23, 42, 0.03);
+  --shadow-lg: 0 12px 24px -4px rgba(15, 23, 42, 0.06), 0 4px 8px -4px rgba(15, 23, 42, 0.03);
+  --shadow-xl: 0 24px 36px -6px rgba(15, 23, 42, 0.08), 0 10px 14px -6px rgba(15, 23, 42, 0.04);
   --shadow-glow: 0 0 25px rgba(16, 185, 129, 0.2);
 
-  /* Border Radius */
+  /* Shapes & Roundness (Stitch Design System) */
   --radius-xs: 6px;
   --radius-sm: 10px;
   --radius-md: 14px;
-  --radius-lg: 18px;
+  --radius-lg: 20px;
   --radius-xl: 24px;
   --radius-2xl: 32px;
   --radius-full: 9999px;
@@ -116,7 +121,7 @@ html {
 }
 
 body {
-  font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  font-family: var(--font-sans);
   background-color: var(--bg-secondary);
   color: var(--text-primary);
   line-height: 1.5;
@@ -148,6 +153,12 @@ img {
 
 ul, ol {
   list-style: none;
+}
+
+/* Monospaced Utility for Timers and Key Data Metrics */
+.font-mono {
+  font-family: var(--font-mono) !important;
+  letter-spacing: -0.02em;
 }
 
 /* Scrollbar */
@@ -182,15 +193,15 @@ ul, ol {
 /* Glassmorphism */
 .glass {
   background: var(--bg-glass);
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
   border: 1px solid rgba(255, 255, 255, 0.7);
 }
 
-/* Cards */
+/* Cards (Stitch Design System - 24px Rounded Cards) */
 .card {
   background: var(--bg-card);
-  border-radius: var(--radius-lg);
+  border-radius: var(--radius-xl);
   border: 1px solid var(--border-light);
   padding: 24px;
   box-shadow: var(--shadow-sm);
@@ -199,13 +210,13 @@ ul, ol {
 
 .card:hover {
   box-shadow: var(--shadow-md);
-  border-color: rgba(16, 185, 129, 0.15);
+  border-color: rgba(16, 185, 129, 0.18);
 }
 
 .card-interactive:hover {
   transform: translateY(-3px);
   box-shadow: var(--shadow-lg);
-  border-color: rgba(16, 185, 129, 0.25);
+  border-color: rgba(16, 185, 129, 0.3);
 }
 
 /* Buttons */

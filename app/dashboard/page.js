@@ -5,7 +5,7 @@ import { useUser } from './layout';
 import { createClient } from '@/lib/supabase/client';
 import { daysUntilYKS, todayStr, formatDuration, formatTime } from '@/lib/utils/date';
 import { motion } from 'framer-motion';
-import { Target, Activity, PenTool, Timer, Flame, CheckCircle2, ListTodo, PartyPopper, Calendar, ArrowRight } from 'lucide-react';
+import { Target, Activity, PenTool, Timer, Flame, CheckCircle2, ListTodo, PartyPopper, Calendar, ArrowRight, Sparkles } from 'lucide-react';
 import Link from 'next/link';
 
 const containerVariants = {
@@ -120,9 +120,13 @@ export default function DashboardPage() {
       <motion.div 
         initial={{ opacity: 0, y: -10 }}
         animate={{ opacity: 1, y: 0 }}
-        className="welcome-banner"
+        className="welcome-banner glass"
       >
         <div className="banner-content">
+          <div className="welcome-tag">
+            <Sparkles size={14} color="var(--primary-600)" />
+            <span>YKS Koçluk Paneli</span>
+          </div>
           <h1 className="greeting-title">
             Hoş geldin, {profile?.full_name?.split(' ')[0]} 👋
           </h1>
@@ -152,7 +156,7 @@ export default function DashboardPage() {
             </div>
           </div>
           <div className="stat-card-body">
-            <span className="stat-value text-emerald">{daysLeft}</span>
+            <span className="stat-value text-emerald font-mono">{daysLeft}</span>
             <span className="stat-subtext">Hedefe adım adım!</span>
           </div>
         </motion.div>
@@ -166,7 +170,7 @@ export default function DashboardPage() {
             </div>
           </div>
           <div className="stat-card-body">
-            <span className="stat-value">{completionPercent}%</span>
+            <span className="stat-value font-mono">{completionPercent}%</span>
             <div className="progress-bar progress-bar-sm" style={{ marginTop: '10px' }}>
               <div className="progress-bar-fill" style={{ width: `${completionPercent}%` }}></div>
             </div>
@@ -182,7 +186,7 @@ export default function DashboardPage() {
             </div>
           </div>
           <div className="stat-card-body">
-            <span className="stat-value">{stats.todayQuestions}</span>
+            <span className="stat-value font-mono">{stats.todayQuestions}</span>
             <span className="stat-subtext">Bugün çözülen toplam soru</span>
           </div>
         </motion.div>
@@ -196,7 +200,7 @@ export default function DashboardPage() {
             </div>
           </div>
           <div className="stat-card-body">
-            <span className="stat-value">{formatDuration(stats.todayMinutes)}</span>
+            <span className="stat-value font-mono">{formatDuration(stats.todayMinutes)}</span>
             <span className="stat-subtext">Net çalışma zamanı</span>
           </div>
         </motion.div>
@@ -210,7 +214,7 @@ export default function DashboardPage() {
             </div>
           </div>
           <div className="stat-card-body">
-            <span className="stat-value text-amber">{stats.streak} <span className="stat-unit">Gün</span></span>
+            <span className="stat-value text-amber font-mono">{stats.streak} <span className="stat-unit">Gün</span></span>
             <span className="stat-subtext">Kesintisiz çalışma</span>
           </div>
         </motion.div>
@@ -224,7 +228,7 @@ export default function DashboardPage() {
             </div>
           </div>
           <div className="stat-card-body">
-            <span className="stat-value">{stats.todayCompleted} <span className="stat-unit">/ {stats.todayTotal}</span></span>
+            <span className="stat-value font-mono">{stats.todayCompleted} <span className="stat-unit">/ {stats.todayTotal}</span></span>
             <span className="stat-subtext">Bugünkü görevlerin</span>
           </div>
         </motion.div>
@@ -267,7 +271,7 @@ export default function DashboardPage() {
           >
             {upcomingTasks.map((task) => (
               <motion.div variants={itemVariants} key={task.id} className="card task-card card-interactive">
-                <div className="task-time-badge">
+                <div className="task-time-badge font-mono">
                   {formatTime(task.baslangic_saat)} - {formatTime(task.bitis_saat)}
                 </div>
                 <div className="task-content">
@@ -277,7 +281,7 @@ export default function DashboardPage() {
                   </div>
                   {task.konu && <span className="task-konu-title">{task.konu}</span>}
                   {task.soru_sayisi > 0 && (
-                    <span className="badge badge-neutral">{task.soru_sayisi} Soru</span>
+                    <span className="badge badge-neutral font-mono">{task.soru_sayisi} Soru</span>
                   )}
                 </div>
               </motion.div>
@@ -302,6 +306,19 @@ export default function DashboardPage() {
           justify-content: space-between;
           align-items: center;
           box-shadow: var(--shadow-sm);
+        }
+
+        .welcome-tag {
+          display: inline-flex;
+          align-items: center;
+          gap: 6px;
+          padding: 4px 10px;
+          background: var(--primary-100);
+          color: var(--primary-800);
+          border-radius: var(--radius-full);
+          font-size: 0.75rem;
+          font-weight: 700;
+          margin-bottom: 8px;
         }
 
         .greeting-title {
