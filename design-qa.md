@@ -48,7 +48,7 @@ The source and implementation were rendered side by side in one comparison image
 - Pomodoro start/pause, mobile drawer, and bottom navigation passed.
 - Temporary QA users and their cascaded rows were removed after each run.
 - The `Mert Kaya` account passed with 84 tasks, 74 focus records, 5 exams, 38 tracked topics, real resources, difficult questions, repeats, and notes.
-- YKS countdown displays the explicit approximate date `19 Ağustos 2026` and labels it as estimated.
+- YKS countdown displays the explicit approximate date `19 Ağustos 2027` and labels it as estimated.
 
 ## Automated evidence
 
