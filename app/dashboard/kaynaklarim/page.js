@@ -11,6 +11,7 @@ import { createStudyImageUrls, uploadStudyImage } from "@/lib/supabase/storage";
 import PageHeader from "@/components/ui/PageHeader";
 import DataState from "@/components/ui/DataState";
 import Modal from "@/components/ui/Modal";
+import Select from "@/components/ui/Select";
 
 const REALTIME_TABLES = ["kaynaklarim"];
 const EMPTY_FORM = {
@@ -218,17 +219,7 @@ export default function KaynaklarimPage() {
             </button>
           ))}
         </div>
-        <select
-          value={bookType}
-          onChange={(event) => setBookType(event.target.value)}
-        >
-          <option value="all">Tüm kitap türleri</option>
-          {KITAP_TURLERI.map((type) => (
-            <option key={type.value} value={type.value}>
-              {type.label}
-            </option>
-          ))}
-        </select>
+        <Select ariaLabel="Kitap türü filtresi" value={bookType} onChange={setBookType} options={[{ value: 'all', label: 'Tüm kitap türleri' }, ...KITAP_TURLERI.map((type) => ({ value: type.value, label: type.label }))]} />
         <span>{visibleResources.length} kaynak</span>
       </div>
       <DataState
@@ -301,19 +292,7 @@ export default function KaynaklarimPage() {
           <div className="study-form">
             <label>
               Kaynak
-              <select
-                value={catalogId}
-                onChange={(event) => setCatalogId(event.target.value)}
-              >
-                <option value="">Katalogdan seç</option>
-                {catalog
-                  .filter((item) => examTabs.includes(item.sinav_turu))
-                  .map((item) => (
-                    <option key={item.id} value={item.id}>
-                      {item.sinav_turu} · {item.ad} · {item.yayin}
-                    </option>
-                  ))}
-              </select>
+              <Select ariaLabel="Kaynak" value={catalogId} onChange={setCatalogId} placeholder="Katalogdan seç" options={catalog.filter((item) => examTabs.includes(item.sinav_turu)).map((item) => ({ value: item.id, label: item.ad, description: `${item.sinav_turu} · ${item.yayin}` }))} searchable />
             </label>
             <div className="form-actions">
               <button
@@ -350,50 +329,16 @@ export default function KaynaklarimPage() {
             <div className="form-grid-2">
               <label>
                 Sınav
-                <select
-                  value={form.sinav_turu}
-                  onChange={(event) =>
-                    setForm({ ...form, sinav_turu: event.target.value })
-                  }
-                >
-                  {examTabs.map((exam) => (
-                    <option key={exam}>{exam}</option>
-                  ))}
-                </select>
+                <Select ariaLabel="Sınav" value={form.sinav_turu} onChange={(value) => setForm({ ...form, sinav_turu: value, ders_id: '' })} options={examTabs.map((exam) => ({ value: exam, label: exam }))} />
               </label>
               <label>
                 Ders
-                <select
-                  value={form.ders_id}
-                  onChange={(event) =>
-                    setForm({ ...form, ders_id: event.target.value })
-                  }
-                >
-                  <option value="">Ders seç</option>
-                  {courses
-                    .filter((course) => course.sinav_turu === form.sinav_turu)
-                    .map((course) => (
-                      <option key={course.id} value={course.id}>
-                        {course.ad}
-                      </option>
-                    ))}
-                </select>
+                <Select ariaLabel="Ders" value={form.ders_id} onChange={(value) => setForm({ ...form, ders_id: value })} placeholder="Ders seç" options={courses.filter((course) => course.sinav_turu === form.sinav_turu).map((course) => ({ value: course.id, label: course.ad }))} />
               </label>
             </div>
             <label>
               Kitap türü
-              <select
-                value={form.kitap_turu}
-                onChange={(event) =>
-                  setForm({ ...form, kitap_turu: event.target.value })
-                }
-              >
-                {KITAP_TURLERI.map((type) => (
-                  <option key={type.value} value={type.value}>
-                    {type.label}
-                  </option>
-                ))}
-              </select>
+              <Select ariaLabel="Kitap türü" value={form.kitap_turu} onChange={(value) => setForm({ ...form, kitap_turu: value })} options={KITAP_TURLERI.map((type) => ({ value: type.value, label: type.label }))} />
             </label>
             <label>
               Kapak görseli

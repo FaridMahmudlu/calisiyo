@@ -8,6 +8,7 @@ import { createClient } from '@/lib/supabase/client';
 import { todayStr } from '@/lib/utils/date';
 import PageHeader from '@/components/ui/PageHeader';
 import { useRealtimeRefresh } from '@/lib/hooks/useRealtimeRefresh';
+import Select from '@/components/ui/Select';
 
 const PRESETS = [
   { label: '25 / 5', work: 25, breakMinutes: 5 },
@@ -130,8 +131,8 @@ export default function PomodoroPage() {
     <div className="page pomodoro-page">
       <PageHeader title="Pomodoro" description="Odaklan, molanı ver, ritmini koru. Tamamlanan odak oturumları istatistiklerine kaydedilir." />
       <div className="pomodoro-context">
-        <label>Konu / ders <select value={courseId} onChange={(event) => setCourseId(event.target.value)}><option value="">Ders seç (isteğe bağlı)</option>{courses.map((course) => <option key={course.id} value={course.id}>{course.sinav_turu} · {course.ad}</option>)}</select></label>
-        <label>Kaynak <select value={resourceId} onChange={(event) => setResourceId(event.target.value)}><option value="">Kaynak seç (isteğe bağlı)</option>{resources.map((resource) => <option key={resource.id} value={resource.id}>{resource.kaynaklar_sistem?.ad || resource.custom_ad}</option>)}</select></label>
+        <label>Konu / ders <Select ariaLabel="Konu / ders" value={courseId} onChange={setCourseId} placeholder="Ders seç (isteğe bağlı)" options={[{ value: '', label: 'Ders seçilmesin' }, ...courses.map((course) => ({ value: course.id, label: course.ad, description: course.sinav_turu }))]} /></label>
+        <label>Kaynak <Select ariaLabel="Kaynak" value={resourceId} onChange={setResourceId} placeholder="Kaynak seç (isteğe bağlı)" options={[{ value: '', label: 'Kaynak seçilmesin' }, ...resources.map((resource) => ({ value: resource.id, label: resource.kaynaklar_sistem?.ad || resource.custom_ad }))]} /></label>
       </div>
 
       <div className="pomodoro-workspace">

@@ -9,6 +9,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { Repeat, Plus, CheckCircle2, Circle, Calendar, Clock, BookOpen } from 'lucide-react';
 import { useRealtimeRefresh } from '@/lib/hooks/useRealtimeRefresh';
 import PageHeader from '@/components/ui/PageHeader';
+import Select from '@/components/ui/Select';
 
 const REALTIME_TABLES = ['tekrarlar'];
 
@@ -70,6 +71,7 @@ export default function TekrarlarimPage() {
 
   async function handleAdd(e) {
     e.preventDefault();
+    if (!form.ders_id) return setError('Tekrar eklemek için bir ders seçmelisin.');
     const { error: insertError } = await supabase.from('tekrarlar').insert({
       user_id: profile.id,
       ders_id: form.ders_id || null,
@@ -203,10 +205,7 @@ export default function TekrarlarimPage() {
             <form onSubmit={handleAdd} className="modal-form">
               <div className="input-group">
                 <label className="input-label">Ders</label>
-                <select className="select" value={form.ders_id} onChange={(e) => setForm({ ...form, ders_id: e.target.value })} required>
-                  <option value="">Seçin</option>
-                  {dersler.map(d => <option key={d.id} value={d.id}>{d.ad}</option>)}
-                </select>
+                <Select ariaLabel="Ders" value={form.ders_id} onChange={(value) => setForm({ ...form, ders_id: value })} placeholder="Ders seç" options={dersler.map((course) => ({ value: course.id, label: course.ad }))} />
               </div>
               <div className="input-group">
                 <label className="input-label">Konu</label>

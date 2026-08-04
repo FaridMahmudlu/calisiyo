@@ -12,6 +12,7 @@ import { createStudyImageUrls, uploadStudyImage } from "@/lib/supabase/storage";
 import PageHeader from "@/components/ui/PageHeader";
 import DataState from "@/components/ui/DataState";
 import Modal from "@/components/ui/Modal";
+import Select from "@/components/ui/Select";
 
 const EMPTY_FORM = {
   ders_id: "",
@@ -106,6 +107,10 @@ export default function YapamadiklariPage() {
 
   const saveQuestion = async (event) => {
     event.preventDefault();
+    if (!form.ders_id) {
+      setGlobalError("Soru kaydı için bir ders seçmelisin.");
+      return;
+    }
     setSaving(true);
     try {
       const photoPath = file
@@ -297,20 +302,7 @@ export default function YapamadiklariPage() {
         <form className="study-form" onSubmit={saveQuestion}>
           <label>
             Ders
-            <select
-              value={form.ders_id}
-              onChange={(event) =>
-                setForm({ ...form, ders_id: event.target.value })
-              }
-              required
-            >
-              <option value="">Ders seç</option>
-              {courses.map((course) => (
-                <option key={course.id} value={course.id}>
-                  {course.ad}
-                </option>
-              ))}
-            </select>
+            <Select ariaLabel="Ders" value={form.ders_id} onChange={(value) => setForm({ ...form, ders_id: value })} placeholder="Ders seç" options={courses.map((course) => ({ value: course.id, label: course.ad }))} />
           </label>
           <label>
             Konu

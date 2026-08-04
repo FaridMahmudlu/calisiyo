@@ -2,7 +2,7 @@ const { defineConfig } = require('@playwright/test');
 
 module.exports = defineConfig({
   testDir: './tests',
-  testMatch: 'qa.spec.js',
+  testMatch: '*.spec.js',
   respectGitIgnore: false,
   fullyParallel: false,
   workers: 1,

@@ -1,6 +1,6 @@
 'use client';
 
-import { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react';
+import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import {
@@ -60,6 +60,8 @@ export default function DashboardLayout({ children }) {
   const [errorState, setErrorState] = useState({ message: '', pathname });
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [collapsed, setCollapsed] = useState(false);
+  const [sidebarWidth, setSidebarWidth] = useState(232);
+  const resizingRef = useRef(false);
   const [stats, setStats] = useState({ level: 1, xp: 0, streak: 0 });
   const error = errorState.pathname === pathname ? errorState.message : '';
   const setError = useCallback((message) => {
@@ -106,6 +108,50 @@ export default function DashboardLayout({ children }) {
     return () => clearTimeout(timer);
   }, [loadAccount]);
 
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      const savedWidth = Number(window.localStorage.getItem('calisiyo-sidebar-width'));
+      if (savedWidth >= 210 && savedWidth <= 340) setSidebarWidth(savedWidth);
+    }, 0);
+    return () => clearTimeout(timer);
+  }, []);
+
+  useEffect(() => {
+    window.localStorage.setItem('calisiyo-sidebar-width', String(sidebarWidth));
+  }, [sidebarWidth]);
+
+  const resizeSidebar = useCallback((clientX) => {
+    setSidebarWidth(Math.min(340, Math.max(210, clientX)));
+  }, []);
+
+  const startResize = useCallback((event) => {
+    if (collapsed || window.innerWidth <= 980) return;
+    event.preventDefault();
+    resizingRef.current = true;
+    document.body.classList.add('is-resizing-sidebar');
+    const move = (moveEvent) => resizeSidebar(moveEvent.clientX);
+    const stop = () => {
+      resizingRef.current = false;
+      document.body.classList.remove('is-resizing-sidebar');
+      window.removeEventListener('pointermove', move);
+      window.removeEventListener('pointerup', stop);
+    };
+    window.addEventListener('pointermove', move);
+    window.addEventListener('pointerup', stop, { once: true });
+  }, [collapsed, resizeSidebar]);
+
+  const resizeWithKeyboard = (event) => {
+    if (event.key === 'ArrowLeft') setSidebarWidth((width) => Math.max(210, width - 10));
+    if (event.key === 'ArrowRight') setSidebarWidth((width) => Math.min(340, width + 10));
+    if (event.key === 'Home') setSidebarWidth(210);
+    if (event.key === 'End') setSidebarWidth(340);
+  };
+
+  const toggleSidebar = () => {
+    if (window.innerWidth <= 980) setSidebarOpen(false);
+    else setCollapsed((value) => !value);
+  };
+
   const accountRealtimeTables = useMemo(() => ['gunluk_gorevler', 'calisma_suresi'], []);
   const profileRealtimeTables = useMemo(() => ['profiles'], []);
   useRealtimeRefresh({ tables: accountRealtimeTables, userId: user?.id, onChange: loadAccount });
@@ -130,7 +176,7 @@ export default function DashboardLayout({ children }) {
 
   return (
     <UserContext.Provider value={{ user, profile, setProfile, error, setError }}>
-      <div className={`study-layout ${collapsed ? 'is-collapsed' : ''}`}>
+      <div className={`study-layout ${collapsed ? 'is-collapsed' : ''}`} style={{ '--sidebar-width': `${sidebarWidth}px` }}>
         {sidebarOpen && <button className="sidebar-backdrop" aria-label="Menüyü kapat" onClick={() => setSidebarOpen(false)} />}
         <aside className={`study-sidebar ${sidebarOpen ? 'is-open' : ''}`}>
           <div className="sidebar-brand-row">
@@ -138,10 +184,9 @@ export default function DashboardLayout({ children }) {
               <span className="brand-mark"><BookMarked size={22} /></span>
               {!collapsed && <span>calisiyo</span>}
             </Link>
-            <button className="icon-button sidebar-desktop-toggle" onClick={() => setCollapsed((value) => !value)} aria-label={collapsed ? 'Paneli genişlet' : 'Paneli daralt'}>
+            <button className="icon-button sidebar-toggle" onClick={toggleSidebar} aria-label={collapsed ? 'Paneli genişlet' : 'Paneli daralt'}>
               {collapsed ? <PanelLeftOpen size={18} /> : <PanelLeftClose size={18} />}
             </button>
-            <button className="icon-button sidebar-mobile-close" onClick={() => setSidebarOpen(false)} aria-label="Menüyü kapat"><X size={20} /></button>
           </div>
 
           <nav className="study-navigation" aria-label="Ana menü">
@@ -170,6 +215,7 @@ export default function DashboardLayout({ children }) {
               {!collapsed && <button className="icon-button" onClick={logout} aria-label="Çıkış yap"><LogOut size={17} /></button>}
             </div>
           </div>
+          {!collapsed && <div className="sidebar-resizer" role="separator" aria-label="Panel genişliyini dəyiş" aria-orientation="vertical" aria-valuemin="210" aria-valuemax="340" aria-valuenow={sidebarWidth} tabIndex={0} onKeyDown={resizeWithKeyboard} onPointerDown={startResize}><span /></div>}
         </aside>
 
         <div className="study-main">

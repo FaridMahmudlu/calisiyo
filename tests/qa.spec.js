@@ -35,11 +35,12 @@ test('public auth, protected navigation, daily CRUD and responsive visuals', asy
   await expect(page.getByRole('heading', { name: 'Tekrar hoş geldin' })).toBeVisible();
   const googleButton = page.getByRole('button', { name: /Google ile devam et/ });
   await expect(googleButton).toBeVisible();
-  await expect(page.getByRole('button', { name: /Apple ile devam et/ })).toBeVisible();
+  await expect(page.getByRole('button', { name: /Apple ile devam et/ })).toHaveCount(0);
   await expect(googleButton).toBeEnabled();
+  await expect(page.getByText('Yakında')).toHaveCount(0);
   await googleButton.click();
-  await expect(page.locator('.auth-alert')).toContainText('E-posta ile hemen devam edebilirsin');
-  await expect(page).toHaveURL(/\/giris$/);
+  await page.waitForURL(/accounts\.google\.com/, { timeout: 30000 });
+  await page.goto(`${baseURL}/giris`);
   await page.screenshot({ path: path.join(qaDir, 'giris-desktop.png') });
 
   await page.goto(`${baseURL}/kayit`);
@@ -69,6 +70,19 @@ test('public auth, protected navigation, daily CRUD and responsive visuals', asy
   await expect(page).toHaveURL(/\/dashboard$/);
   await expect(page.getByText('QA Ogrencisi').first()).toBeVisible();
 
+  const sidebar = page.locator('.study-sidebar');
+  const resizer = page.getByRole('separator', { name: 'Panel genişliyini dəyiş' });
+  const initialSidebarWidth = await sidebar.evaluate((element) => element.getBoundingClientRect().width);
+  const resizerBox = await resizer.boundingBox();
+  await page.mouse.move(resizerBox.x + 2, resizerBox.y + 120);
+  await page.mouse.down();
+  await page.mouse.move(resizerBox.x + 42, resizerBox.y + 120, { steps: 5 });
+  await page.mouse.up();
+  await expect.poll(() => sidebar.evaluate((element) => element.getBoundingClientRect().width)).toBeGreaterThan(initialSidebarWidth);
+  await page.getByRole('button', { name: 'Paneli daralt' }).click();
+  await expect.poll(() => sidebar.evaluate((element) => element.getBoundingClientRect().width)).toBeLessThanOrEqual(80);
+  await page.getByRole('button', { name: 'Paneli genişlet' }).click();
+
   await page.goto(`${baseURL}/dashboard/gunluk-program`);
   await expect(page.getByRole('heading', { name: 'Günlük Program' })).toBeVisible();
   await expect(page.getByText('Paragraf QA')).toBeVisible();
@@ -77,7 +91,8 @@ test('public auth, protected navigation, daily CRUD and responsive visuals', asy
   await page.getByRole('button', { name: 'Görev ekle' }).click();
   const dialog = page.getByRole('dialog');
   await expect(dialog.getByRole('heading', { name: 'Yeni görev' })).toBeVisible();
-  await dialog.getByLabel('Ders').selectOption({ index: 1 });
+  await dialog.getByRole('button', { name: 'Ders' }).click();
+  await dialog.getByRole('option').first().click();
   await dialog.getByLabel('Konu').fill('Playwright CRUD görevi');
   await dialog.getByLabel('Soru sayısı').fill('12');
   await dialog.getByRole('button', { name: 'Görevi ekle' }).click();
@@ -143,6 +158,7 @@ test('public auth, protected navigation, daily CRUD and responsive visuals', asy
   await page.screenshot({ path: path.join(qaDir, 'gunluk-program-mobile.png'), fullPage: true });
   await page.getByRole('button', { name: 'Menüyü aç' }).click();
   await expect(page.getByRole('navigation', { name: 'Ana menü' })).toBeVisible();
+  await expect(page.locator('.sidebar-mobile-close')).toHaveCount(0);
   await page.screenshot({ path: path.join(qaDir, 'mobile-navigation-open.png') });
 
   expect(browserErrors).toEqual([]);

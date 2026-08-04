@@ -1,37 +1,32 @@
 'use client';
 
 import { useEffect, useMemo, useState } from 'react';
-import { FaApple } from 'react-icons/fa';
 import { FcGoogle } from 'react-icons/fc';
 import { createClient } from '@/lib/supabase/client';
 
-const PROVIDERS = [
-  { id: 'google', label: 'Google ile devam et', icon: FcGoogle },
-  { id: 'apple', label: 'Apple ile devam et', icon: FaApple },
-];
+const PROVIDERS = [{ id: 'google', label: 'Google ile devam et', icon: FcGoogle }];
 
 export default function SocialAuthButtons({ intent = 'login', onError }) {
   const supabase = useMemo(() => createClient(), []);
   const [loadingProvider, setLoadingProvider] = useState('');
-  const [providerState, setProviderState] = useState({ loading: true, google: false, apple: false });
+  const [providerState, setProviderState] = useState({ loading: true, google: false });
 
   useEffect(() => {
     let active = true;
     fetch('/api/auth/providers', { cache: 'no-store' })
       .then((response) => response.json())
       .then(({ providers }) => {
-        if (active) setProviderState({ loading: false, google: Boolean(providers?.google), apple: Boolean(providers?.apple) });
+        if (active) setProviderState({ loading: false, google: Boolean(providers?.google) });
       })
       .catch(() => {
-        if (active) setProviderState({ loading: false, google: false, apple: false });
+        if (active) setProviderState({ loading: false, google: false });
       });
     return () => { active = false; };
   }, []);
 
   const startOAuth = async (provider) => {
     if (!providerState[provider]) {
-      const providerName = provider === 'google' ? 'Google' : 'Apple';
-      onError?.(`${providerName} ile giriş henüz hazır değil. E-posta ile hemen devam edebilirsin.`);
+      onError?.('Google ile giriş hazırlanıyor. Şimdilik e-posta ile hemen devam edebilirsin.');
       return;
     }
     setLoadingProvider(provider);
@@ -49,9 +44,8 @@ export default function SocialAuthButtons({ intent = 'login', onError }) {
     });
 
     if (error) {
-      const providerName = provider === 'google' ? 'Google' : 'Apple';
       const message = /provider|enabled|unsupported/i.test(error.message)
-        ? `${providerName} ile giriş şu anda kullanılamıyor. E-posta ile devam edebilirsin.`
+        ? 'Google ile giriş şu anda kullanılamıyor. E-posta ile devam edebilirsin.'
         : error.message;
       onError?.(message);
       setLoadingProvider('');
@@ -73,7 +67,7 @@ export default function SocialAuthButtons({ intent = 'login', onError }) {
           {!providerState.loading && !providerState[id] && <small>Yakında</small>}
         </button>
       ))}
-      {!providerState.loading && !providerState.google && !providerState.apple && (
+      {!providerState.loading && !providerState.google && (
         <p className="social-auth-note">E-posta ile hesap oluşturma ve giriş kullanıma hazır.</p>
       )}
     </div>

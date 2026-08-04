@@ -1,4 +1,4 @@
-const PROVIDER_IDS = ['google', 'apple'];
+const PROVIDER_IDS = ['google'];
 
 export async function GET() {
   try {
@@ -13,6 +13,6 @@ export async function GET() {
     );
     return Response.json({ providers });
   } catch {
-    return Response.json({ providers: { google: false, apple: false } });
+    return Response.json({ providers: { google: false } });
   }
 }

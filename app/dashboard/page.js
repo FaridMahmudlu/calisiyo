@@ -3,7 +3,7 @@
 import { useState, useEffect, useMemo, useCallback } from 'react';
 import { useUser } from './layout';
 import { createClient } from '@/lib/supabase/client';
-import { daysUntilYKS, todayStr, formatDate, formatShortDate, formatDuration, formatTime, GUN_KISA, toLocalDateKey } from '@/lib/utils/date';
+import { daysUntilYKS, yksDateLabel, todayStr, formatDate, formatShortDate, formatDuration, formatTime, GUN_KISA, toLocalDateKey } from '@/lib/utils/date';
 import { motion, AnimatePresence } from 'framer-motion';
 import { 
   Calendar as CalendarIcon, Target, BookOpen, Clock, Info, 
@@ -399,7 +399,7 @@ export default function DashboardPage() {
           </div>
           <div className="stat-mini-body">
             <div className="stat-mini-num font-mono">{daysLeft ?? '—'}</div>
-            <div className="stat-mini-sub">{daysLeft == null ? 'ÖSYM tarihi bekleniyor' : 'Gün'}</div>
+            <div className="stat-mini-sub">{daysLeft == null ? 'Tahmini tarih geçti' : `Gün · Tahmini ${yksDateLabel()}`}</div>
           </div>
         </div>
 

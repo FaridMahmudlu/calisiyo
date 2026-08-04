@@ -10,6 +10,7 @@ import { useRealtimeRefresh } from '@/lib/hooks/useRealtimeRefresh';
 import PageHeader from '@/components/ui/PageHeader';
 import DataState from '@/components/ui/DataState';
 import Modal from '@/components/ui/Modal';
+import Select from '@/components/ui/Select';
 
 const EMPTY_FORM = {
   baslangic_saat: '08:00', bitis_saat: '08:40', ders_id: '', kaynak_id: '', konu: '', soru_sayisi: '', sayfa_araligi: '',
@@ -98,6 +99,7 @@ export default function GunlukProgramPage() {
 
   const saveTask = async (event) => {
     event.preventDefault();
+    if (!form.ders_id) return setGlobalError('Görev eklemek için bir ders seçmelisin.');
     setSaving(true);
     const payload = {
       user_id: profile.id, tarih: selectedDate, baslangic_saat: form.baslangic_saat, bitis_saat: form.bitis_saat,
@@ -201,9 +203,9 @@ export default function GunlukProgramPage() {
             <label>Başlangıç<input type="time" value={form.baslangic_saat} onChange={(event) => setForm({ ...form, baslangic_saat: event.target.value })} required /></label>
             <label>Bitiş<input type="time" value={form.bitis_saat} min={form.baslangic_saat} onChange={(event) => setForm({ ...form, bitis_saat: event.target.value })} required /></label>
           </div>
-          <label>Ders<select value={form.ders_id} onChange={(event) => setForm({ ...form, ders_id: event.target.value })} required><option value="">Ders seç</option>{dersler.filter((course) => course.sinav_turu === activeExam).map((course) => <option key={course.id} value={course.id}>{course.ad}</option>)}</select></label>
+          <label>Ders<Select ariaLabel="Ders" value={form.ders_id} onChange={(value) => setForm({ ...form, ders_id: value })} placeholder="Ders seç" options={dersler.filter((course) => course.sinav_turu === activeExam).map((course) => ({ value: course.id, label: course.ad }))} /></label>
           <label>Konu<input value={form.konu} onChange={(event) => setForm({ ...form, konu: event.target.value })} placeholder="Örn. Bölme ve bölünebilme" /></label>
-          <label>Kaynak<select value={form.kaynak_id} onChange={(event) => setForm({ ...form, kaynak_id: event.target.value })}><option value="">Kaynak seç (isteğe bağlı)</option>{kaynaklar.map((resource) => <option key={resource.id} value={resource.id}>{resource.kaynaklar_sistem?.ad || resource.custom_ad}</option>)}</select></label>
+          <label>Kaynak<Select ariaLabel="Kaynak" value={form.kaynak_id} onChange={(value) => setForm({ ...form, kaynak_id: value })} placeholder="Kaynak seç (isteğe bağlı)" options={[{ value: '', label: 'Kaynak seçilmesin' }, ...kaynaklar.map((resource) => ({ value: resource.id, label: resource.kaynaklar_sistem?.ad || resource.custom_ad }))]} /></label>
           <div className="form-grid-2">
             <label>Soru sayısı<input type="number" min="0" value={form.soru_sayisi} onChange={(event) => setForm({ ...form, soru_sayisi: event.target.value })} placeholder="40" /></label>
             <label>Sayfa aralığı<input value={form.sayfa_araligi} onChange={(event) => setForm({ ...form, sayfa_araligi: event.target.value })} placeholder="45–60" /></label>

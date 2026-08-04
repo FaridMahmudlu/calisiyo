@@ -6,9 +6,13 @@
 - Implementation URL: `http://127.0.0.1:3101/dashboard/gunluk-program`
 - Implementation screenshot: `design-references/qa/gunluk-program-desktop.png`
 - Combined source and implementation comparison: `design-references/qa/final-gunluk-program-comparison.png`
+- Statistics source: `design-references/istatistikler.png`
+- Statistics implementation: `design-references/qa/demo-istatistikler-desktop.png`
+- Statistics combined comparison: `design-references/qa/final-istatistikler-comparison.png`
 - Landing evidence: `design-references/qa/landing-desktop.png`
 - Mobile evidence: `design-references/qa/gunluk-program-mobile.png` and `design-references/qa/mobile-navigation-open.png`
-- State: authenticated daily-program screen backed by temporary synthetic Supabase rows
+- Statistics mobile evidence: `design-references/qa/demo-istatistikler-mobile.png`
+- State: authenticated screens backed by temporary QA rows and the permanent realistic `Mert Kaya` test account
 
 ## Full-view comparison evidence
 
@@ -22,6 +26,8 @@ The source and implementation were rendered side by side in one comparison image
 4. The summary uses the same three-column information hierarchy while values come from database rows.
 5. Timeline times, status nodes, task cards, duration pills, completion, edit, and delete controls follow the source density and alignment.
 6. The mobile captures confirm stacked content, bottom navigation, working drawer, and no horizontal clipping.
+7. The statistics implementation retains the selected concept's compact information hierarchy while adding live status, six database-backed KPIs, goal meters, study/question trends, course distribution, exam progression, topic mastery, difficult-question status, and exam history.
+8. The sidebar has one close/open control, no redundant X action, and a keyboard-accessible 210–340 px resize handle. All native selects were replaced with the same minimal, searchable listbox design.
 
 ## Landing and motion review
 
@@ -34,17 +40,19 @@ The source and implementation were rendered side by side in one comparison image
 ## Functional verification
 
 - Email registration, area selection, immediate authenticated redirect, server-backed logout, and email/password login passed.
-- Disabled Google/Apple providers no longer navigate to a raw Supabase error; availability is checked before redirect and the app remains usable through email.
+- Apple login and all related availability UI were removed. Google provider availability, Supabase authorization, and the redirect to `accounts.google.com` passed; email remains fully usable.
 - Initial account/profile/stat loading uses a server-validated session and no longer depends on an extra browser `getUser()` call.
 - Settings and goals save through server-validated account endpoints; both passed without an auth-session error.
 - Daily task create, edit, complete, and confirmed delete passed against Supabase.
 - All redesigned dashboard routes rendered and were captured without page, console, or HTTP errors.
 - Pomodoro start/pause, mobile drawer, and bottom navigation passed.
 - Temporary QA users and their cascaded rows were removed after each run.
+- The `Mert Kaya` account passed with 84 tasks, 74 focus records, 5 exams, 38 tracked topics, real resources, difficult questions, repeats, and notes.
+- YKS countdown displays the explicit approximate date `19 Ağustos 2026` and labels it as estimated.
 
 ## Automated evidence
 
-- `npx playwright test --config=playwright.config.js`: 1 passed.
+- `npx playwright test --config=playwright.config.js`: 2 passed.
 - Browser page errors: 0.
 - Browser console errors: 0.
 - HTTP responses >= 400 during the final run: 0.
