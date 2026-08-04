@@ -9,26 +9,41 @@ import {
   Home, Calendar, CalendarDays, BarChart3, Target, 
   RotateCcw, AlertTriangle, BookOpen, Clock, Timer, 
   FileText, Settings, LogOut, Menu, X, BookMarked, Bell, Flame, Leaf,
-  ChevronLeft, ChevronRight, PanelLeftClose, PanelLeftOpen
+  PanelLeftClose, PanelLeftOpen
 } from 'lucide-react';
 
 const UserContext = createContext(null);
 export const useUser = () => useContext(UserContext);
 
-const NAV_ITEMS = [
-  { href: '/dashboard', label: 'Dashboard', icon: <Home size={20} /> },
-  { href: '/dashboard/gunluk-program', label: 'Günlük Program', icon: <Calendar size={20} /> },
-  { href: '/dashboard/haftalik-program', label: 'Haftalık Program', icon: <CalendarDays size={20} /> },
-  { href: '/dashboard/konu-takibi', label: 'Konu Takibi', icon: <BarChart3 size={20} /> },
-  { href: '/dashboard/deneme-analizi', label: 'Deneme Analizi', icon: <Target size={20} /> },
-  { href: '/dashboard/tekrarlarim', label: 'Tekrarlarım', icon: <RotateCcw size={20} /> },
-  { href: '/dashboard/yapamadiklari', label: 'Yapamadığım Sorular', icon: <AlertTriangle size={20} /> },
-  { href: '/dashboard/kaynaklarim', label: 'Kaynaklarım', icon: <BookOpen size={20} /> },
-  { href: '/dashboard/istatistikler', label: 'İstatistikler', icon: <Clock size={20} /> },
-  { href: '/dashboard/pomodoro', label: 'Pomodoro', icon: <Timer size={20} /> },
-  { href: '/dashboard/not-defteri', label: 'Not Defterim', icon: <FileText size={20} /> },
-  { href: '/dashboard/hedeflerim', label: 'Hedeflerim', icon: <Target size={20} /> },
-  { href: '/dashboard/ayarlar', label: 'Ayarlar', icon: <Settings size={20} /> },
+const NAV_GROUPS = [
+  {
+    title: 'MENU',
+    items: [
+      { href: '/dashboard', label: 'Dashboard', icon: <Home size={19} /> },
+      { href: '/dashboard/gunluk-program', label: 'Günlük Program', icon: <Calendar size={19} /> },
+      { href: '/dashboard/haftalik-program', label: 'Haftalık Program', icon: <CalendarDays size={19} /> },
+      { href: '/dashboard/konu-takibi', label: 'Konu Takibi', icon: <BarChart3 size={19} /> },
+      { href: '/dashboard/deneme-analizi', label: 'Deneme Analizi', icon: <Target size={19} /> },
+    ]
+  },
+  {
+    title: 'ÇALIŞMA',
+    items: [
+      { href: '/dashboard/tekrarlarim', label: 'Tekrarlarım', icon: <RotateCcw size={19} /> },
+      { href: '/dashboard/yapamadiklari', label: 'Yapamadığım Sorular', icon: <AlertTriangle size={19} /> },
+      { href: '/dashboard/kaynaklarim', label: 'Kaynaklarım', icon: <BookOpen size={19} /> },
+      { href: '/dashboard/istatistikler', label: 'İstatistikler', icon: <Clock size={19} /> },
+      { href: '/dashboard/pomodoro', label: 'Pomodoro', icon: <Timer size={19} /> },
+      { href: '/dashboard/not-defteri', label: 'Not Defterim', icon: <FileText size={19} /> },
+      { href: '/dashboard/hedeflerim', label: 'Hedeflerim', icon: <Target size={19} /> },
+    ]
+  },
+  {
+    title: 'DİĞER',
+    items: [
+      { href: '/dashboard/ayarlar', label: 'Ayarlar', icon: <Settings size={19} /> },
+    ]
+  }
 ];
 
 const MOBILE_NAV = [
@@ -144,8 +159,12 @@ export default function DashboardLayout({ children }) {
   };
 
   const pageTitle = useMemo(() => {
-    const match = NAV_ITEMS.find(item => item.href === pathname);
-    return match?.label || 'Dashboard';
+    let title = 'Dashboard';
+    NAV_GROUPS.forEach(g => {
+      const match = g.items.find(item => item.href === pathname);
+      if (match) title = match.label;
+    });
+    return title;
   }, [pathname]);
 
   if (loading) {
@@ -199,24 +218,31 @@ export default function DashboardLayout({ children }) {
             </div>
           </div>
 
-          {/* Navigation List */}
+          {/* Navigation Groups List */}
           <nav className="sidebar-nav">
-            {NAV_ITEMS.map((item) => {
-              const isActive = pathname === item.href;
-              return (
-                <Link
-                  key={item.href}
-                  href={item.href}
-                  className={`sidebar-link ${isActive ? 'sidebar-link-active' : ''}`}
-                  title={isCollapsed ? item.label : undefined}
-                >
-                  <span className={`sidebar-link-icon ${isActive ? 'icon-active' : ''}`}>
-                    {item.icon}
-                  </span>
-                  {!isCollapsed && <span className="sidebar-link-text">{item.label}</span>}
-                </Link>
-              );
-            })}
+            {NAV_GROUPS.map((group, gIdx) => (
+              <div key={gIdx} className="nav-group">
+                {!isCollapsed && <div className="nav-group-title">{group.title}</div>}
+                <div className="nav-group-items">
+                  {group.items.map((item) => {
+                    const isActive = pathname === item.href;
+                    return (
+                      <Link
+                        key={item.href}
+                        href={item.href}
+                        className={`sidebar-link ${isActive ? 'sidebar-link-active' : ''}`}
+                        title={isCollapsed ? item.label : undefined}
+                      >
+                        <span className={`sidebar-link-icon ${isActive ? 'icon-active' : ''}`}>
+                          {item.icon}
+                        </span>
+                        {!isCollapsed && <span className="sidebar-link-text">{item.label}</span>}
+                      </Link>
+                    );
+                  })}
+                </div>
+              </div>
+            ))}
           </nav>
 
           {/* Sidebar Footer */}
@@ -453,11 +479,33 @@ export default function DashboardLayout({ children }) {
           color: #0f172a;
         }
 
-        /* Nav List */
+        /* Nav List & Groups */
         .sidebar-nav {
           flex: 1;
-          padding: 8px 12px;
+          padding: 8px 14px;
           overflow-y: auto;
+          display: flex;
+          flex-direction: column;
+          gap: 16px;
+        }
+
+        .nav-group {
+          display: flex;
+          flex-direction: column;
+          gap: 4px;
+        }
+
+        .nav-group-title {
+          font-size: 0.70rem;
+          font-weight: 700;
+          color: #94a3b8;
+          letter-spacing: 0.08em;
+          text-transform: uppercase;
+          padding: 4px 14px 4px;
+          user-select: none;
+        }
+
+        .nav-group-items {
           display: flex;
           flex-direction: column;
           gap: 3px;
@@ -487,10 +535,16 @@ export default function DashboardLayout({ children }) {
           background: #f8fafc !important;
         }
 
+        /* Active Pill matching reference image soft pastel cyan/sky/green pill */
         .sidebar-link-active {
-          background: #f0fdf4 !important;
-          color: #059669 !important;
+          background: #e0f2fe !important;
+          color: #0369a1 !important;
           font-weight: 600 !important;
+        }
+
+        .sidebar-collapsed .sidebar-link {
+          justify-content: center !important;
+          padding: 10px 0 !important;
         }
 
         .sidebar-link-icon {
@@ -504,7 +558,7 @@ export default function DashboardLayout({ children }) {
         }
 
         .icon-active {
-          color: #10b981 !important;
+          color: #0284c7 !important;
         }
 
         .sidebar-link-text {
