@@ -9,7 +9,7 @@ import {
   Home, Calendar, CalendarDays, BarChart3, Target, 
   RotateCcw, AlertTriangle, BookOpen, Clock, Timer, 
   FileText, Settings, LogOut, Menu, X, BookMarked, Bell, Flame, Leaf,
-  PanelLeftClose, PanelLeftOpen, ChevronRight
+  PanelLeftClose, PanelLeftOpen
 } from 'lucide-react';
 
 const UserContext = createContext(null);
@@ -19,29 +19,29 @@ const NAV_GROUPS = [
   {
     title: 'MENU',
     items: [
-      { href: '/dashboard', label: 'Dashboard', icon: <Home size={19} /> },
-      { href: '/dashboard/gunluk-program', label: 'Günlük Program', icon: <Calendar size={19} /> },
-      { href: '/dashboard/haftalik-program', label: 'Haftalık Program', icon: <CalendarDays size={19} /> },
-      { href: '/dashboard/konu-takibi', label: 'Konu Takibi', icon: <BarChart3 size={19} /> },
-      { href: '/dashboard/deneme-analizi', label: 'Deneme Analizi', icon: <Target size={19} /> },
+      { href: '/dashboard', label: 'Dashboard', icon: <Home size={20} /> },
+      { href: '/dashboard/gunluk-program', label: 'Günlük Program', icon: <Calendar size={20} /> },
+      { href: '/dashboard/haftalik-program', label: 'Haftalık Program', icon: <CalendarDays size={20} /> },
+      { href: '/dashboard/konu-takibi', label: 'Konu Takibi', icon: <BarChart3 size={20} /> },
+      { href: '/dashboard/deneme-analizi', label: 'Deneme Analizi', icon: <Target size={20} /> },
     ]
   },
   {
     title: 'ÇALIŞMA',
     items: [
-      { href: '/dashboard/tekrarlarim', label: 'Tekrarlarım', icon: <RotateCcw size={19} /> },
-      { href: '/dashboard/yapamadiklari', label: 'Yapamadığım Sorular', icon: <AlertTriangle size={19} /> },
-      { href: '/dashboard/kaynaklarim', label: 'Kaynaklarım', icon: <BookOpen size={19} /> },
-      { href: '/dashboard/istatistikler', label: 'İstatistikler', icon: <Clock size={19} /> },
-      { href: '/dashboard/pomodoro', label: 'Pomodoro', icon: <Timer size={19} /> },
-      { href: '/dashboard/not-defteri', label: 'Not Defterim', icon: <FileText size={19} /> },
-      { href: '/dashboard/hedeflerim', label: 'Hedeflerim', icon: <Target size={19} /> },
+      { href: '/dashboard/tekrarlarim', label: 'Tekrarlarım', icon: <RotateCcw size={20} /> },
+      { href: '/dashboard/yapamadiklari', label: 'Yapamadığım Sorular', icon: <AlertTriangle size={20} /> },
+      { href: '/dashboard/kaynaklarim', label: 'Kaynaklarım', icon: <BookOpen size={20} /> },
+      { href: '/dashboard/istatistikler', label: 'İstatistikler', icon: <Clock size={20} /> },
+      { href: '/dashboard/pomodoro', label: 'Pomodoro', icon: <Timer size={20} /> },
+      { href: '/dashboard/not-defteri', label: 'Not Defterim', icon: <FileText size={20} /> },
+      { href: '/dashboard/hedeflerim', label: 'Hedeflerim', icon: <Target size={20} /> },
     ]
   },
   {
     title: 'DİĞER',
     items: [
-      { href: '/dashboard/ayarlar', label: 'Ayarlar', icon: <Settings size={19} /> },
+      { href: '/dashboard/ayarlar', label: 'Ayarlar', icon: <Settings size={20} /> },
     ]
   }
 ];
@@ -389,7 +389,7 @@ export default function DashboardLayout({ children }) {
           left: 0;
           bottom: 0;
           z-index: 100;
-          transition: width 250ms cubic-bezier(0.4, 0, 0.2, 1), transform 250ms cubic-bezier(0.4, 0, 0.2, 1);
+          transition: width 280ms cubic-bezier(0.4, 0, 0.2, 1), transform 280ms cubic-bezier(0.4, 0, 0.2, 1);
         }
 
         .sidebar-collapsed {
@@ -410,7 +410,17 @@ export default function DashboardLayout({ children }) {
           flex-direction: row !important;
           align-items: center !important;
           justify-content: space-between !important;
-          padding: 22px 18px 16px !important;
+          padding: 24px 18px 16px !important;
+          height: 72px;
+          border-bottom: 1px solid #f8fafc;
+        }
+
+        .sidebar-collapsed .sidebar-header {
+          justify-content: center !important;
+          padding: 24px 0 16px !important;
+          flex-direction: column !important;
+          gap: 10px !important;
+          height: auto;
         }
 
         .sidebar-logo {
@@ -449,6 +459,11 @@ export default function DashboardLayout({ children }) {
           gap: 4px;
         }
 
+        .sidebar-collapsed .sidebar-header-actions {
+          width: 100%;
+          justify-content: center;
+        }
+
         .collapse-toggle-btn {
           color: #94a3b8;
           padding: 6px;
@@ -485,17 +500,23 @@ export default function DashboardLayout({ children }) {
         /* Nav List & Groups */
         .sidebar-nav {
           flex: 1;
-          padding: 8px 14px;
+          padding: 12px 14px;
           overflow-y: auto;
           display: flex;
           flex-direction: column;
           gap: 16px;
         }
 
+        .sidebar-collapsed .sidebar-nav {
+          padding: 12px 0;
+          align-items: center;
+        }
+
         .nav-group {
           display: flex;
           flex-direction: column;
           gap: 4px;
+          width: 100%;
         }
 
         .nav-group-title {
@@ -511,7 +532,8 @@ export default function DashboardLayout({ children }) {
         .nav-group-items {
           display: flex;
           flex-direction: column;
-          gap: 3px;
+          gap: 4px;
+          width: 100%;
         }
 
         /* STRICT Horizontal Row: Icon LEFT, Text RIGHT on exact same line */
@@ -547,9 +569,14 @@ export default function DashboardLayout({ children }) {
           font-weight: 600 !important;
         }
 
+        /* Perfect center-aligned circle/square link in collapsed state */
         .sidebar-collapsed .sidebar-link {
           justify-content: center !important;
-          padding: 10px 0 !important;
+          padding: 0 !important;
+          width: 44px !important;
+          height: 44px !important;
+          border-radius: 12px !important;
+          margin: 0 auto !important;
         }
 
         .sidebar-link-icon {
@@ -585,9 +612,15 @@ export default function DashboardLayout({ children }) {
           background: #ffffff;
         }
 
+        .sidebar-collapsed .sidebar-footer {
+          padding: 16px 0 20px;
+          align-items: center;
+        }
+
         /* User Profile Card */
         .user-profile-card {
           padding: 4px 2px;
+          width: 100%;
         }
 
         .user-profile-row {
@@ -596,6 +629,12 @@ export default function DashboardLayout({ children }) {
           align-items: center !important;
           gap: 10px !important;
           margin-bottom: 8px;
+          width: 100%;
+        }
+
+        .sidebar-collapsed .user-profile-row {
+          justify-content: center !important;
+          margin-bottom: 0;
         }
 
         .sidebar-avatar {
@@ -611,6 +650,10 @@ export default function DashboardLayout({ children }) {
           font-size: 0.9375rem;
           flex-shrink: 0;
           box-shadow: 0 2px 8px rgba(16, 185, 129, 0.2);
+        }
+
+        .sidebar-collapsed .sidebar-avatar {
+          margin: 0 auto !important;
         }
 
         .user-text-info {
@@ -729,7 +772,7 @@ export default function DashboardLayout({ children }) {
           display: flex;
           flex-direction: column;
           min-height: 100vh;
-          transition: margin-left 250ms cubic-bezier(0.4, 0, 0.2, 1);
+          transition: margin-left 280ms cubic-bezier(0.4, 0, 0.2, 1);
         }
 
         .layout-collapsed .main-wrapper {
