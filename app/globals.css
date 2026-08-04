@@ -147,9 +147,14 @@ input, textarea, select {
   font-size: inherit;
 }
 
-img, svg {
+img {
   display: block;
   max-width: 100%;
+}
+
+svg {
+  display: inline-block;
+  vertical-align: middle;
 }
 
 

@@ -9,7 +9,7 @@ import {
   Home, Calendar, CalendarDays, BarChart3, Target, 
   RotateCcw, AlertTriangle, BookOpen, Clock, Timer, 
   FileText, Settings, LogOut, Menu, X, BookMarked, Bell, Flame, Leaf,
-  PanelLeftClose, PanelLeftOpen
+  PanelLeftClose, PanelLeftOpen, ChevronRight
 } from 'lucide-react';
 
 const UserContext = createContext(null);
@@ -410,7 +410,7 @@ export default function DashboardLayout({ children }) {
           flex-direction: row !important;
           align-items: center !important;
           justify-content: space-between !important;
-          padding: 24px 18px 16px !important;
+          padding: 22px 18px 16px !important;
         }
 
         .sidebar-logo {
@@ -472,6 +472,9 @@ export default function DashboardLayout({ children }) {
           padding: 6px;
           border-radius: 8px;
           transition: all 150ms;
+          border: none;
+          background: transparent;
+          cursor: pointer;
         }
 
         .sidebar-close:hover {
@@ -511,6 +514,7 @@ export default function DashboardLayout({ children }) {
           gap: 3px;
         }
 
+        /* STRICT Horizontal Row: Icon LEFT, Text RIGHT on exact same line */
         .sidebar-link {
           position: relative;
           display: flex !important;
@@ -528,6 +532,7 @@ export default function DashboardLayout({ children }) {
           white-space: nowrap !important;
           text-align: left !important;
           width: 100% !important;
+          box-sizing: border-box !important;
         }
 
         .sidebar-link:hover {
@@ -535,7 +540,7 @@ export default function DashboardLayout({ children }) {
           background: #f8fafc !important;
         }
 
-        /* Active Pill matching reference image soft pastel cyan/sky/green pill */
+        /* Soft Pastel Sky Blue Active Pill from Reference Image */
         .sidebar-link-active {
           background: #e0f2fe !important;
           color: #0369a1 !important;
@@ -548,13 +553,14 @@ export default function DashboardLayout({ children }) {
         }
 
         .sidebar-link-icon {
-          display: flex !important;
+          display: inline-flex !important;
           align-items: center !important;
           justify-content: center !important;
           flex-shrink: 0 !important;
           color: #64748b;
           transition: color 180ms ease;
-          width: 22px;
+          width: 20px !important;
+          height: 20px !important;
         }
 
         .icon-active {
@@ -562,9 +568,11 @@ export default function DashboardLayout({ children }) {
         }
 
         .sidebar-link-text {
-          white-space: nowrap;
-          overflow: hidden;
-          text-overflow: ellipsis;
+          display: inline-block !important;
+          white-space: nowrap !important;
+          overflow: hidden !important;
+          text-overflow: ellipsis !important;
+          line-height: 1.2 !important;
         }
 
         /* Sidebar Footer */
