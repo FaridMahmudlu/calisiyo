@@ -2,7 +2,8 @@
 
 import { useEffect, useMemo, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { BookMarked, Check, UserRound } from 'lucide-react';
+import { Check, UserRound } from 'lucide-react';
+import BrandLogo from '@/components/brand/BrandLogo';
 import { createClient } from '@/lib/supabase/client';
 import { ALANLAR, getExamTabs } from '@/lib/constants/alanlar';
 
@@ -62,7 +63,7 @@ export default function ProfiliniTamamlaPage() {
   return (
     <main className="auth-shell auth-single">
       <section className="auth-card confirmation-card profile-completion-card">
-        <span className="confirmation-logo"><BookMarked size={22} /></span>
+        <span className="confirmation-logo"><BrandLogo markOnly priority /></span>
         <h2>Profilini tamamla</h2>
         <p>Sana doğru dersleri gösterebilmemiz için son iki bilgiyi seç.</p>
         {error && <div className="auth-alert" role="alert">{error}</div>}

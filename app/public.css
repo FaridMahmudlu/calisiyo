@@ -1,9 +1,7 @@
 .story-landing, .auth-shell { min-height: 100vh; background: #fffdfa; color: #10251f; }
 .story-landing { overflow: clip; }
 .section-shell { width: min(1240px, calc(100% - 64px)); margin-inline: auto; }
-.public-brand { display: inline-flex; align-items: center; gap: 9px; color: #07875f; font-size: 1.35rem; font-weight: 800; text-decoration: none; letter-spacing: -.035em; }
-.public-brand > span { width: 36px; height: 36px; border-radius: 10px; background: #00a870; color: #fff; display: inline-flex; align-items: center; justify-content: center; }
-.public-brand svg { width: 21px; height: 21px; }
+.public-brand { display: inline-flex; align-items: center; color: #07875f; font-size: 1.35rem; font-weight: 800; text-decoration: none; }
 .public-button { min-height: 46px; padding: 0 21px; border: 1px solid #cbd8d3; border-radius: 10px; background: #fff; color: #10251f; display: inline-flex; align-items: center; justify-content: center; gap: 8px; font-size: .8rem; font-weight: 750; text-decoration: none; cursor: pointer; transition: transform .18s ease, border-color .18s ease, background .18s ease, color .18s ease, box-shadow .18s ease; }
 .public-button.primary { border-color: #00a870; background: #00a870; color: #fff; }
 .public-button:hover { transform: translateY(-2px); border-color: #7f9d92; }
@@ -159,7 +157,7 @@
 .confirmation-icon { width: 54px; height: 54px; margin: 0 auto 20px; border-radius: 50%; background: #eaf8f2; color: #00a870; display: flex; align-items: center; justify-content: center; }
 .confirmation-icon.is-error { background: #fff1f0; color: #d92d20; }
 .confirmation-brand { margin-bottom: 30px; }
-.confirmation-logo { width: 48px; height: 48px; margin: 0 auto 18px; border-radius: 12px; background: #00a870; color: #fff; display: flex; align-items: center; justify-content: center; }
+.confirmation-logo { width: 48px; height: 48px; margin: 0 auto 18px; display: flex; align-items: center; justify-content: center; font-size: 1.74rem; }
 .profile-completion-card { width: min(100%, 560px); text-align: left; }
 .profile-completion-card > h2, .profile-completion-card > p { text-align: center; }
 .profile-fields { margin: 4px 0; }
@@ -203,7 +201,6 @@
   .section-shell { width: calc(100% - 30px); }
   .story-nav { top: 10px; width: calc(100% - 20px); min-height: 60px; border-radius: 15px; }
   .story-nav .public-brand { font-size: 1.12rem; }
-  .story-nav .public-brand > span { width: 32px; height: 32px; }
   .landing-auth > a:first-child { display: none; }
   .landing-auth .public-button { min-height: 38px; padding-inline: 13px; font-size: .7rem; }
   .story-hero { width: calc(100% - 14px); padding: 112px 16px 34px; }

@@ -3,8 +3,9 @@
 import { useMemo, useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { BookMarked, Clock3, Eye, EyeOff, Lock, Mail, Target } from 'lucide-react';
+import { Clock3, Eye, EyeOff, Lock, Mail, Target } from 'lucide-react';
 import SocialAuthButtons from '@/components/auth/SocialAuthButtons';
+import BrandLogo from '@/components/brand/BrandLogo';
 import { createClient } from '@/lib/supabase/client';
 
 export default function GirisPage() {
@@ -37,7 +38,7 @@ export default function GirisPage() {
   return (
     <main className="auth-shell">
       <section className="auth-side">
-        <Link href="/" className="public-brand"><span><BookMarked size={21} /></span>calisiyo</Link>
+        <Link href="/" className="public-brand" aria-label="calisiyo ana sayfa"><BrandLogo priority /></Link>
         <div>
           <span className="public-kicker">YKS Çalışma Koçu</span>
           <h1>Planın kaldığın yerden devam ediyor.</h1>
@@ -52,7 +53,7 @@ export default function GirisPage() {
 
       <section className="auth-form-panel">
         <div className="auth-card">
-          <Link href="/" className="public-brand auth-mobile-brand"><span><BookMarked size={20} /></span>calisiyo</Link>
+          <Link href="/" className="public-brand auth-mobile-brand" aria-label="calisiyo ana sayfa"><BrandLogo priority /></Link>
           <h2>Tekrar hoş geldin</h2>
           <p>Hesabına giriş yaparak kaldığın yerden devam et.</p>
 

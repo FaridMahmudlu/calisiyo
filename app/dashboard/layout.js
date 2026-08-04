@@ -4,7 +4,7 @@ import { createContext, useCallback, useContext, useEffect, useMemo, useRef, use
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import {
-  AlertTriangle, BarChart3, BookMarked, BookOpen, Calendar, CalendarDays,
+  AlertTriangle, BarChart3, BookOpen, Calendar, CalendarDays,
   FileText, Flame, Home, Info, LogOut, Menu, PanelLeftClose,
   PanelLeftOpen, RotateCcw, Settings, Target, Timer, X,
 } from 'lucide-react';
@@ -12,6 +12,7 @@ import { createClient } from '@/lib/supabase/client';
 import { todayStr, toLocalDateKey } from '@/lib/utils/date';
 import { useRealtimeRefresh } from '@/lib/hooks/useRealtimeRefresh';
 import JourneyLoader from '@/components/ui/JourneyLoader';
+import BrandLogo from '@/components/brand/BrandLogo';
 import HeaderActions from '@/components/dashboard/HeaderActions';
 import './study.css';
 
@@ -187,8 +188,7 @@ export default function DashboardLayout({ children }) {
         <aside className={`study-sidebar ${sidebarOpen ? 'is-open' : ''}`}>
           <div className="sidebar-brand-row">
             <Link href="/dashboard" className="sidebar-brand" onClick={() => setSidebarOpen(false)}>
-              <span className="brand-mark"><BookMarked size={22} /></span>
-              {!collapsed && <span>calisiyo</span>}
+              <BrandLogo markOnly={collapsed} priority />
             </Link>
             <button className="icon-button sidebar-toggle" onClick={toggleSidebar} aria-label={collapsed ? 'Paneli genişlet' : 'Paneli daralt'}>
               {collapsed ? <PanelLeftOpen size={18} /> : <PanelLeftClose size={18} />}

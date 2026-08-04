@@ -1,7 +1,8 @@
 'use client';
 
 import { motion, useReducedMotion } from 'framer-motion';
-import { BarChart3, BookMarked, CalendarCheck2, TimerReset } from 'lucide-react';
+import { BarChart3, CalendarCheck2, TimerReset } from 'lucide-react';
+import BrandLogo from '@/components/brand/BrandLogo';
 
 const STEPS = [
   { Icon: CalendarCheck2, label: 'Plan' },
@@ -20,7 +21,7 @@ export default function JourneyLoader({ compact = false, label = 'Çalışma ala
         animate={{ opacity: 1, scale: 1, y: 0 }}
         transition={{ duration: reducedMotion ? 0 : 0.35 }}
       >
-        <BookMarked size={compact ? 20 : 26} />
+        <BrandLogo markOnly />
       </motion.span>
       <div className="journey-loader-copy">
         <strong>{label}</strong>

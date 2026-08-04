@@ -1,0 +1,21 @@
+{
+  "name": "calisiyo – YKS Çalışma Koçu",
+  "short_name": "calisiyo",
+  "description": "YKS hazırlığını planla, odaklan ve gerçek çalışma kayıtlarınla ilerlemeni takip et.",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#fffdfa",
+  "theme_color": "#00a870",
+  "icons": [
+    {
+      "src": "/brand/calisiyo-mark-192.png",
+      "sizes": "192x192",
+      "type": "image/png"
+    },
+    {
+      "src": "/brand/calisiyo-mark-512.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    }
+  ]
+}

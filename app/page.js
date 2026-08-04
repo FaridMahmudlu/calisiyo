@@ -5,10 +5,11 @@ import Image from 'next/image';
 import Link from 'next/link';
 import { motion, useReducedMotion, useScroll, useTransform } from 'framer-motion';
 import {
-  PiArrowRight, PiBookBookmark, PiCalendarCheck, PiChartLineUp,
+  PiArrowRight, PiCalendarCheck, PiChartLineUp,
   PiCheck, PiClockCountdown, PiCompass, PiListChecks, PiLockKey,
   PiPlayCircle, PiSparkle, PiTarget, PiTimer,
 } from 'react-icons/pi';
+import BrandLogo from '@/components/brand/BrandLogo';
 import { daysUntilYKS, yksDateLabel } from '@/lib/utils/date';
 
 const STORY = [
@@ -111,7 +112,7 @@ export default function HomePage() {
     <main className="story-landing">
       <motion.div className="landing-scroll-progress" style={{ scaleX: scrollYProgress }} />
       <nav className="story-nav" aria-label="Ana navigasyon">
-        <Link href="/" className="public-brand"><span><PiBookBookmark /></span>calisiyo</Link>
+        <Link href="/" className="public-brand" aria-label="calisiyo ana sayfa"><BrandLogo priority /></Link>
         <div className="story-nav-links"><a href="#yolculuk">Çalışma yolu</a><a href="#araclar">Araçlar</a><a href="#rehber">Nasıl çalışır?</a></div>
         <div className="landing-auth"><Link href="/giris">Giriş yap</Link><Link className="public-button primary" href="/kayit">Ücretsiz başla</Link></div>
       </nav>
@@ -173,7 +174,7 @@ export default function HomePage() {
       </section>
 
       <footer className="story-footer">
-        <div className="section-shell footer-grid"><div><Link href="/" className="public-brand"><span><PiBookBookmark /></span>calisiyo</Link><p>YKS hazırlığını net bir çalışma yoluna dönüştür.</p></div><div><strong>Ürün</strong><a href="#yolculuk">Çalışma yolu</a><a href="#araclar">Araçlar</a><a href="#rehber">Başlangıç rehberi</a></div><div><strong>Hesap</strong><Link href="/giris">Giriş yap</Link><Link href="/kayit">Ücretsiz hesap oluştur</Link></div><small>© 2026 calisiyo · YKS Çalışma Koçu</small></div>
+        <div className="section-shell footer-grid"><div><Link href="/" className="public-brand" aria-label="calisiyo ana sayfa"><BrandLogo /></Link><p>YKS hazırlığını net bir çalışma yoluna dönüştür.</p></div><div><strong>Ürün</strong><a href="#yolculuk">Çalışma yolu</a><a href="#araclar">Araçlar</a><a href="#rehber">Başlangıç rehberi</a></div><div><strong>Hesap</strong><Link href="/giris">Giriş yap</Link><Link href="/kayit">Ücretsiz hesap oluştur</Link></div><small>© 2026 calisiyo · YKS Çalışma Koçu</small></div>
       </footer>
     </main>
   );
