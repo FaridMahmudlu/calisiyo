@@ -40,6 +40,8 @@ Migration `gplzgilcnbagglzqdrnv` referanslı uzak `calisiyo` projesine uyguland�
 - Uygulama tarafındaki Google ve Apple OAuth akışları tamamlandı.
 - Supabase `/auth/v1/settings` kontrolünde Google ve Apple provider'ları hâlâ kapalı dönüyor.
 - Tam aktivasyon için Google Cloud OAuth Client ID/Secret ve Apple Developer Services ID/Secret değerleri Supabase Auth Providers ekranına eklenmelidir. Bu üçüncü taraf kimlik bilgileri proje veya ortamda mevcut değildir ve güvenli biçimde tahmin edilemez.
+- Supabase Site URL üretim adresine, redirect allow-list ise yerel ve Vercel callback adreslerine güncellendi.
+- Projede custom SMTP bulunmadığı ve Supabase'in built-in göndericisi production kullanıcılarına uygun olmadığı için e-posta kaydı geçici olarak otomatik onaylıdır; kullanıcılar e-posta beklemeden hesap açıp giriş yapabilir. Güvenli e-posta doğrulaması ve şifre sıfırlama teslimatı için custom SMTP eklenmelidir.
 
 ## Doğrulama
 

@@ -32,9 +32,16 @@ test('public auth, protected navigation, daily CRUD and responsive visuals', asy
   await page.getByRole('button', { name: 'Devam Et', exact: true }).click();
   await page.getByRole('button', { name: /^Sayısal/ }).click();
   await page.getByRole('button', { name: 'Hesabı Oluştur' }).click();
-  await expect(
-    page.getByRole('heading', { name: 'E-postanı kontrol et' }).or(page.getByRole('alert'))
-  ).toBeVisible();
+  await page.waitForTimeout(800);
+  if (new URL(page.url()).pathname === '/dashboard') {
+    await expect(page.getByRole('button', { name: 'Çıkış yap' })).toBeVisible();
+    await page.getByRole('button', { name: 'Çıkış yap' }).click();
+    await expect(page).toHaveURL(/\/giris$/);
+  } else {
+    await expect(
+      page.getByRole('heading', { name: 'E-postanı kontrol et' }).or(page.getByRole('alert'))
+    ).toBeVisible();
+  }
 
   await page.goto(`${baseURL}/giris`);
   await page.getByLabel('E-posta').fill(process.env.QA_EMAIL);

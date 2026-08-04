@@ -30,7 +30,7 @@ The source and implementation were normalized to the same 1440 × 1024 viewport 
 
 ## Interaction verification
 
-- Email registration form: validation, password confirmation, area selection, confirmation state, and rate-limit error state tested.
+- Email registration form: validation, password confirmation, area selection, immediate account creation, authenticated redirect, and logout tested.
 - Email/password login: tested against a temporary confirmed Supabase user.
 - Protected routing: authenticated dashboard access and unauthenticated redirect verified.
 - Daily task CRUD: create, edit, complete, and confirmed delete all passed against the remote Supabase database.
