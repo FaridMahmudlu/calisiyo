@@ -8,26 +8,27 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { 
   Home, Calendar, CalendarDays, BarChart3, Target, 
   RotateCcw, AlertTriangle, BookOpen, Clock, Timer, 
-  FileText, Settings, LogOut, Menu, X, BookMarked, Bell, Flame, Leaf
+  FileText, Settings, LogOut, Menu, X, BookMarked, Bell, Flame, Leaf,
+  ChevronLeft, ChevronRight, PanelLeftClose, PanelLeftOpen
 } from 'lucide-react';
 
 const UserContext = createContext(null);
 export const useUser = () => useContext(UserContext);
 
 const NAV_ITEMS = [
-  { href: '/dashboard', label: 'Dashboard', icon: <Home size={19} /> },
-  { href: '/dashboard/gunluk-program', label: 'Günlük Program', icon: <Calendar size={19} /> },
-  { href: '/dashboard/haftalik-program', label: 'Haftalık Program', icon: <CalendarDays size={19} /> },
-  { href: '/dashboard/konu-takibi', label: 'Konu Takibi', icon: <BarChart3 size={19} /> },
-  { href: '/dashboard/deneme-analizi', label: 'Deneme Analizi', icon: <Target size={19} /> },
-  { href: '/dashboard/tekrarlarim', label: 'Tekrarlarım', icon: <RotateCcw size={19} /> },
-  { href: '/dashboard/yapamadiklari', label: 'Yapamadığım Sorular', icon: <AlertTriangle size={19} /> },
-  { href: '/dashboard/kaynaklarim', label: 'Kaynaklarım', icon: <BookOpen size={19} /> },
-  { href: '/dashboard/istatistikler', label: 'İstatistikler', icon: <Clock size={19} /> },
-  { href: '/dashboard/pomodoro', label: 'Pomodoro', icon: <Timer size={19} /> },
-  { href: '/dashboard/not-defteri', label: 'Not Defterim', icon: <FileText size={19} /> },
-  { href: '/dashboard/hedeflerim', label: 'Hedeflerim', icon: <Target size={19} /> },
-  { href: '/dashboard/ayarlar', label: 'Ayarlar', icon: <Settings size={19} /> },
+  { href: '/dashboard', label: 'Dashboard', icon: <Home size={20} /> },
+  { href: '/dashboard/gunluk-program', label: 'Günlük Program', icon: <Calendar size={20} /> },
+  { href: '/dashboard/haftalik-program', label: 'Haftalık Program', icon: <CalendarDays size={20} /> },
+  { href: '/dashboard/konu-takibi', label: 'Konu Takibi', icon: <BarChart3 size={20} /> },
+  { href: '/dashboard/deneme-analizi', label: 'Deneme Analizi', icon: <Target size={20} /> },
+  { href: '/dashboard/tekrarlarim', label: 'Tekrarlarım', icon: <RotateCcw size={20} /> },
+  { href: '/dashboard/yapamadiklari', label: 'Yapamadığım Sorular', icon: <AlertTriangle size={20} /> },
+  { href: '/dashboard/kaynaklarim', label: 'Kaynaklarım', icon: <BookOpen size={20} /> },
+  { href: '/dashboard/istatistikler', label: 'İstatistikler', icon: <Clock size={20} /> },
+  { href: '/dashboard/pomodoro', label: 'Pomodoro', icon: <Timer size={20} /> },
+  { href: '/dashboard/not-defteri', label: 'Not Defterim', icon: <FileText size={20} /> },
+  { href: '/dashboard/hedeflerim', label: 'Hedeflerim', icon: <Target size={20} /> },
+  { href: '/dashboard/ayarlar', label: 'Ayarlar', icon: <Settings size={20} /> },
 ];
 
 const MOBILE_NAV = [
@@ -41,10 +42,11 @@ const MOBILE_NAV = [
 export default function DashboardLayout({ children }) {
   const [user, setUser] = useState(null);
   const [profile, setProfile] = useState(null);
-  const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [sidebarOpen, setSidebarOpen] = useState(false); // Mobile drawer state
+  const [isCollapsed, setIsCollapsed] = useState(false); // Desktop collapse state
   const [loading, setLoading] = useState(true);
 
-  // User Gamification Stats
+  // Gamification Stats
   const [userLevel, setUserLevel] = useState(1);
   const [currentXP, setCurrentXP] = useState(0);
   const [nextLevelXP, setNextLevelXP] = useState(500);
@@ -58,7 +60,6 @@ export default function DashboardLayout({ children }) {
   const fetchUserGamification = useCallback(async (userId) => {
     if (!userId) return;
 
-    // Fetch tasks & completed questions
     const { data: tasks } = await supabase
       .from('gunluk_gorevler')
       .select('tarih, tamamlandi, soru_sayisi')
@@ -74,10 +75,7 @@ export default function DashboardLayout({ children }) {
     const solvedQuestionsFromCalisma = (calisma || []).reduce((s, c) => s + (c.soru_sayisi || 0), 0);
     const totalQuestions = Math.max(solvedQuestionsFromTasks, solvedQuestionsFromCalisma);
 
-    // Total XP Formula: 50 XP per task + 5 XP per question solved
     const totalXP = (completedTasks.length * 50) + (totalQuestions * 5);
-    
-    // Level Formula: Every 250 XP is 1 Level
     const step = 250;
     const level = Math.max(1, Math.floor(totalXP / step) + 1);
     const xpInLevel = totalXP % step;
@@ -86,7 +84,6 @@ export default function DashboardLayout({ children }) {
     setCurrentXP(xpInLevel);
     setNextLevelXP(step);
 
-    // Calculate Streak
     const completedDates = new Set([
       ...completedTasks.map(t => t.tarih),
       ...(calisma || []).map(c => c.tarih)
@@ -135,7 +132,7 @@ export default function DashboardLayout({ children }) {
     loadUser();
   }, [router, supabase, fetchUserGamification]);
 
-  // Close sidebar on route change
+  // Close mobile drawer on route change
   useEffect(() => {
     setSidebarOpen(false);
   }, [pathname]);
@@ -146,7 +143,6 @@ export default function DashboardLayout({ children }) {
     router.refresh();
   };
 
-  // Get page title from pathname
   const pageTitle = useMemo(() => {
     const match = NAV_ITEMS.find(item => item.href === pathname);
     return match?.label || 'Dashboard';
@@ -169,25 +165,38 @@ export default function DashboardLayout({ children }) {
 
   return (
     <UserContext.Provider value={{ user, profile, setProfile, userStreak, userLevel }}>
-      <div className="dashboard-layout">
+      <div className={`dashboard-layout ${isCollapsed ? 'layout-collapsed' : ''}`}>
         {/* Mobile Sidebar Overlay */}
         {sidebarOpen && (
           <div className="sidebar-overlay hide-desktop" onClick={() => setSidebarOpen(false)} />
         )}
 
         {/* Sidebar */}
-        <aside className={`sidebar ${sidebarOpen ? 'sidebar-open' : ''}`}>
+        <aside className={`sidebar ${sidebarOpen ? 'sidebar-open' : ''} ${isCollapsed ? 'sidebar-collapsed' : ''}`}>
           {/* Logo Header */}
           <div className="sidebar-header">
             <Link href="/dashboard" className="sidebar-logo">
               <div className="logo-icon-badge">
                 <Leaf size={20} color="#10b981" />
               </div>
-              <span className="sidebar-logo-text">calisiyo</span>
+              {!isCollapsed && <span className="sidebar-logo-text">calisiyo</span>}
             </Link>
-            <button className="sidebar-close hide-desktop" onClick={() => setSidebarOpen(false)}>
-              <X size={20} />
-            </button>
+            
+            <div className="sidebar-header-actions">
+              {/* Desktop Collapse Toggle */}
+              <button 
+                className="collapse-toggle-btn hide-mobile" 
+                onClick={() => setIsCollapsed(!isCollapsed)}
+                title={isCollapsed ? "Paneli Genişlet" : "Paneli Daralt"}
+              >
+                {isCollapsed ? <PanelLeftOpen size={18} /> : <PanelLeftClose size={18} />}
+              </button>
+
+              {/* Mobile Drawer Close */}
+              <button className="sidebar-close hide-desktop" onClick={() => setSidebarOpen(false)}>
+                <X size={20} />
+              </button>
+            </div>
           </div>
 
           {/* Navigation List */}
@@ -199,11 +208,12 @@ export default function DashboardLayout({ children }) {
                   key={item.href}
                   href={item.href}
                   className={`sidebar-link ${isActive ? 'sidebar-link-active' : ''}`}
+                  title={isCollapsed ? item.label : undefined}
                 >
                   <span className={`sidebar-link-icon ${isActive ? 'icon-active' : ''}`}>
                     {item.icon}
                   </span>
-                  <span className="sidebar-link-text">{item.label}</span>
+                  {!isCollapsed && <span className="sidebar-link-text">{item.label}</span>}
                 </Link>
               );
             })}
@@ -217,39 +227,47 @@ export default function DashboardLayout({ children }) {
                 <div className="sidebar-avatar">
                   {profile?.full_name?.charAt(0)?.toUpperCase() || 'K'}
                 </div>
-                <div className="user-text-info">
-                  <span className="user-name-text">{profile?.full_name || 'Kerem Yılmaz'}</span>
-                  <span className="user-level-text">Seviye {userLevel}</span>
-                </div>
-                <button className="btn-logout-small" onClick={handleLogout} title="Çıkış Yap">
-                  <LogOut size={16} />
-                </button>
+                {!isCollapsed && (
+                  <div className="user-text-info">
+                    <span className="user-name-text">{profile?.full_name || 'Kerem Yılmaz'}</span>
+                    <span className="user-level-text">Seviye {userLevel}</span>
+                  </div>
+                )}
+                {!isCollapsed && (
+                  <button className="btn-logout-small" onClick={handleLogout} title="Çıkış Yap">
+                    <LogOut size={16} />
+                  </button>
+                )}
               </div>
               
               {/* XP Progress Bar */}
-              <div className="xp-progress-wrapper">
-                <div className="progress-bar progress-bar-sm">
-                  <div className="progress-bar-fill" style={{ width: `${xpPercent}%`, background: '#10b981' }} />
+              {!isCollapsed && (
+                <div className="xp-progress-wrapper">
+                  <div className="progress-bar progress-bar-sm">
+                    <div className="progress-bar-fill" style={{ width: `${xpPercent}%`, background: '#10b981' }} />
+                  </div>
+                  <div className="xp-text font-mono">
+                    <strong>{currentXP}</strong> / {nextLevelXP} XP
+                  </div>
                 </div>
-                <div className="xp-text font-mono">
-                  <strong>{currentXP}</strong> / {nextLevelXP} XP
-                </div>
-              </div>
+              )}
             </div>
 
             {/* Bottom Streak Card */}
-            <div className="sidebar-streak-card">
-              <div className="streak-card-top">
-                <div className="streak-flame-circle">
-                  <Flame size={18} color="#ef4444" fill="#fef2f2" />
+            {!isCollapsed && (
+              <div className="sidebar-streak-card">
+                <div className="streak-card-top">
+                  <div className="streak-flame-circle">
+                    <Flame size={18} color="#ef4444" fill="#fef2f2" />
+                  </div>
+                  <div className="streak-numbers">
+                    <span className="streak-card-val font-mono">{userStreak || 42}</span>
+                    <span className="streak-card-lbl">Günlük Seri</span>
+                  </div>
                 </div>
-                <div className="streak-numbers">
-                  <span className="streak-card-val font-mono">{userStreak || 42}</span>
-                  <span className="streak-card-lbl">Günlük Seri</span>
-                </div>
+                <div className="streak-card-sub">Harika gidiyorsun! 🎉</div>
               </div>
-              <div className="streak-card-sub">Harika gidiyorsun! 🎉</div>
-            </div>
+            )}
           </div>
         </aside>
 
@@ -345,7 +363,11 @@ export default function DashboardLayout({ children }) {
           left: 0;
           bottom: 0;
           z-index: 100;
-          transition: transform 250ms cubic-bezier(0.4, 0, 0.2, 1);
+          transition: width 250ms cubic-bezier(0.4, 0, 0.2, 1), transform 250ms cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        .sidebar-collapsed {
+          width: 76px !important;
         }
 
         .sidebar-overlay {
@@ -358,27 +380,30 @@ export default function DashboardLayout({ children }) {
         }
 
         .sidebar-header {
-          display: flex;
-          align-items: center;
-          justify-content: space-between;
-          padding: 24px 20px 16px;
+          display: flex !important;
+          flex-direction: row !important;
+          align-items: center !important;
+          justify-content: space-between !important;
+          padding: 24px 18px 16px !important;
         }
 
         .sidebar-logo {
-          display: flex;
-          align-items: center;
-          gap: 10px;
-          text-decoration: none;
+          display: flex !important;
+          flex-direction: row !important;
+          align-items: center !important;
+          gap: 10px !important;
+          text-decoration: none !important;
         }
 
         .logo-icon-badge {
-          width: 36px;
-          height: 36px;
+          width: 38px;
+          height: 38px;
           border-radius: 10px;
           background: #ecfdf5;
           display: flex;
           align-items: center;
           justify-content: center;
+          flex-shrink: 0;
         }
 
         .sidebar-logo-text {
@@ -389,6 +414,31 @@ export default function DashboardLayout({ children }) {
           -webkit-text-fill-color: transparent;
           background-clip: text;
           letter-spacing: -0.02em;
+          white-space: nowrap;
+        }
+
+        .sidebar-header-actions {
+          display: flex;
+          align-items: center;
+          gap: 4px;
+        }
+
+        .collapse-toggle-btn {
+          color: #94a3b8;
+          padding: 6px;
+          border-radius: 8px;
+          background: transparent;
+          border: none;
+          cursor: pointer;
+          transition: all 150ms;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+        }
+
+        .collapse-toggle-btn:hover {
+          background: #f1f5f9;
+          color: #0f172a;
         }
 
         .sidebar-close {
@@ -406,7 +456,7 @@ export default function DashboardLayout({ children }) {
         /* Nav List */
         .sidebar-nav {
           flex: 1;
-          padding: 8px 14px;
+          padding: 8px 12px;
           overflow-y: auto;
           display: flex;
           flex-direction: column;
@@ -415,21 +465,26 @@ export default function DashboardLayout({ children }) {
 
         .sidebar-link {
           position: relative;
-          display: flex;
-          align-items: center;
-          gap: 14px;
-          padding: 10px 16px;
-          border-radius: 14px;
-          font-size: 0.90rem;
-          font-weight: 500;
-          color: #475569;
-          transition: all 180ms ease;
-          text-decoration: none;
+          display: flex !important;
+          flex-direction: row !important;
+          align-items: center !important;
+          justify-content: flex-start !important;
+          gap: 14px !important;
+          padding: 10px 14px !important;
+          border-radius: 14px !important;
+          font-size: 0.90rem !important;
+          font-weight: 500 !important;
+          color: #475569 !important;
+          transition: all 180ms ease !important;
+          text-decoration: none !important;
+          white-space: nowrap !important;
+          text-align: left !important;
+          width: 100% !important;
         }
 
         .sidebar-link:hover {
-          color: #0f172a;
-          background: #f8fafc;
+          color: #0f172a !important;
+          background: #f8fafc !important;
         }
 
         .sidebar-link-active {
@@ -439,16 +494,23 @@ export default function DashboardLayout({ children }) {
         }
 
         .sidebar-link-icon {
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          flex-shrink: 0;
+          display: flex !important;
+          align-items: center !important;
+          justify-content: center !important;
+          flex-shrink: 0 !important;
           color: #64748b;
           transition: color 180ms ease;
+          width: 22px;
         }
 
         .icon-active {
           color: #10b981 !important;
+        }
+
+        .sidebar-link-text {
+          white-space: nowrap;
+          overflow: hidden;
+          text-overflow: ellipsis;
         }
 
         /* Sidebar Footer */
@@ -467,9 +529,10 @@ export default function DashboardLayout({ children }) {
         }
 
         .user-profile-row {
-          display: flex;
-          align-items: center;
-          gap: 10px;
+          display: flex !important;
+          flex-direction: row !important;
+          align-items: center !important;
+          gap: 10px !important;
           margin-bottom: 8px;
         }
 
@@ -494,6 +557,7 @@ export default function DashboardLayout({ children }) {
           flex: 1;
           min-width: 0;
           line-height: 1.25;
+          text-align: left;
         }
 
         .user-name-text {
@@ -517,6 +581,9 @@ export default function DashboardLayout({ children }) {
           border-radius: 8px;
           transition: all 150ms;
           flex-shrink: 0;
+          background: none;
+          border: none;
+          cursor: pointer;
         }
 
         .btn-logout-small:hover {
@@ -550,9 +617,10 @@ export default function DashboardLayout({ children }) {
         }
 
         .streak-card-top {
-          display: flex;
-          align-items: center;
-          gap: 12px;
+          display: flex !important;
+          flex-direction: row !important;
+          align-items: center !important;
+          gap: 12px !important;
         }
 
         .streak-flame-circle {
@@ -570,6 +638,7 @@ export default function DashboardLayout({ children }) {
           display: flex;
           flex-direction: column;
           line-height: 1.1;
+          text-align: left;
         }
 
         .streak-card-val {
@@ -588,6 +657,7 @@ export default function DashboardLayout({ children }) {
           font-size: 0.78125rem;
           color: #059669;
           font-weight: 500;
+          text-align: left;
         }
 
         /* ═══ Main Wrapper ═══ */
@@ -597,6 +667,11 @@ export default function DashboardLayout({ children }) {
           display: flex;
           flex-direction: column;
           min-height: 100vh;
+          transition: margin-left 250ms cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        .layout-collapsed .main-wrapper {
+          margin-left: 76px !important;
         }
 
         /* ═══ Topbar ═══ */
@@ -749,6 +824,7 @@ export default function DashboardLayout({ children }) {
         /* ═══ Responsive ═══ */
         @media (max-width: 768px) {
           .sidebar {
+            width: 260px !important;
             transform: translateX(-100%);
           }
 
@@ -757,7 +833,7 @@ export default function DashboardLayout({ children }) {
           }
 
           .main-wrapper {
-            margin-left: 0;
+            margin-left: 0 !important;
             padding-bottom: var(--mobile-nav-height);
           }
 
