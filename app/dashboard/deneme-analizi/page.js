@@ -1,10 +1,10 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useUser } from '../layout';
 import { createClient } from '@/lib/supabase/client';
 import { getExamTabs } from '@/lib/constants/alanlar';
-import { formatDate } from '@/lib/utils/date';
+import { formatDate, todayStr } from '@/lib/utils/date';
 import { motion } from 'framer-motion';
 import { 
   BarChart2, Plus, Trash2, BookOpen, AlertCircle, TrendingUp 
@@ -12,6 +12,10 @@ import {
 import { 
   LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer 
 } from 'recharts';
+import { useRealtimeRefresh } from '@/lib/hooks/useRealtimeRefresh';
+import PageHeader from '@/components/ui/PageHeader';
+
+const REALTIME_TABLES = ['denemeler'];
 
 const containerVariants = {
   hidden: { opacity: 0 },
@@ -26,8 +30,21 @@ const itemVariants = {
   show: { opacity: 1, y: 0, transition: { type: 'spring', stiffness: 300, damping: 24 } }
 };
 
+function ExamTooltip({ active, payload, label }) {
+  if (active && payload && payload.length) {
+    return (
+      <div className="chart-tooltip">
+        <p className="chart-tooltip-title">{payload[0].payload.yayin}</p>
+        <p className="chart-tooltip-desc">{label}</p>
+        <p className="chart-tooltip-val">Net: <span>{payload[0].value}</span></p>
+      </div>
+    );
+  }
+  return null;
+}
+
 export default function DenemeAnaliziPage() {
-  const { profile } = useUser();
+  const { profile, setError } = useUser();
   const supabase = createClient();
   const examTabs = profile ? getExamTabs(profile.alan_secimi) : ['TYT', 'AYT'];
 
@@ -38,17 +55,13 @@ export default function DenemeAnaliziPage() {
   const [loading, setLoading] = useState(true);
   const [form, setForm] = useState({
     yayin: '',
-    tarih: new Date().toISOString().split('T')[0],
+    tarih: todayStr(),
     sure_dakika: '',
     detaylar: {},
   });
 
-  useEffect(() => {
+  const loadData = useCallback(async () => {
     if (!profile) return;
-    loadData();
-  }, [profile, activeTab]);
-
-  async function loadData() {
     setLoading(true);
 
     const [{ data: denemeData }, { data: dersData }] = await Promise.all([
@@ -69,7 +82,13 @@ export default function DenemeAnaliziPage() {
     setDenemeler(denemeData || []);
     setDersler(dersData || []);
     setLoading(false);
-  }
+  }, [activeTab, profile, supabase]);
+
+  useEffect(() => {
+    const timer = setTimeout(loadData, 0);
+    return () => clearTimeout(timer);
+  }, [loadData]);
+  useRealtimeRefresh({ tables: REALTIME_TABLES, userId: profile?.id, onChange: loadData });
 
   function openAddModal() {
     const initialDetaylar = {};
@@ -78,7 +97,7 @@ export default function DenemeAnaliziPage() {
     });
     setForm({
       yayin: '',
-      tarih: new Date().toISOString().split('T')[0],
+      tarih: todayStr(),
       sure_dakika: '',
       detaylar: initialDetaylar,
     });
@@ -88,7 +107,7 @@ export default function DenemeAnaliziPage() {
   async function handleSave(e) {
     e.preventDefault();
 
-    const { data: deneme } = await supabase
+    const { data: deneme, error: examError } = await supabase
       .from('denemeler')
       .insert({
         user_id: profile.id,
@@ -99,6 +118,11 @@ export default function DenemeAnaliziPage() {
       })
       .select()
       .single();
+
+    if (examError) {
+      setError(`Deneme kaydedilemedi: ${examError.message}`);
+      return;
+    }
 
     if (deneme) {
       const detayRows = Object.entries(form.detaylar)
@@ -112,7 +136,12 @@ export default function DenemeAnaliziPage() {
         }));
 
       if (detayRows.length > 0) {
-        await supabase.from('deneme_detaylari').insert(detayRows);
+        const { error: detailError } = await supabase.from('deneme_detaylari').insert(detayRows);
+        if (detailError) {
+          await supabase.from('denemeler').delete().eq('id', deneme.id).eq('user_id', profile.id);
+          setError(`Deneme ayrıntıları kaydedilemedi: ${detailError.message}`);
+          return;
+        }
       }
     }
 
@@ -121,8 +150,10 @@ export default function DenemeAnaliziPage() {
   }
 
   async function handleDelete(id) {
+    if (!window.confirm('Bu deneme ve tüm ders sonuçları silinsin mi?')) return;
     await supabase.from('deneme_detaylari').delete().eq('deneme_id', id);
-    await supabase.from('denemeler').delete().eq('id', id);
+    const { error: deleteError } = await supabase.from('denemeler').delete().eq('id', id).eq('user_id', profile.id);
+    if (deleteError) return setError(`Deneme silinemedi: ${deleteError.message}`);
     loadData();
   }
 
@@ -137,36 +168,21 @@ export default function DenemeAnaliziPage() {
     yayin: deneme.yayin
   }));
 
-  const CustomTooltip = ({ active, payload, label }) => {
-    if (active && payload && payload.length) {
-      return (
-        <div className="chart-tooltip">
-          <p className="chart-tooltip-title">{payload[0].payload.yayin}</p>
-          <p className="chart-tooltip-desc">{label}</p>
-          <p className="chart-tooltip-val">Net: <span>{payload[0].value}</span></p>
-        </div>
-      );
-    }
-    return null;
-  };
-
   return (
     <motion.div 
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       className="page"
     >
-      <div className="page-header" style={{ marginBottom: '24px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-        <div className="tabs">
+      <PageHeader title="Deneme Analizi" description="TYT, AYT veya YDT denemelerini ders ayrıntılarıyla kaydet; net gelişimini gerçek sonuçlarla izle." actions={<button className="study-button study-button-primary" onClick={openAddModal}><Plus size={16} /> Deneme ekle</button>} />
+      <div className="page-header" style={{ marginBottom: '24px' }}>
+        <div className="study-segments">
           {examTabs.map(tab => (
-            <button key={tab} className={`tab ${activeTab === tab ? 'tab-active' : ''}`} onClick={() => setActiveTab(tab)}>
+            <button key={tab} className={activeTab === tab ? 'is-active' : ''} onClick={() => setActiveTab(tab)}>
               {tab}
             </button>
           ))}
         </div>
-        <button className="btn btn-primary" onClick={openAddModal}>
-          <Plus size={18} /> Deneme Ekle
-        </button>
       </div>
 
       {loading ? (
@@ -205,7 +221,7 @@ export default function DenemeAnaliziPage() {
                       tickLine={false} 
                       tick={{ fill: 'var(--text-tertiary)', fontSize: 12 }} 
                     />
-                    <Tooltip content={<CustomTooltip />} />
+                    <Tooltip content={<ExamTooltip />} />
                     <Line 
                       type="monotone" 
                       dataKey="net" 

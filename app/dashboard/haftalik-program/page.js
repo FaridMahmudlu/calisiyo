@@ -1,11 +1,16 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useUser } from '../layout';
 import { createClient } from '@/lib/supabase/client';
-import { getCurrentWeekDates, GUN_KISA, formatTime, formatDuration, formatShortDate, todayStr } from '@/lib/utils/date';
+import { getCurrentWeekDates, GUN_KISA, formatTime, formatShortDate, todayStr, toLocalDateKey } from '@/lib/utils/date';
 import { motion } from 'framer-motion';
 import { ChevronLeft, ChevronRight, CheckCircle2, ListTodo, HelpCircle, Trophy } from 'lucide-react';
+import { useRealtimeRefresh } from '@/lib/hooks/useRealtimeRefresh';
+import { getExamTabs } from '@/lib/constants/alanlar';
+import PageHeader from '@/components/ui/PageHeader';
+
+const REALTIME_TABLES = ['gunluk_gorevler'];
 
 const containerVariants = {
   hidden: { opacity: 0 },
@@ -26,20 +31,18 @@ export default function HaftalikProgramPage() {
   const [weekDates, setWeekDates] = useState(getCurrentWeekDates());
   const [weekTasks, setWeekTasks] = useState({});
   const [loading, setLoading] = useState(true);
+  const [activeExam, setActiveExam] = useState('TYT');
+  const examTabs = profile ? getExamTabs(profile.alan_secimi) : ['TYT', 'AYT'];
 
-  useEffect(() => {
+  const loadWeekData = useCallback(async () => {
     if (!profile) return;
-    loadWeekData();
-  }, [profile, weekDates]);
-
-  async function loadWeekData() {
     setLoading(true);
-    const start = weekDates[0].toISOString().split('T')[0];
-    const end = weekDates[6].toISOString().split('T')[0];
+    const start = toLocalDateKey(weekDates[0]);
+    const end = toLocalDateKey(weekDates[6]);
 
     const { data } = await supabase
       .from('gunluk_gorevler')
-      .select('*, dersler(ad, renk, ikon)')
+      .select('*, dersler(ad, renk, ikon, sinav_turu)')
       .eq('user_id', profile.id)
       .gte('tarih', start)
       .lte('tarih', end)
@@ -47,14 +50,20 @@ export default function HaftalikProgramPage() {
 
     const grouped = {};
     weekDates.forEach(d => {
-      grouped[d.toISOString().split('T')[0]] = [];
+      grouped[toLocalDateKey(d)] = [];
     });
     (data || []).forEach(t => {
       if (grouped[t.tarih]) grouped[t.tarih].push(t);
     });
     setWeekTasks(grouped);
     setLoading(false);
-  }
+  }, [profile, supabase, weekDates]);
+
+  useEffect(() => {
+    const timer = setTimeout(loadWeekData, 0);
+    return () => clearTimeout(timer);
+  }, [loadWeekData]);
+  useRealtimeRefresh({ tables: REALTIME_TABLES, userId: profile?.id, onChange: loadWeekData });
 
   function changeWeek(offset) {
     const newDates = weekDates.map(d => {
@@ -66,7 +75,7 @@ export default function HaftalikProgramPage() {
   }
 
   // Week stats
-  const allTasks = Object.values(weekTasks).flat();
+  const allTasks = Object.values(weekTasks).flat().filter((task) => task.dersler?.sinav_turu === activeExam);
   const completedTasks = allTasks.filter(t => t.tamamlandi);
   const totalQuestions = allTasks.reduce((s, t) => s + (t.soru_sayisi || 0), 0);
   const weekPercent = allTasks.length > 0 ? Math.round((completedTasks.length / allTasks.length) * 100) : 0;
@@ -78,6 +87,8 @@ export default function HaftalikProgramPage() {
       animate={{ opacity: 1 }}
       className="page"
     >
+      <PageHeader title="Haftalık Program" description="Yedi günlük çalışma akışını ve haftalık ilerlemeni tek bakışta gör." />
+      <div className="study-segments content-tabs">{examTabs.map((exam) => <button key={exam} className={activeExam === exam ? 'is-active' : ''} onClick={() => setActiveExam(exam)}>{exam}</button>)}</div>
       {/* Week Nav */}
       <div className="week-nav">
         <button className="btn btn-ghost btn-icon-lg date-btn" onClick={() => changeWeek(-1)}>
@@ -130,8 +141,8 @@ export default function HaftalikProgramPage() {
           className="week-grid"
         >
           {weekDates.map((date, idx) => {
-            const dateStr = date.toISOString().split('T')[0];
-            const dayTasks = weekTasks[dateStr] || [];
+            const dateStr = toLocalDateKey(date);
+            const dayTasks = (weekTasks[dateStr] || []).filter((task) => task.dersler?.sinav_turu === activeExam);
             const isToday = dateStr === today;
             const dayCompleted = dayTasks.filter(t => t.tamamlandi).length;
             const progressPct = dayTasks.length > 0 ? (dayCompleted / dayTasks.length) * 100 : 0;

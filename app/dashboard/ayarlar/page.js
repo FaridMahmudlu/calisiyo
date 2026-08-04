@@ -1,260 +1,126 @@
 'use client';
 
-import { useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
+import { Bell, Check, Database, Download, Eye, LockKeyhole, Monitor, Moon, Save, Sun, UserRound } from 'lucide-react';
 import { useUser } from '../layout';
 import { createClient } from '@/lib/supabase/client';
-import { useRouter } from 'next/navigation';
-import { motion } from 'framer-motion';
-import { Settings, User, Lock, LogOut, CheckCircle, AlertCircle } from 'lucide-react';
+import { ALANLAR, getExamTabs } from '@/lib/constants/alanlar';
+import PageHeader from '@/components/ui/PageHeader';
 
-const containerVariants = {
-  hidden: { opacity: 0 },
-  show: {
-    opacity: 1,
-    transition: { staggerChildren: 0.1 }
-  }
-};
-
-const itemVariants = {
-  hidden: { opacity: 0, y: 20 },
-  show: { opacity: 1, y: 0, transition: { type: 'spring', stiffness: 300, damping: 24 } }
-};
+const DATA_TABLES = ['profiles', 'gunluk_gorevler', 'kaynaklarim', 'yapamadiklari', 'tekrarlar', 'denemeler', 'deneme_detaylari', 'calisma_suresi', 'notlar', 'konu_takibi'];
 
 export default function AyarlarPage() {
-  const { profile, setProfile } = useUser();
-  const supabase = createClient();
-  const router = useRouter();
-  const [loading, setLoading] = useState(false);
-  const [message, setMessage] = useState({ text: '', type: '' });
-  const [form, setForm] = useState({
-    full_name: profile?.full_name || '',
-    alan_secimi: profile?.alan_secimi || 'sayisal',
-  });
-  const [passwordForm, setPasswordForm] = useState({ password: '', confirm: '' });
+  const { user, profile, setProfile, setError } = useUser();
+  const supabase = useMemo(() => createClient(), []);
+  const [form, setForm] = useState({ full_name: '', alan_secimi: 'sayisal' });
+  const [preferences, setPreferences] = useState({ theme: 'light', dailyPlan: true, repeats: true, pomodoro: true });
+  const [password, setPassword] = useState({ value: '', confirm: '' });
+  const [saving, setSaving] = useState(false);
+  const [saved, setSaved] = useState(false);
+  const [exporting, setExporting] = useState(false);
 
-  async function handleProfileUpdate(e) {
-    e.preventDefault();
-    setLoading(true);
-    setMessage({ text: '', type: '' });
+  const hydrate = useCallback(() => {
+    if (!profile) return;
+    setForm({ full_name: profile.full_name || '', alan_secimi: profile.alan_secimi || 'sayisal' });
+    const metadata = user?.user_metadata?.study_preferences || {};
+    const storedTheme = typeof window !== 'undefined' ? localStorage.getItem('calisiyo-theme') : null;
+    setPreferences({ theme: storedTheme || metadata.theme || 'light', dailyPlan: metadata.dailyPlan ?? true, repeats: metadata.repeats ?? true, pomodoro: metadata.pomodoro ?? true });
+  }, [profile, user]);
 
-    const { error } = await supabase
-      .from('profiles')
-      .update({ full_name: form.full_name, alan_secimi: form.alan_secimi, updated_at: new Date().toISOString() })
-      .eq('id', profile.id);
+  useEffect(() => {
+    const timer = setTimeout(hydrate, 0);
+    return () => clearTimeout(timer);
+  }, [hydrate]);
 
-    if (!error) {
-      setProfile({ ...profile, full_name: form.full_name, alan_secimi: form.alan_secimi });
-      setMessage({ text: 'Profil başarıyla güncellendi.', type: 'success' });
-    } else {
-      setMessage({ text: 'Profil güncellenirken bir hata oluştu.', type: 'error' });
-    }
-    setLoading(false);
-  }
+  useEffect(() => {
+    const theme = preferences.theme;
+    const resolved = theme === 'system' && window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : theme;
+    document.documentElement.dataset.theme = resolved === 'dark' ? 'dark' : 'light';
+  }, [preferences.theme]);
 
-  async function handlePasswordChange(e) {
-    e.preventDefault();
-    if (passwordForm.password !== passwordForm.confirm) {
-      setMessage({ text: 'Şifreler eşleşmiyor.', type: 'error' });
+  const applyTheme = (theme) => {
+    setPreferences((current) => ({ ...current, theme }));
+    localStorage.setItem('calisiyo-theme', theme);
+  };
+
+  const saveSettings = async () => {
+    setSaving(true);
+    setSaved(false);
+    const [profileResult, authResult] = await Promise.all([
+      supabase.from('profiles').update({ full_name: form.full_name.trim(), alan_secimi: form.alan_secimi }).eq('id', profile.id),
+      supabase.auth.updateUser({ data: { study_preferences: preferences } }),
+    ]);
+    setSaving(false);
+    const saveError = profileResult.error || authResult.error;
+    if (saveError) {
+      setError(`Ayarlar kaydedilemedi: ${saveError.message}`);
       return;
     }
-    if (passwordForm.password.length < 6) {
-      setMessage({ text: 'Şifre en az 6 karakter olmalıdır.', type: 'error' });
-      return;
-    }
-    setLoading(true);
-    const { error } = await supabase.auth.updateUser({ password: passwordForm.password });
-    if (!error) {
-      setMessage({ text: 'Şifre başarıyla güncellendi.', type: 'success' });
-      setPasswordForm({ password: '', confirm: '' });
+    setProfile({ ...profile, ...form });
+    setSaved(true);
+    setTimeout(() => setSaved(false), 2500);
+  };
+
+  const updatePassword = async (event) => {
+    event.preventDefault();
+    if (password.value.length < 8) return setError('Yeni şifre en az 8 karakter olmalıdır.');
+    if (password.value !== password.confirm) return setError('Şifre doğrulaması eşleşmiyor.');
+    const { error: passwordError } = await supabase.auth.updateUser({ password: password.value });
+    if (passwordError) return setError(`Şifre değiştirilemedi: ${passwordError.message}`);
+    setPassword({ value: '', confirm: '' });
+    setSaved(true);
+  };
+
+  const exportData = async (format) => {
+    setExporting(true);
+    const results = await Promise.all(DATA_TABLES.map(async (table) => {
+      const query = table === 'deneme_detaylari'
+        ? supabase.from(table).select('*')
+        : supabase.from(table).select('*').eq(table === 'profiles' ? 'id' : 'user_id', profile.id);
+      const { data, error } = await query;
+      return [table, data || [], error];
+    }));
+    const failed = results.find(([, , queryError]) => queryError);
+    setExporting(false);
+    if (failed) return setError(`Veriler dışa aktarılamadı: ${failed[2].message}`);
+    const dataObject = Object.fromEntries(results.map(([table, rows]) => [table, rows]));
+    let content;
+    let mime;
+    if (format === 'json') {
+      content = JSON.stringify({ exported_at: new Date().toISOString(), data: dataObject }, null, 2);
+      mime = 'application/json';
     } else {
-      setMessage({ text: 'Şifre güncellenirken bir hata oluştu.', type: 'error' });
+      content = results.map(([table, rows]) => {
+        if (!rows.length) return `# ${table}\n`;
+        const columns = [...new Set(rows.flatMap((row) => Object.keys(row)))];
+        const escape = (value) => `"${String(value ?? '').replaceAll('"', '""')}"`;
+        return `# ${table}\n${columns.map(escape).join(',')}\n${rows.map((row) => columns.map((column) => escape(typeof row[column] === 'object' ? JSON.stringify(row[column]) : row[column])).join(',')).join('\n')}`;
+      }).join('\n\n');
+      mime = 'text/csv;charset=utf-8';
     }
-    setLoading(false);
-  }
-
-  async function handleLogout() {
-    await supabase.auth.signOut();
-    router.push('/giris');
-    router.refresh();
-  }
-
-  const alanOptions = [
-    { value: 'sayisal', label: 'Sayısal' },
-    { value: 'esit_agirlik', label: 'Eşit Ağırlık' },
-    { value: 'sozel', label: 'Sözel' },
-    { value: 'dil', label: 'Dil' },
-  ];
+    const url = URL.createObjectURL(new Blob([content], { type: mime }));
+    const anchor = document.createElement('a');
+    anchor.href = url;
+    anchor.download = `calisiyo-verilerim-${new Date().toISOString().slice(0, 10)}.${format}`;
+    anchor.click();
+    URL.revokeObjectURL(url);
+  };
 
   return (
-    <motion.div 
-      initial={{ opacity: 0 }}
-      animate={{ opacity: 1 }}
-      className="page"
-      style={{ maxWidth: '640px', margin: '0 auto' }}
-    >
-      <div className="page-header" style={{ marginBottom: '24px' }}>
-        <h1 style={{ fontSize: '1.5rem', fontWeight: 700, display: 'flex', alignItems: 'center', gap: '8px' }}>
-          <Settings size={24} color="var(--primary-500)" />
-          Ayarlar
-        </h1>
-      </div>
+    <div className="page settings-page">
+      <PageHeader title="Ayarlar" description="Uygulama tercihlerini yönet ve hesabını güvenli şekilde kontrol et." actions={<><span className={`save-indicator ${saved ? 'is-visible' : ''}`}><Check size={15} /> Kaydedildi</span><button className="study-button study-button-primary" onClick={saveSettings} disabled={saving}><Save size={16} /> {saving ? 'Kaydediliyor…' : 'Değişiklikleri kaydet'}</button></>} />
 
-      {message.text && (
-        <motion.div 
-          initial={{ opacity: 0, y: -10 }}
-          animate={{ opacity: 1, y: 0 }}
-          className={`alert ${message.type === 'success' ? 'alert-success' : 'alert-error'}`}
-        >
-          {message.type === 'success' ? <CheckCircle size={18} /> : <AlertCircle size={18} />}
-          <span>{message.text}</span>
-        </motion.div>
-      )}
+      <section className="settings-section study-panel"><div className="settings-intro"><UserRound size={20} /><div><h2>Profil bilgileri</h2><p>Kişisel bilgilerini görüntüle ve güncelle.</p></div></div><div className="settings-fields"><label>Ad Soyad<input value={form.full_name} onChange={(event) => setForm({ ...form, full_name: event.target.value })} /></label><label>E-posta<input value={user?.email || ''} disabled /></label></div></section>
 
-      <motion.div 
-        variants={containerVariants}
-        initial="hidden"
-        animate="show"
-        style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}
-      >
-        {/* Profile */}
-        <motion.div variants={itemVariants} className="card settings-card">
-          <h3 className="settings-title">
-            <User size={20} color="var(--primary-500)" /> Profil Bilgileri
-          </h3>
-          <form onSubmit={handleProfileUpdate} className="settings-form">
-            <div className="input-group">
-              <label className="input-label">Ad Soyad</label>
-              <input 
-                className="input" 
-                value={form.full_name} 
-                onChange={(e) => setForm({ ...form, full_name: e.target.value })} 
-                placeholder="Adınız Soyadınız"
-              />
-            </div>
-            <div className="input-group">
-              <label className="input-label">Alan Seçimi</label>
-              <select 
-                className="select" 
-                value={form.alan_secimi} 
-                onChange={(e) => setForm({ ...form, alan_secimi: e.target.value })}
-              >
-                {alanOptions.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
-              </select>
-            </div>
-            <button className="btn btn-primary settings-btn" type="submit" disabled={loading}>
-              {loading ? <span className="spinner spinner-sm"></span> : 'Bilgileri Güncelle'}
-            </button>
-          </form>
-        </motion.div>
+      <section className="settings-section study-panel"><div className="settings-intro"><Eye size={20} /><div><h2>Alan seçimi</h2><p>Alanına göre ders, konu ve analiz görünürlüğü özelleşir.</p></div></div><div className="field-options">{Object.entries(ALANLAR).map(([value, details]) => <button key={value} className={form.alan_secimi === value ? 'is-selected' : ''} onClick={() => setForm({ ...form, alan_secimi: value })}><span>{details.label}</span><small>{getExamTabs(value).join(' + ')}</small></button>)}</div><p className="settings-warning">Alan seçimini değiştirdiğinde konu görünürlüğü ve sınav sekmeleri güncellenir; mevcut kayıtların silinmez.</p></section>
 
-        {/* Password */}
-        <motion.div variants={itemVariants} className="card settings-card">
-          <h3 className="settings-title">
-            <Lock size={20} color="var(--primary-500)" /> Şifre Değiştir
-          </h3>
-          <form onSubmit={handlePasswordChange} className="settings-form">
-            <div className="input-group">
-              <label className="input-label">Yeni Şifre</label>
-              <input 
-                className="input" 
-                type="password" 
-                value={passwordForm.password} 
-                onChange={(e) => setPasswordForm({ ...passwordForm, password: e.target.value })} 
-                placeholder="En az 6 karakter" 
-              />
-            </div>
-            <div className="input-group">
-              <label className="input-label">Şifre Tekrar</label>
-              <input 
-                className="input" 
-                type="password" 
-                value={passwordForm.confirm} 
-                onChange={(e) => setPasswordForm({ ...passwordForm, confirm: e.target.value })} 
-                placeholder="Şifrenizi tekrar girin" 
-              />
-            </div>
-            <button className="btn btn-primary settings-btn" type="submit" disabled={loading}>
-              {loading ? <span className="spinner spinner-sm"></span> : 'Şifreyi Değiştir'}
-            </button>
-          </form>
-        </motion.div>
+      <section className="settings-section study-panel"><div className="settings-intro"><Monitor size={20} /><div><h2>Görünüm</h2><p>Uygulamanın görünüm temasını seç.</p></div></div><div className="theme-options">{[['light', 'Açık tema', Sun], ['dark', 'Koyu tema', Moon], ['system', 'Sistem ayarı', Monitor]].map(([value, label, Icon]) => <button key={value} className={preferences.theme === value ? 'is-selected' : ''} onClick={() => applyTheme(value)}><Icon size={18} />{label}</button>)}</div></section>
 
-        {/* Logout */}
-        <motion.div variants={itemVariants} className="card settings-card" style={{ border: '1px solid var(--error-light)' }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-            <div>
-              <h3 style={{ fontSize: '1rem', fontWeight: 600, color: 'var(--text-primary)', marginBottom: '4px' }}>Hesaptan Çıkış</h3>
-              <p style={{ fontSize: '0.8125rem', color: 'var(--text-secondary)' }}>Mevcut oturumunuzu güvenle sonlandırın.</p>
-            </div>
-            <button className="btn btn-danger" onClick={handleLogout} style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
-              <LogOut size={16} /> Çıkış Yap
-            </button>
-          </div>
-        </motion.div>
-      </motion.div>
+      <section className="settings-section study-panel"><div className="settings-intro"><Bell size={20} /><div><h2>Bildirimler</h2><p>Hatırlatıcı tercihlerini yönet.</p></div></div><div className="toggle-list">{[['dailyPlan', 'Günlük plan hatırlatıcısı', 'Her gün planını hatırlatır.'], ['repeats', 'Tekrar hatırlatıcıları', 'Tekrar zamanı geldiğinde bildirir.'], ['pomodoro', 'Pomodoro bitiş bildirimi', 'Odak veya mola süresi bittiğinde bildirir.']].map(([key, label, text]) => <label key={key}><span><strong>{label}</strong><small>{text}</small></span><input type="checkbox" checked={preferences[key]} onChange={(event) => setPreferences({ ...preferences, [key]: event.target.checked })} /></label>)}</div></section>
 
-      <style jsx>{`
-        .alert {
-          padding: 14px 16px;
-          border-radius: var(--radius-md);
-          margin-bottom: 24px;
-          display: flex;
-          align-items: center;
-          gap: 10px;
-          font-size: 0.875rem;
-          font-weight: 500;
-        }
-        
-        .alert-success {
-          background: var(--success-light);
-          color: var(--primary-700);
-          border: 1px solid var(--primary-300);
-        }
-        
-        .alert-error {
-          background: var(--error-light);
-          color: var(--error);
-          border: 1px solid rgba(239, 68, 68, 0.3);
-        }
+      <section className="settings-section study-panel"><div className="settings-intro"><LockKeyhole size={20} /><div><h2>Güvenlik</h2><p>Hesabının şifresini güncelle.</p></div></div><form className="settings-fields password-fields" onSubmit={updatePassword}><label>Yeni şifre<input type="password" minLength="8" value={password.value} onChange={(event) => setPassword({ ...password, value: event.target.value })} /></label><label>Yeni şifre tekrar<input type="password" minLength="8" value={password.confirm} onChange={(event) => setPassword({ ...password, confirm: event.target.value })} /></label><button className="study-button">Şifreyi değiştir</button></form></section>
 
-        .settings-card {
-          padding: 24px;
-        }
-
-        .settings-title {
-          font-size: 1.125rem;
-          font-weight: 700;
-          color: var(--text-primary);
-          margin-bottom: 20px;
-          display: flex;
-          align-items: center;
-          gap: 10px;
-          padding-bottom: 16px;
-          border-bottom: 1px dashed var(--border-light);
-        }
-
-        .settings-form {
-          display: flex;
-          flex-direction: column;
-          gap: 16px;
-        }
-        
-        .settings-btn {
-          align-self: flex-start;
-          margin-top: 8px;
-        }
-
-        @media (max-width: 480px) {
-          .settings-card {
-            padding: 20px;
-          }
-          
-          .settings-btn {
-            align-self: stretch;
-            width: 100%;
-          }
-        }
-      `}</style>
-    </motion.div>
+      <section className="settings-section study-panel"><div className="settings-intro"><Database size={20} /><div><h2>Verilerim</h2><p>Tüm çalışma kayıtlarının taşınabilir kopyasını indir.</p></div></div><div className="export-actions"><button className="study-button" onClick={() => exportData('json')} disabled={exporting}><Download size={16} /> JSON olarak indir</button><button className="study-button" onClick={() => exportData('csv')} disabled={exporting}><Download size={16} /> CSV olarak indir</button></div></section>
+    </div>
   );
 }

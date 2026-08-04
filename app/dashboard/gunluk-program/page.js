@@ -1,605 +1,216 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
+import { Check, CheckCircle2, ChevronLeft, ChevronRight, Circle, Clock3, Edit3, ListChecks, Plus, Trash2 } from 'lucide-react';
 import { useUser } from '../layout';
 import { createClient } from '@/lib/supabase/client';
-import { todayStr, formatTime, formatDate, GUN_KISA } from '@/lib/utils/date';
 import { getExamTabs } from '@/lib/constants/alanlar';
-import { motion, AnimatePresence } from 'framer-motion';
-import { 
-  CalendarDays, ChevronLeft, ChevronRight, Plus, CheckCircle2, 
-  Circle, Edit2, Trash2, Clock 
-} from 'lucide-react';
+import { formatDate, formatDuration, formatTime, parseLocalDate, toLocalDateKey, todayStr } from '@/lib/utils/date';
+import { useRealtimeRefresh } from '@/lib/hooks/useRealtimeRefresh';
+import PageHeader from '@/components/ui/PageHeader';
+import DataState from '@/components/ui/DataState';
+import Modal from '@/components/ui/Modal';
 
-const containerVariants = {
-  hidden: { opacity: 0 },
-  show: {
-    opacity: 1,
-    transition: { staggerChildren: 0.05 }
-  }
+const EMPTY_FORM = {
+  baslangic_saat: '08:00', bitis_saat: '08:40', ders_id: '', kaynak_id: '', konu: '', soru_sayisi: '', sayfa_araligi: '',
 };
 
-const itemVariants = {
-  hidden: { opacity: 0, x: -20 },
-  show: { opacity: 1, x: 0, transition: { type: 'spring', stiffness: 300, damping: 24 } }
-};
+function taskDuration(task) {
+  if (!task.baslangic_saat || !task.bitis_saat) return 0;
+  const [startHour, startMinute] = task.baslangic_saat.split(':').map(Number);
+  const [endHour, endMinute] = task.bitis_saat.split(':').map(Number);
+  return Math.max(0, endHour * 60 + endMinute - (startHour * 60 + startMinute));
+}
 
 export default function GunlukProgramPage() {
-  const { profile } = useUser();
-  const supabase = createClient();
-  const examTabs = profile ? getExamTabs(profile.alan_secimi) : ['TYT', 'AYT'];
-
+  const { profile, setError: setGlobalError } = useUser();
+  const supabase = useMemo(() => createClient(), []);
   const [selectedDate, setSelectedDate] = useState(todayStr());
+  const [activeExam, setActiveExam] = useState('TYT');
   const [tasks, setTasks] = useState([]);
   const [dersler, setDersler] = useState([]);
   const [kaynaklar, setKaynaklar] = useState([]);
-  const [showModal, setShowModal] = useState(false);
-  const [editTask, setEditTask] = useState(null);
   const [loading, setLoading] = useState(true);
-  const [form, setForm] = useState({
-    baslangic_saat: '08:00',
-    bitis_saat: '08:40',
-    ders_id: '',
-    kaynak_id: '',
-    konu: '',
-    soru_sayisi: '',
-    sayfa_araligi: '',
-  });
+  const [error, setError] = useState('');
+  const [modalOpen, setModalOpen] = useState(false);
+  const [editing, setEditing] = useState(null);
+  const [form, setForm] = useState(EMPTY_FORM);
+  const [saving, setSaving] = useState(false);
+
+  const examTabs = useMemo(() => profile ? getExamTabs(profile.alan_secimi) : ['TYT', 'AYT'], [profile]);
+  const realtimeTables = useMemo(() => ['gunluk_gorevler', 'kaynaklarim'], []);
+
+  const loadData = useCallback(async () => {
+    if (!profile?.id) return;
+    setLoading(true);
+    setError('');
+    const [taskResult, courseResult, resourceResult] = await Promise.all([
+      supabase.from('gunluk_gorevler').select('*, dersler(ad, renk, ikon, sinav_turu)').eq('user_id', profile.id).eq('tarih', selectedDate).order('baslangic_saat'),
+      supabase.from('dersler').select('*').contains('alan', [profile.alan_secimi]).order('sira'),
+      supabase.from('kaynaklarim').select('*, kaynaklar_sistem(ad, yayin)').eq('user_id', profile.id),
+    ]);
+    const firstError = taskResult.error || courseResult.error || resourceResult.error;
+    if (firstError) setError(firstError.message);
+    setTasks(taskResult.data || []);
+    setDersler(courseResult.data || []);
+    setKaynaklar(resourceResult.data || []);
+    setLoading(false);
+  }, [profile, selectedDate, supabase]);
 
   useEffect(() => {
-    if (!profile) return;
-    loadData();
-  }, [profile, selectedDate]);
+    const timer = setTimeout(loadData, 0);
+    return () => clearTimeout(timer);
+  }, [loadData]);
+  useRealtimeRefresh({ tables: realtimeTables, userId: profile?.id, onChange: loadData });
 
-  async function loadData() {
-    setLoading(true);
+  const visibleTasks = useMemo(() => tasks.filter((task) => !activeExam || task.dersler?.sinav_turu === activeExam), [activeExam, tasks]);
+  const completedCount = visibleTasks.filter((task) => task.tamamlandi).length;
+  const totalMinutes = visibleTasks.reduce((sum, task) => sum + taskDuration(task), 0);
+  const progress = visibleTasks.length ? Math.round(completedCount / visibleTasks.length * 100) : 0;
 
-    const [{ data: taskData }, { data: dersData }, { data: kaynakData }] = await Promise.all([
-      supabase
-        .from('gunluk_gorevler')
-        .select('*, dersler(ad, renk, ikon, sinav_turu)')
-        .eq('user_id', profile.id)
-        .eq('tarih', selectedDate)
-        .order('baslangic_saat'),
-      supabase
-        .from('dersler')
-        .select('*')
-        .contains('alan', [profile.alan_secimi])
-        .order('sira'),
-      supabase
-        .from('kaynaklarim')
-        .select('*, kaynaklar_sistem(ad, yayin)')
-        .eq('user_id', profile.id),
-    ]);
+  const weekDates = useMemo(() => {
+    const selected = parseLocalDate(selectedDate);
+    const day = selected.getDay();
+    const monday = new Date(selected);
+    monday.setDate(selected.getDate() - (day === 0 ? 6 : day - 1));
+    return Array.from({ length: 7 }, (_, index) => {
+      const date = new Date(monday);
+      date.setDate(monday.getDate() + index);
+      return date;
+    });
+  }, [selectedDate]);
 
-    setTasks(taskData || []);
-    setDersler(dersData || []);
-    setKaynaklar(kaynakData || []);
-    setLoading(false);
-  }
+  const openCreate = () => {
+    setEditing(null);
+    setForm(EMPTY_FORM);
+    setModalOpen(true);
+  };
 
-  async function handleToggleComplete(taskId, current) {
-    // Optimistic update
-    setTasks(tasks.map(t => t.id === taskId ? { ...t, tamamlandi: !current } : t));
-    
-    await supabase
-      .from('gunluk_gorevler')
-      .update({ tamamlandi: !current })
-      .eq('id', taskId);
-  }
+  const openEdit = (task) => {
+    setEditing(task);
+    setForm({
+      baslangic_saat: formatTime(task.baslangic_saat) || '08:00', bitis_saat: formatTime(task.bitis_saat) || '08:40',
+      ders_id: task.ders_id || '', kaynak_id: task.kaynak_id || '', konu: task.konu || '',
+      soru_sayisi: task.soru_sayisi?.toString() || '', sayfa_araligi: task.sayfa_araligi || '',
+    });
+    setModalOpen(true);
+  };
 
-  async function handleSaveTask(e) {
-    e.preventDefault();
-
+  const saveTask = async (event) => {
+    event.preventDefault();
+    setSaving(true);
     const payload = {
-      user_id: profile.id,
-      tarih: selectedDate,
-      baslangic_saat: form.baslangic_saat,
-      bitis_saat: form.bitis_saat,
-      ders_id: form.ders_id || null,
-      kaynak_id: form.kaynak_id || null,
-      konu: form.konu || null,
-      soru_sayisi: form.soru_sayisi ? parseInt(form.soru_sayisi) : null,
-      sayfa_araligi: form.sayfa_araligi || null,
+      user_id: profile.id, tarih: selectedDate, baslangic_saat: form.baslangic_saat, bitis_saat: form.bitis_saat,
+      ders_id: form.ders_id || null, kaynak_id: form.kaynak_id || null, konu: form.konu.trim() || null,
+      soru_sayisi: form.soru_sayisi ? Number(form.soru_sayisi) : null, sayfa_araligi: form.sayfa_araligi.trim() || null,
     };
-
-    if (editTask) {
-      await supabase.from('gunluk_gorevler').update(payload).eq('id', editTask.id);
-    } else {
-      await supabase.from('gunluk_gorevler').insert(payload);
+    const { error: saveError } = editing
+      ? await supabase.from('gunluk_gorevler').update(payload).eq('id', editing.id).eq('user_id', profile.id)
+      : await supabase.from('gunluk_gorevler').insert(payload);
+    setSaving(false);
+    if (saveError) {
+      setGlobalError(`Görev kaydedilemedi: ${saveError.message}`);
+      return;
     }
+    setModalOpen(false);
+    await loadData();
+  };
 
-    setShowModal(false);
-    setEditTask(null);
-    resetForm();
-    loadData();
-  }
+  const toggleTask = async (task) => {
+    const nextValue = !task.tamamlandi;
+    setTasks((current) => current.map((item) => item.id === task.id ? { ...item, tamamlandi: nextValue } : item));
+    const { error: updateError } = await supabase.from('gunluk_gorevler').update({ tamamlandi: nextValue }).eq('id', task.id).eq('user_id', profile.id);
+    if (updateError) {
+      setTasks((current) => current.map((item) => item.id === task.id ? { ...item, tamamlandi: task.tamamlandi } : item));
+      setGlobalError(`Görev güncellenemedi: ${updateError.message}`);
+    }
+  };
 
-  async function handleDeleteTask(id) {
-    setTasks(tasks.filter(t => t.id !== id));
-    await supabase.from('gunluk_gorevler').delete().eq('id', id);
-  }
+  const deleteTask = async (task) => {
+    if (!window.confirm('Bu görevi silmek istediğine emin misin?')) return;
+    const previous = tasks;
+    setTasks((current) => current.filter((item) => item.id !== task.id));
+    const { error: deleteError } = await supabase.from('gunluk_gorevler').delete().eq('id', task.id).eq('user_id', profile.id);
+    if (deleteError) {
+      setTasks(previous);
+      setGlobalError(`Görev silinemedi: ${deleteError.message}`);
+    }
+  };
 
-  function openEditModal(task) {
-    setEditTask(task);
-    setForm({
-      baslangic_saat: task.baslangic_saat?.slice(0, 5) || '08:00',
-      bitis_saat: task.bitis_saat?.slice(0, 5) || '08:40',
-      ders_id: task.ders_id || '',
-      kaynak_id: task.kaynak_id || '',
-      konu: task.konu || '',
-      soru_sayisi: task.soru_sayisi?.toString() || '',
-      sayfa_araligi: task.sayfa_araligi || '',
-    });
-    setShowModal(true);
-  }
-
-  function resetForm() {
-    setForm({
-      baslangic_saat: '08:00',
-      bitis_saat: '08:40',
-      ders_id: '',
-      kaynak_id: '',
-      konu: '',
-      soru_sayisi: '',
-      sayfa_araligi: '',
-    });
-  }
-
-  // Date navigation
-  function changeDate(offset) {
-    const d = new Date(selectedDate);
-    d.setDate(d.getDate() + offset);
-    setSelectedDate(d.toISOString().split('T')[0]);
-  }
-
-  const isToday = selectedDate === todayStr();
-  const completedCount = tasks.filter(t => t.tamamlandi).length;
-  const progressPercent = tasks.length > 0 ? Math.round((completedCount / tasks.length) * 100) : 0;
+  const shiftDay = (offset) => {
+    const date = parseLocalDate(selectedDate);
+    date.setDate(date.getDate() + offset);
+    setSelectedDate(toLocalDateKey(date));
+  };
 
   return (
-    <motion.div 
-      initial={{ opacity: 0 }}
-      animate={{ opacity: 1 }}
-      className="page"
-    >
-      {/* Date Navigation */}
-      <div className="date-nav">
-        <button className="btn btn-ghost btn-icon-lg date-btn" onClick={() => changeDate(-1)}>
-          <ChevronLeft size={24} />
-        </button>
-        <div className="date-info">
-          <span className="date-main">{formatDate(selectedDate)}</span>
-          {isToday && <span className="badge badge-success">Bugün</span>}
+    <div className="page daily-program-page">
+      <PageHeader title="Günlük Program" description="Günün çalışma akışını planla, tamamladıkça ilerlemeni anında gör." actions={<button className="study-button study-button-primary" onClick={openCreate}><Plus size={17} /> Görev ekle</button>} />
+
+      <div className="daily-toolbar">
+        <div className="study-segments" aria-label="Sınav türü">
+          {examTabs.map((tab) => <button key={tab} className={activeExam === tab ? 'is-active' : ''} onClick={() => setActiveExam(tab)}>{tab}</button>)}
         </div>
-        <button className="btn btn-ghost btn-icon-lg date-btn" onClick={() => changeDate(1)}>
-          <ChevronRight size={24} />
-        </button>
+        <div className="daily-date-control">
+          <button className="icon-button" onClick={() => shiftDay(-1)} aria-label="Önceki gün"><ChevronLeft size={19} /></button>
+          <strong>{formatDate(selectedDate)}</strong>
+          {selectedDate === todayStr() && <span>Bugün</span>}
+          <button className="icon-button" onClick={() => shiftDay(1)} aria-label="Sonraki gün"><ChevronRight size={19} /></button>
+        </div>
       </div>
 
-      {/* Progress Bar */}
-      {tasks.length > 0 && (
-        <motion.div 
-          initial={{ opacity: 0, y: -10 }}
-          animate={{ opacity: 1, y: 0 }}
-          className="card day-progress"
-        >
-          <div className="day-progress-header">
-            <span>{completedCount}/{tasks.length} görev tamamlandı</span>
-            <span className="day-progress-pct">{progressPercent}%</span>
+      <div className="week-rail" aria-label="Haftanın günleri">
+        {weekDates.map((date) => {
+          const key = toLocalDateKey(date);
+          return <button key={key} className={selectedDate === key ? 'is-selected' : ''} onClick={() => setSelectedDate(key)}><span>{date.toLocaleDateString('tr-TR', { weekday: 'short' })}</span><strong>{date.getDate()}</strong></button>;
+        })}
+      </div>
+
+      <div className="study-summary-grid">
+        <div className="study-summary-item"><span className="summary-icon"><CheckCircle2 size={20} /></span><span className="summary-copy"><span>Günlük ilerleme</span><strong>%{progress}</strong></span></div>
+        <div className="study-summary-item"><span className="summary-icon"><Clock3 size={20} /></span><span className="summary-copy"><span>Planlanan çalışma</span><strong>{formatDuration(totalMinutes)}</strong></span></div>
+        <div className="study-summary-item"><span className="summary-icon"><ListChecks size={20} /></span><span className="summary-copy"><span>Tamamlanan görev</span><strong>{completedCount} / {visibleTasks.length}</strong></span></div>
+      </div>
+
+      <DataState loading={loading} error={error} empty={!visibleTasks.length} emptyTitle={`${activeExam} için görev yok`} emptyText="Bu gün için ilk çalışma görevini ekleyebilirsin.">
+        <section className="daily-timeline" aria-label="Günlük görevler">
+          {visibleTasks.map((task) => {
+            const resource = kaynaklar.find((item) => item.id === task.kaynak_id);
+            return (
+              <article key={task.id} className={`daily-task ${task.tamamlandi ? 'is-complete' : ''}`}>
+                <time>{formatTime(task.baslangic_saat)}</time>
+                <button className="timeline-status" onClick={() => toggleTask(task)} aria-label={task.tamamlandi ? 'Görevi tekrar aç' : 'Görevi tamamla'}>{task.tamamlandi ? <Check size={16} /> : <Circle size={17} />}</button>
+                <div className="daily-task-body">
+                  <div className="daily-task-title-row"><div><span>{task.dersler?.ad || 'Genel çalışma'}</span><strong>{task.konu || 'Konu belirtilmedi'}</strong></div><em>{formatDuration(taskDuration(task))}</em></div>
+                  <p>{resource?.kaynaklar_sistem?.ad || resource?.custom_ad || 'Kaynak seçilmedi'}{task.sayfa_araligi ? ` · Sayfa ${task.sayfa_araligi}` : ''}{task.soru_sayisi ? ` · ${task.soru_sayisi} soru` : ''}</p>
+                </div>
+                <div className="daily-task-actions">
+                  <button className="study-button task-complete-button" onClick={() => toggleTask(task)}>{task.tamamlandi ? <><Check size={15} /> Tamamlandı</> : 'Tamamla'}</button>
+                  <button className="icon-button" onClick={() => openEdit(task)} aria-label="Görevi düzenle"><Edit3 size={17} /></button>
+                  <button className="icon-button danger-icon" onClick={() => deleteTask(task)} aria-label="Görevi sil"><Trash2 size={17} /></button>
+                </div>
+              </article>
+            );
+          })}
+        </section>
+      </DataState>
+
+      <Modal open={modalOpen} onClose={() => !saving && setModalOpen(false)} title={editing ? 'Görevi düzenle' : 'Yeni görev'} description={`${formatDate(selectedDate)} · ${activeExam}`}>
+        <form className="study-form" onSubmit={saveTask}>
+          <div className="form-grid-2">
+            <label>Başlangıç<input type="time" value={form.baslangic_saat} onChange={(event) => setForm({ ...form, baslangic_saat: event.target.value })} required /></label>
+            <label>Bitiş<input type="time" value={form.bitis_saat} min={form.baslangic_saat} onChange={(event) => setForm({ ...form, bitis_saat: event.target.value })} required /></label>
           </div>
-          <div className="progress-bar progress-bar-lg">
-            <div className="progress-bar-fill" style={{ width: `${progressPercent}%` }}></div>
+          <label>Ders<select value={form.ders_id} onChange={(event) => setForm({ ...form, ders_id: event.target.value })} required><option value="">Ders seç</option>{dersler.filter((course) => course.sinav_turu === activeExam).map((course) => <option key={course.id} value={course.id}>{course.ad}</option>)}</select></label>
+          <label>Konu<input value={form.konu} onChange={(event) => setForm({ ...form, konu: event.target.value })} placeholder="Örn. Bölme ve bölünebilme" /></label>
+          <label>Kaynak<select value={form.kaynak_id} onChange={(event) => setForm({ ...form, kaynak_id: event.target.value })}><option value="">Kaynak seç (isteğe bağlı)</option>{kaynaklar.map((resource) => <option key={resource.id} value={resource.id}>{resource.kaynaklar_sistem?.ad || resource.custom_ad}</option>)}</select></label>
+          <div className="form-grid-2">
+            <label>Soru sayısı<input type="number" min="0" value={form.soru_sayisi} onChange={(event) => setForm({ ...form, soru_sayisi: event.target.value })} placeholder="40" /></label>
+            <label>Sayfa aralığı<input value={form.sayfa_araligi} onChange={(event) => setForm({ ...form, sayfa_araligi: event.target.value })} placeholder="45–60" /></label>
           </div>
-        </motion.div>
-      )}
-
-      {/* Task List */}
-      {loading ? (
-        <div style={{ display: 'flex', justifyContent: 'center', padding: '60px' }}>
-          <div className="spinner spinner-lg"></div>
-        </div>
-      ) : tasks.length === 0 ? (
-        <motion.div 
-          initial={{ opacity: 0, scale: 0.95 }}
-          animate={{ opacity: 1, scale: 1 }}
-          className="card empty-state"
-        >
-          <CalendarDays size={48} className="empty-state-icon" />
-          <div className="empty-state-title">Henüz görev eklenmemiş</div>
-          <div className="empty-state-text">Bu gün için çalışma planı oluşturarak hedeflerine bir adım daha yaklaş.</div>
-          <button className="btn btn-primary" style={{ marginTop: '24px' }} onClick={() => { resetForm(); setEditTask(null); setShowModal(true); }}>
-            <Plus size={18} /> Görev Ekle
-          </button>
-        </motion.div>
-      ) : (
-        <motion.div 
-          variants={containerVariants}
-          initial="hidden"
-          animate="show"
-          className="task-timeline"
-        >
-          <AnimatePresence>
-            {tasks.map((task) => (
-              <motion.div 
-                variants={itemVariants} 
-                key={task.id} 
-                layout
-                exit={{ opacity: 0, x: -50, transition: { duration: 0.2 } }}
-                className={`timeline-item card ${task.tamamlandi ? 'timeline-item-done' : ''}`}
-              >
-                <div className="timeline-time">
-                  <span>{formatTime(task.baslangic_saat)}</span>
-                  <span className="timeline-time-sep"><Clock size={12} /></span>
-                  <span>{formatTime(task.bitis_saat)}</span>
-                </div>
-                
-                <div className="timeline-divider"></div>
-                
-                <div className="timeline-content">
-                  <div className="timeline-header">
-                    <span className="timeline-ders" style={{ color: task.dersler?.renk || 'var(--primary-500)' }}>
-                      {task.dersler?.ikon} {task.dersler?.ad}
-                    </span>
-                    {task.dersler?.sinav_turu && (
-                      <span className="badge badge-neutral">{task.dersler?.sinav_turu}</span>
-                    )}
-                  </div>
-                  {task.konu && <div className="timeline-konu">{task.konu}</div>}
-                  <div className="timeline-meta">
-                    {task.soru_sayisi > 0 && <span className="meta-badge">{task.soru_sayisi} soru</span>}
-                    {task.sayfa_araligi && <span className="meta-badge">Sayfa {task.sayfa_araligi}</span>}
-                  </div>
-                </div>
-                <div className="timeline-actions">
-                  <button
-                    className={`timeline-check ${task.tamamlandi ? 'timeline-check-done' : ''}`}
-                    onClick={() => handleToggleComplete(task.id, task.tamamlandi)}
-                    title={task.tamamlandi ? 'Geri al' : 'Tamamla'}
-                  >
-                    {task.tamamlandi ? <CheckCircle2 size={24} /> : <Circle size={24} />}
-                  </button>
-                  <div className="timeline-actions-sub">
-                    <button className="btn btn-ghost btn-icon btn-action" onClick={() => openEditModal(task)}>
-                      <Edit2 size={16} />
-                    </button>
-                    <button className="btn btn-ghost btn-icon btn-action btn-delete" onClick={() => handleDeleteTask(task.id)}>
-                      <Trash2 size={16} />
-                    </button>
-                  </div>
-                </div>
-              </motion.div>
-            ))}
-          </AnimatePresence>
-        </motion.div>
-      )}
-
-      {/* FAB */}
-      {tasks.length > 0 && (
-        <motion.button 
-          initial={{ scale: 0 }}
-          animate={{ scale: 1 }}
-          transition={{ type: 'spring', stiffness: 300, delay: 0.5 }}
-          className="fab" 
-          onClick={() => { resetForm(); setEditTask(null); setShowModal(true); }}
-        >
-          <Plus size={28} />
-        </motion.button>
-      )}
-
-      {/* Modal */}
-      {showModal && (
-        <div className="modal-overlay" onClick={() => setShowModal(false)}>
-          <div className="modal" onClick={(e) => e.stopPropagation()}>
-            <div className="modal-header">
-              <h3 className="modal-title">{editTask ? 'Görevi Düzenle' : 'Yeni Görev'}</h3>
-              <button className="modal-close" onClick={() => setShowModal(false)}>✕</button>
-            </div>
-            <form onSubmit={handleSaveTask} className="modal-form">
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
-                <div className="input-group">
-                  <label className="input-label">Başlangıç</label>
-                  <input className="input" type="time" value={form.baslangic_saat} onChange={(e) => setForm({ ...form, baslangic_saat: e.target.value })} required />
-                </div>
-                <div className="input-group">
-                  <label className="input-label">Bitiş</label>
-                  <input className="input" type="time" value={form.bitis_saat} onChange={(e) => setForm({ ...form, bitis_saat: e.target.value })} required />
-                </div>
-              </div>
-              <div className="input-group">
-                <label className="input-label">Ders</label>
-                <select className="select" value={form.ders_id} onChange={(e) => setForm({ ...form, ders_id: e.target.value })}>
-                  <option value="">Ders Seçin</option>
-                  {dersler.map((d) => (
-                    <option key={d.id} value={d.id}>{d.sinav_turu} - {d.ad}</option>
-                  ))}
-                </select>
-              </div>
-              <div className="input-group">
-                <label className="input-label">Konu</label>
-                <input className="input" type="text" value={form.konu} onChange={(e) => setForm({ ...form, konu: e.target.value })} placeholder="ör. Bölme - Bölünebilme" />
-              </div>
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
-                <div className="input-group">
-                  <label className="input-label">Soru Sayısı</label>
-                  <input className="input" type="number" value={form.soru_sayisi} onChange={(e) => setForm({ ...form, soru_sayisi: e.target.value })} placeholder="40" />
-                </div>
-                <div className="input-group">
-                  <label className="input-label">Sayfa Aralığı</label>
-                  <input className="input" type="text" value={form.sayfa_araligi} onChange={(e) => setForm({ ...form, sayfa_araligi: e.target.value })} placeholder="45-60" />
-                </div>
-              </div>
-              <div className="input-group">
-                <label className="input-label">Kaynak</label>
-                <select className="select" value={form.kaynak_id} onChange={(e) => setForm({ ...form, kaynak_id: e.target.value })}>
-                  <option value="">Kaynak Seçin (opsiyonel)</option>
-                  {kaynaklar.map((k) => (
-                    <option key={k.id} value={k.id}>
-                      {k.kaynaklar_sistem?.ad || k.custom_ad}
-                    </option>
-                  ))}
-                </select>
-              </div>
-              <div style={{ display: 'flex', gap: '12px', marginTop: '12px' }}>
-                <button type="button" className="btn btn-secondary" style={{ flex: 1 }} onClick={() => setShowModal(false)}>İptal</button>
-                <button type="submit" className="btn btn-primary" style={{ flex: 1 }}>
-                  {editTask ? 'Güncelle' : 'Ekle'}
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
-
-      <style jsx>{`
-        .date-nav {
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          gap: 16px;
-          margin-bottom: 24px;
-        }
-
-        .date-btn {
-          color: var(--text-secondary);
-        }
-        
-        .date-btn:hover {
-          color: var(--text-primary);
-          background: var(--gray-100);
-        }
-
-        .date-info {
-          display: flex;
-          align-items: center;
-          gap: 12px;
-        }
-
-        .date-main {
-          font-size: 1.25rem;
-          font-weight: 700;
-          color: var(--text-primary);
-        }
-
-        .day-progress {
-          margin-bottom: 24px;
-          padding: 20px 24px;
-        }
-
-        .day-progress-header {
-          display: flex;
-          justify-content: space-between;
-          font-size: 0.875rem;
-          color: var(--text-secondary);
-          margin-bottom: 12px;
-          font-weight: 500;
-        }
-
-        .day-progress-pct {
-          font-weight: 700;
-          color: var(--primary-600);
-        }
-
-        .task-timeline {
-          display: flex;
-          flex-direction: column;
-          gap: 12px;
-        }
-
-        .timeline-item {
-          display: flex;
-          align-items: center;
-          gap: 16px;
-          padding: 16px 24px;
-          border-left: 4px solid transparent;
-          transition: all var(--transition-base);
-        }
-
-        .timeline-item:hover {
-          border-left-color: var(--primary-400);
-        }
-
-        .timeline-item-done {
-          opacity: 0.6;
-          background: var(--gray-50);
-          border-left-color: var(--success);
-        }
-
-        .timeline-item-done .timeline-ders,
-        .timeline-item-done .timeline-konu {
-          text-decoration: line-through;
-          color: var(--text-tertiary);
-        }
-        
-        .timeline-item-done:hover {
-          border-left-color: var(--success);
-          opacity: 0.8;
-        }
-
-        .timeline-time {
-          display: flex;
-          flex-direction: column;
-          align-items: center;
-          font-size: 0.875rem;
-          font-weight: 700;
-          color: var(--text-primary);
-          min-width: 60px;
-        }
-
-        .timeline-time-sep {
-          color: var(--text-tertiary);
-          margin: 2px 0;
-        }
-        
-        .timeline-divider {
-          width: 2px;
-          height: 40px;
-          background: var(--gray-200);
-          border-radius: 2px;
-        }
-
-        .timeline-content {
-          flex: 1;
-        }
-
-        .timeline-header {
-          display: flex;
-          align-items: center;
-          gap: 10px;
-          margin-bottom: 4px;
-        }
-
-        .timeline-ders {
-          font-weight: 700;
-          font-size: 1rem;
-        }
-
-        .timeline-konu {
-          font-size: 0.875rem;
-          color: var(--text-secondary);
-          margin-bottom: 8px;
-          font-weight: 500;
-        }
-
-        .timeline-meta {
-          display: flex;
-          gap: 12px;
-          flex-wrap: wrap;
-        }
-        
-        .meta-badge {
-          font-size: 0.75rem;
-          font-weight: 600;
-          color: var(--text-secondary);
-          background: var(--gray-100);
-          padding: 4px 10px;
-          border-radius: var(--radius-full);
-        }
-
-        .timeline-actions {
-          display: flex;
-          align-items: center;
-          gap: 16px;
-        }
-        
-        .timeline-actions-sub {
-          display: flex;
-          flex-direction: column;
-          gap: 4px;
-        }
-
-        .timeline-check {
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          color: var(--gray-400);
-          transition: all var(--transition-fast);
-          cursor: pointer;
-          background: none;
-          padding: 4px;
-          border-radius: 50%;
-        }
-
-        .timeline-check:hover {
-          color: var(--primary-500);
-          background: var(--primary-50);
-          transform: scale(1.1);
-        }
-
-        .timeline-check-done {
-          color: var(--primary-500);
-        }
-        
-        .btn-action {
-          color: var(--text-tertiary);
-        }
-        
-        .btn-action:hover {
-          color: var(--primary-600);
-          background: var(--primary-50);
-        }
-        
-        .btn-delete:hover {
-          color: var(--error);
-          background: var(--error-light);
-        }
-
-        .fab {
-          position: fixed;
-          bottom: 32px;
-          right: 32px;
-          width: 64px;
-          height: 64px;
-          border-radius: 50%;
-          background: linear-gradient(135deg, var(--primary-500), var(--primary-600));
-          color: white;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          box-shadow: 0 8px 24px rgba(16, 185, 129, 0.4);
-          cursor: pointer;
-          border: none;
-          transition: all var(--transition-bounce);
-          z-index: 80;
-        }
-
-        .fab:hover {
-          transform: scale(1.05) translateY(-4px);
-          box-shadow: 0 12px 32px rgba(16, 185, 129, 0.5);
-        }
-
-        .modal-form {
-          display: flex;
-          flex-direction: column;
-          gap: 16px;
-        }
-
-        @media (max-width: 768px) {
-          .timeline-item {
-            padding: 16px;
-          }
-          
-          .timeline-divider {
-            display: none;
-          }
-
-          .fab {
-            bottom: calc(var(--mobile-nav-height) + 16px);
-            right: 16px;
-            width: 56px;
-            height: 56px;
-          }
-          
-          .timeline-actions {
-            flex-direction: column;
-            gap: 8px;
-          }
-          
-          .timeline-actions-sub {
-            flex-direction: row;
-          }
-        }
-      `}</style>
-    </motion.div>
+          <div className="form-actions"><button type="button" className="study-button" onClick={() => setModalOpen(false)} disabled={saving}>İptal</button><button className="study-button study-button-primary" disabled={saving}>{saving ? 'Kaydediliyor…' : editing ? 'Değişiklikleri kaydet' : 'Görevi ekle'}</button></div>
+        </form>
+      </Modal>
+    </div>
   );
 }

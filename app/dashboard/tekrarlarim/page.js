@@ -1,12 +1,16 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useUser } from '../layout';
 import { createClient } from '@/lib/supabase/client';
 import { getExamTabs } from '@/lib/constants/alanlar';
 import { formatDate, todayStr } from '@/lib/utils/date';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Repeat, Plus, CheckCircle2, Circle, Calendar, Clock, BookOpen } from 'lucide-react';
+import { useRealtimeRefresh } from '@/lib/hooks/useRealtimeRefresh';
+import PageHeader from '@/components/ui/PageHeader';
+
+const REALTIME_TABLES = ['tekrarlar'];
 
 const containerVariants = {
   hidden: { opacity: 0 },
@@ -22,7 +26,7 @@ const itemVariants = {
 };
 
 export default function TekrarlarimPage() {
-  const { profile } = useUser();
+  const { profile, setError } = useUser();
   const supabase = createClient();
   const examTabs = profile ? getExamTabs(profile.alan_secimi) : ['TYT', 'AYT'];
 
@@ -34,12 +38,8 @@ export default function TekrarlarimPage() {
   const [loading, setLoading] = useState(true);
   const [form, setForm] = useState({ ders_id: '', konu: '', kaynak: '', tekrar_tarihi: todayStr(), tekrar_saati: '' });
 
-  useEffect(() => {
+  const loadData = useCallback(async () => {
     if (!profile) return;
-    loadData();
-  }, [profile, activeTab, filter]);
-
-  async function loadData() {
     setLoading(true);
     const today = todayStr();
 
@@ -60,11 +60,17 @@ export default function TekrarlarimPage() {
     setTekrarlar(t || []);
     setDersler(d || []);
     setLoading(false);
-  }
+  }, [activeTab, filter, profile, supabase]);
+
+  useEffect(() => {
+    const timer = setTimeout(loadData, 0);
+    return () => clearTimeout(timer);
+  }, [loadData]);
+  useRealtimeRefresh({ tables: REALTIME_TABLES, userId: profile?.id, onChange: loadData });
 
   async function handleAdd(e) {
     e.preventDefault();
-    await supabase.from('tekrarlar').insert({
+    const { error: insertError } = await supabase.from('tekrarlar').insert({
       user_id: profile.id,
       ders_id: form.ders_id || null,
       sinav_turu: activeTab,
@@ -73,6 +79,7 @@ export default function TekrarlarimPage() {
       tekrar_tarihi: form.tekrar_tarihi,
       tekrar_saati: form.tekrar_saati || null,
     });
+    if (insertError) return setError(`Tekrar eklenemedi: ${insertError.message}`);
     setShowModal(false);
     setForm({ ders_id: '', konu: '', kaynak: '', tekrar_tarihi: todayStr(), tekrar_saati: '' });
     loadData();
@@ -81,7 +88,11 @@ export default function TekrarlarimPage() {
   async function toggleTamamlandi(id, current) {
     // Optimistic update
     setTekrarlar(tekrarlar.map(t => t.id === id ? { ...t, tamamlandi: !current } : t));
-    await supabase.from('tekrarlar').update({ tamamlandi: !current }).eq('id', id);
+    const { error: updateError } = await supabase.from('tekrarlar').update({ tamamlandi: !current }).eq('id', id).eq('user_id', profile.id);
+    if (updateError) {
+      setTekrarlar((items) => items.map((item) => item.id === id ? { ...item, tamamlandi: current } : item));
+      setError(`Tekrar güncellenemedi: ${updateError.message}`);
+    }
   }
 
   return (
@@ -90,6 +101,7 @@ export default function TekrarlarimPage() {
       animate={{ opacity: 1 }}
       className="page"
     >
+      <PageHeader title="Tekrarlarım" description="Tamamladığın konular için 1, 7 ve 30 günlük tekrarlar otomatik oluşur; istersen manuel tekrar da ekleyebilirsin." />
       <div className="page-header" style={{ marginBottom: '24px' }}>
         <div className="tabs">
           {examTabs.map(tab => (
@@ -154,6 +166,7 @@ export default function TekrarlarimPage() {
                     <span className="tekrar-ders" style={{ color: t.dersler?.renk || 'var(--primary-600)' }}>
                       {t.dersler?.ikon} {t.dersler?.ad}
                     </span>
+                    {t.otomatik && <span className="badge badge-success">Otomatik</span>}
                     {t.kaynak && (
                       <span className="badge badge-neutral">
                         <BookOpen size={12} style={{ marginRight: '4px' }} />

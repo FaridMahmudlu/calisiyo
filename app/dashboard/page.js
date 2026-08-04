@@ -3,7 +3,7 @@
 import { useState, useEffect, useMemo, useCallback } from 'react';
 import { useUser } from './layout';
 import { createClient } from '@/lib/supabase/client';
-import { daysUntilYKS, todayStr, formatDate, formatShortDate, formatDuration, formatTime, GUN_KISA } from '@/lib/utils/date';
+import { daysUntilYKS, todayStr, formatDate, formatShortDate, formatDuration, formatTime, GUN_KISA, toLocalDateKey } from '@/lib/utils/date';
 import { motion, AnimatePresence } from 'framer-motion';
 import { 
   Calendar as CalendarIcon, Target, BookOpen, Clock, Info, 
@@ -139,10 +139,10 @@ export default function DashboardPage() {
   }, [profile, supabase]);
 
   useEffect(() => {
-    loadDashboardData();
+    const initialLoad = setTimeout(loadDashboardData, 0);
 
     // Supabase Real-time subscription for instant dashboard updates
-    if (!profile) return;
+    if (!profile) return () => clearTimeout(initialLoad);
     const channel = supabase
       .channel('dashboard-realtime')
       .on('postgres_changes', { event: '*', schema: 'public', table: 'gunluk_gorevler', filter: `user_id=eq.${profile.id}` }, () => {
@@ -157,6 +157,7 @@ export default function DashboardPage() {
       .subscribe();
 
     return () => {
+      clearTimeout(initialLoad);
       supabase.removeChannel(channel);
     };
   }, [profile, supabase, loadDashboardData]);
@@ -251,7 +252,7 @@ export default function DashboardPage() {
       for (let row = 0; row < 7; row++) {
         const d = new Date(endDate);
         d.setDate(endDate.getDate() - (col * 7 + (6 - row)));
-        const dateKey = d.toISOString().split('T')[0];
+        const dateKey = toLocalDateKey(d);
         const val = activityMap[dateKey] || 0;
 
         let level = 0;
@@ -284,7 +285,7 @@ export default function DashboardPage() {
     }
 
     while (true) {
-      const key = checkDate.toISOString().split('T')[0];
+      const key = toLocalDateKey(checkDate);
       if (completedDates.has(key)) {
         streak++;
         checkDate.setDate(checkDate.getDate() - 1);
@@ -388,17 +389,17 @@ export default function DashboardPage() {
 
       {/* Row 1: Top 4 Stat Cards */}
       <div className="row-4-grid">
-        {/* YKS'ye Kalan Süre */}
+        {/* YKS sınavına kalan süre */}
         <div className="card stat-mini-card">
           <div className="stat-mini-header">
-            <span className="stat-mini-title">YKS'ye Kalan Süre</span>
+            <span className="stat-mini-title">YKS&apos;ye Kalan Süre</span>
             <div className="badge-icon badge-icon-green">
               <CalendarIcon size={16} color="#10b981" />
             </div>
           </div>
           <div className="stat-mini-body">
-            <div className="stat-mini-num font-mono">{daysLeft}</div>
-            <div className="stat-mini-sub">Gün</div>
+            <div className="stat-mini-num font-mono">{daysLeft ?? '—'}</div>
+            <div className="stat-mini-sub">{daysLeft == null ? 'ÖSYM tarihi bekleniyor' : 'Gün'}</div>
           </div>
         </div>
 

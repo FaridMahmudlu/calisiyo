@@ -1,8 +1,9 @@
 import './globals.css';
+import './public.css';
 
 export const metadata = {
   title: 'calisiyo – YKS Çalışma Koçu',
-  description: 'TYT, AYT ve YDT hazırlık sürecini tek bir platform üzerinden yönet. Günlük program, deneme analizi, konu takibi ve daha fazlası.',
+  description: 'TYT, AYT ve YDT hazırlık sürecini günlük plan, konu takibi, deneme analizi ve çalışma araçlarıyla yönet.',
   keywords: 'YKS, TYT, AYT, YDT, çalışma programı, deneme analizi, konu takibi',
 };
 

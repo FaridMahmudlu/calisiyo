@@ -1,343 +1,383 @@
-'use client';
+"use client";
 
-import { useState, useEffect } from 'react';
-import { useUser } from '../layout';
-import { createClient } from '@/lib/supabase/client';
-import { getExamTabs } from '@/lib/constants/alanlar';
-import { formatDate } from '@/lib/utils/date';
-import { motion, AnimatePresence } from 'framer-motion';
-import { HelpCircle, Plus, CheckCircle2, Circle, Trash2, FileText, Hash, BookOpen } from 'lucide-react';
+import { useCallback, useEffect, useMemo, useState } from "react";
+import Image from "next/image";
+import { Check, Edit3, FileImage, Plus, Trash2 } from "lucide-react";
+import { useUser } from "../layout";
+import { createClient } from "@/lib/supabase/client";
+import { getExamTabs } from "@/lib/constants/alanlar";
+import { formatDate } from "@/lib/utils/date";
+import { useRealtimeRefresh } from "@/lib/hooks/useRealtimeRefresh";
+import { createStudyImageUrls, uploadStudyImage } from "@/lib/supabase/storage";
+import PageHeader from "@/components/ui/PageHeader";
+import DataState from "@/components/ui/DataState";
+import Modal from "@/components/ui/Modal";
 
-const containerVariants = {
-  hidden: { opacity: 0 },
-  show: {
-    opacity: 1,
-    transition: { staggerChildren: 0.05 }
-  }
+const EMPTY_FORM = {
+  ders_id: "",
+  konu: "",
+  kaynak: "",
+  sayfa: "",
+  soru_no: "",
+  foto_url: "",
 };
-
-const itemVariants = {
-  hidden: { opacity: 0, y: 10 },
-  show: { opacity: 1, y: 0, transition: { type: 'spring', stiffness: 300, damping: 24 } }
-};
+const REALTIME_TABLES = ["yapamadiklari"];
 
 export default function YapamadiklariPage() {
-  const { profile } = useUser();
-  const supabase = createClient();
-  const examTabs = profile ? getExamTabs(profile.alan_secimi) : ['TYT', 'AYT'];
-
-  const [activeTab, setActiveTab] = useState('TYT');
-  const [sorular, setSorular] = useState([]);
-  const [dersler, setDersler] = useState([]);
-  const [showModal, setShowModal] = useState(false);
+  const { profile, setError: setGlobalError } = useUser();
+  const supabase = useMemo(() => createClient(), []);
+  const examTabs = useMemo(
+    () => (profile ? getExamTabs(profile.alan_secimi) : ["TYT", "AYT"]),
+    [profile],
+  );
+  const [activeExam, setActiveExam] = useState("TYT");
+  const [questions, setQuestions] = useState([]);
+  const [courses, setCourses] = useState([]);
+  const [imageUrls, setImageUrls] = useState({});
   const [loading, setLoading] = useState(true);
-  const [form, setForm] = useState({ ders_id: '', konu: '', sayfa: '', soru_no: '' });
+  const [error, setError] = useState("");
+  const [modalOpen, setModalOpen] = useState(false);
+  const [editing, setEditing] = useState(null);
+  const [form, setForm] = useState(EMPTY_FORM);
+  const [file, setFile] = useState(null);
+  const [saving, setSaving] = useState(false);
+
+  const loadData = useCallback(async () => {
+    if (!profile?.id) return;
+    setLoading(true);
+    setError("");
+    const [questionResult, courseResult] = await Promise.all([
+      supabase
+        .from("yapamadiklari")
+        .select("*, dersler(ad, renk, ikon)")
+        .eq("user_id", profile.id)
+        .eq("sinav_turu", activeExam)
+        .order("created_at", { ascending: false }),
+      supabase
+        .from("dersler")
+        .select("*")
+        .eq("sinav_turu", activeExam)
+        .contains("alan", [profile.alan_secimi])
+        .order("sira"),
+    ]);
+    const loadError = questionResult.error || courseResult.error;
+    if (loadError) setError(loadError.message);
+    const rows = questionResult.data || [];
+    setQuestions(rows);
+    setCourses(courseResult.data || []);
+    setImageUrls(
+      await createStudyImageUrls(
+        supabase,
+        rows.map((row) => row.foto_url),
+      ),
+    );
+    setLoading(false);
+  }, [activeExam, profile, supabase]);
 
   useEffect(() => {
-    if (!profile) return;
-    loadData();
-  }, [profile, activeTab]);
+    const timer = setTimeout(loadData, 0);
+    return () => clearTimeout(timer);
+  }, [loadData]);
+  useRealtimeRefresh({
+    tables: REALTIME_TABLES,
+    userId: profile?.id,
+    onChange: loadData,
+  });
 
-  async function loadData() {
-    setLoading(true);
-    const [{ data: s }, { data: d }] = await Promise.all([
-      supabase.from('yapamadiklari').select('*, dersler(ad, renk, ikon)').eq('user_id', profile.id).eq('sinav_turu', activeTab).order('created_at', { ascending: false }),
-      supabase.from('dersler').select('*').eq('sinav_turu', activeTab).contains('alan', [profile.alan_secimi]).order('sira'),
-    ]);
-    setSorular(s || []);
-    setDersler(d || []);
-    setLoading(false);
-  }
-
-  async function handleAdd(e) {
-    e.preventDefault();
-    await supabase.from('yapamadiklari').insert({
-      user_id: profile.id,
-      ders_id: form.ders_id || null,
-      sinav_turu: activeTab,
-      konu: form.konu || null,
-      sayfa: form.sayfa ? parseInt(form.sayfa) : null,
-      soru_no: form.soru_no || null,
+  const openCreate = () => {
+    setEditing(null);
+    setForm(EMPTY_FORM);
+    setFile(null);
+    setModalOpen(true);
+  };
+  const openEdit = (question) => {
+    setEditing(question);
+    setForm({
+      ders_id: question.ders_id || "",
+      konu: question.konu || "",
+      kaynak: question.kaynak || "",
+      sayfa: question.sayfa?.toString() || "",
+      soru_no: question.soru_no || "",
+      foto_url: question.foto_url || "",
     });
-    setShowModal(false);
-    setForm({ ders_id: '', konu: '', sayfa: '', soru_no: '' });
-    loadData();
-  }
+    setFile(null);
+    setModalOpen(true);
+  };
 
-  async function toggleCozuldu(id, current) {
-    // Optimistic Update
-    setSorular(sorular.map(s => s.id === id ? { ...s, cozuldu: !current } : s));
-    await supabase.from('yapamadiklari').update({ cozuldu: !current }).eq('id', id);
-  }
+  const saveQuestion = async (event) => {
+    event.preventDefault();
+    setSaving(true);
+    try {
+      const photoPath = file
+        ? await uploadStudyImage(supabase, profile.id, file, "wrong-questions")
+        : form.foto_url || null;
+      const payload = {
+        user_id: profile.id,
+        ders_id: form.ders_id || null,
+        sinav_turu: activeExam,
+        konu: form.konu.trim() || null,
+        kaynak: form.kaynak.trim() || null,
+        sayfa: form.sayfa ? Number(form.sayfa) : null,
+        soru_no: form.soru_no.trim() || null,
+        foto_url: photoPath,
+      };
+      const { error: saveError } = editing
+        ? await supabase
+            .from("yapamadiklari")
+            .update(payload)
+            .eq("id", editing.id)
+            .eq("user_id", profile.id)
+        : await supabase.from("yapamadiklari").insert(payload);
+      if (saveError) throw saveError;
+      setModalOpen(false);
+      await loadData();
+    } catch (saveError) {
+      setGlobalError(`Soru kaydedilemedi: ${saveError.message}`);
+    } finally {
+      setSaving(false);
+    }
+  };
 
-  async function handleDelete(id) {
-    setSorular(sorular.filter(s => s.id !== id));
-    await supabase.from('yapamadiklari').delete().eq('id', id);
-  }
+  const toggleSolved = async (question) => {
+    const next = !question.cozuldu;
+    setQuestions((current) =>
+      current.map((item) =>
+        item.id === question.id ? { ...item, cozuldu: next } : item,
+      ),
+    );
+    const { error: updateError } = await supabase
+      .from("yapamadiklari")
+      .update({ cozuldu: next })
+      .eq("id", question.id)
+      .eq("user_id", profile.id);
+    if (updateError) {
+      setQuestions((current) =>
+        current.map((item) => (item.id === question.id ? question : item)),
+      );
+      setGlobalError(`Soru güncellenemedi: ${updateError.message}`);
+    }
+  };
+
+  const removeQuestion = async (question) => {
+    if (!window.confirm("Bu soru kaydını silmek istediğine emin misin?"))
+      return;
+    const { error: deleteError } = await supabase
+      .from("yapamadiklari")
+      .delete()
+      .eq("id", question.id)
+      .eq("user_id", profile.id);
+    if (deleteError)
+      return setGlobalError(`Soru silinemedi: ${deleteError.message}`);
+    if (question.foto_url)
+      await supabase.storage.from("study-assets").remove([question.foto_url]);
+    setQuestions((current) =>
+      current.filter((item) => item.id !== question.id),
+    );
+  };
 
   return (
-    <motion.div 
-      initial={{ opacity: 0 }}
-      animate={{ opacity: 1 }}
-      className="page"
-    >
-      <div className="page-header" style={{ marginBottom: '24px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '16px' }}>
-        <div className="tabs">
-          {examTabs.map(tab => (
-            <button key={tab} className={`tab ${activeTab === tab ? 'tab-active' : ''}`} onClick={() => setActiveTab(tab)}>{tab}</button>
-          ))}
-        </div>
-        <button className="btn btn-primary" onClick={() => setShowModal(true)}>
-          <Plus size={18} /> Soru Ekle
-        </button>
-      </div>
-
-      {loading ? (
-        <div style={{ display: 'flex', justifyContent: 'center', padding: '60px' }}>
-          <div className="spinner spinner-lg"></div>
-        </div>
-      ) : sorular.length === 0 ? (
-        <motion.div 
-          initial={{ opacity: 0, scale: 0.95 }}
-          animate={{ opacity: 1, scale: 1 }}
-          className="card empty-state"
-        >
-          <HelpCircle size={48} className="empty-state-icon" />
-          <div className="empty-state-title">Henüz soru eklenmemiş</div>
-          <div className="empty-state-text">Denemelerde veya testlerde yapamadığın soruları buraya ekleyerek daha sonra tekrar edebilirsin.</div>
-          <button className="btn btn-primary" style={{ marginTop: '20px' }} onClick={() => setShowModal(true)}>
-            <Plus size={18} /> Soru Ekle
+    <div className="page wrong-page">
+      <PageHeader
+        title="Yapamadığım Sorular"
+        description="Zorlandığın soruları görseli ve kaynak bilgisiyle kaydet; çözdükçe işaretle."
+        actions={
+          <button
+            className="study-button study-button-primary"
+            onClick={openCreate}
+          >
+            <Plus size={16} /> Soru ekle
           </button>
-        </motion.div>
-      ) : (
-        <motion.div 
-          variants={containerVariants}
-          initial="hidden"
-          animate="show"
-          className="soru-grid"
-        >
-          <AnimatePresence>
-            {sorular.map(s => (
-              <motion.div 
-                variants={itemVariants}
-                layout
-                exit={{ opacity: 0, scale: 0.8, transition: { duration: 0.2 } }}
-                key={s.id} 
-                className={`card soru-card ${s.cozuldu ? 'soru-done' : ''}`}
-                style={{ borderTop: `4px solid ${s.dersler?.renk || 'var(--primary-500)'}` }}
-              >
-                <div className="soru-header">
-                  <span className="soru-ders" style={{ color: s.dersler?.renk || 'var(--primary-600)' }}>
-                    {s.dersler?.ikon} {s.dersler?.ad}
-                  </span>
-                  <div className="soru-actions">
-                    <button 
-                      className={`btn btn-ghost btn-icon btn-sm check-btn ${s.cozuldu ? 'check-done' : ''}`} 
-                      onClick={() => toggleCozuldu(s.id, s.cozuldu)}
-                      title={s.cozuldu ? 'Çözülmedi İşaretle' : 'Çözüldü İşaretle'}
-                    >
-                      {s.cozuldu ? <CheckCircle2 size={20} /> : <Circle size={20} />}
-                    </button>
-                    <button 
-                      className="btn btn-ghost btn-icon btn-sm btn-delete" 
-                      onClick={() => handleDelete(s.id)}
-                      title="Sil"
-                    >
-                      <Trash2 size={16} />
-                    </button>
-                  </div>
-                </div>
-                
-                <div className="soru-content">
-                  {s.konu ? (
-                    <h3 className="soru-konu">{s.konu}</h3>
-                  ) : (
-                    <h3 className="soru-konu" style={{ color: 'var(--text-tertiary)', fontStyle: 'italic' }}>Konu belirtilmemiş</h3>
-                  )}
-                  
-                  <div className="soru-details">
-                    {s.sayfa && (
-                      <span className="soru-detail-badge">
-                        <FileText size={14} /> Sayfa {s.sayfa}
+        }
+      />
+      <div className="study-segments content-tabs">
+        {examTabs.map((exam) => (
+          <button
+            key={exam}
+            className={activeExam === exam ? "is-active" : ""}
+            onClick={() => setActiveExam(exam)}
+          >
+            {exam}
+          </button>
+        ))}
+      </div>
+      <DataState
+        loading={loading}
+        error={error}
+        empty={!questions.length}
+        emptyTitle={`${activeExam} için soru kaydın yok`}
+        emptyText="İlk yapamadığın soruyu görseli ve kaynak bilgisiyle ekleyebilirsin."
+      >
+        <div className="data-table-wrap study-panel">
+          <table className="study-table">
+            <thead>
+              <tr>
+                <th>Görsel</th>
+                <th>Ders / Konu</th>
+                <th>Kaynak</th>
+                <th>Sayfa / Soru</th>
+                <th>Tarih</th>
+                <th>Durum</th>
+                <th>
+                  <span className="sr-only">İşlemler</span>
+                </th>
+              </tr>
+            </thead>
+            <tbody>
+              {questions.map((question) => (
+                <tr
+                  key={question.id}
+                  className={question.cozuldu ? "is-muted" : ""}
+                >
+                  <td>
+                    {imageUrls[question.foto_url] ? (
+                      <Image
+                        className="question-thumb"
+                        src={imageUrls[question.foto_url]}
+                        alt="Soru görseli"
+                        width={52}
+                        height={42}
+                        unoptimized
+                      />
+                    ) : (
+                      <span className="image-placeholder">
+                        <FileImage size={20} />
                       </span>
                     )}
-                    {s.soru_no && (
-                      <span className="soru-detail-badge">
-                        <Hash size={14} /> Soru {s.soru_no}
-                      </span>
-                    )}
-                  </div>
-                </div>
-                
-                <div className="soru-footer">
-                  <span>Eklendi: {formatDate(s.created_at)}</span>
-                </div>
-              </motion.div>
-            ))}
-          </AnimatePresence>
-        </motion.div>
-      )}
-
-      {/* Modal */}
-      {showModal && (
-        <div className="modal-overlay" onClick={() => setShowModal(false)}>
-          <div className="modal" onClick={(e) => e.stopPropagation()}>
-            <div className="modal-header">
-              <h3 className="modal-title">Yapamadığım Soru Ekle</h3>
-              <button className="modal-close" onClick={() => setShowModal(false)}>✕</button>
-            </div>
-            <form onSubmit={handleAdd} className="modal-form">
-              <div className="input-group">
-                <label className="input-label">Ders</label>
-                <select className="select" value={form.ders_id} onChange={(e) => setForm({ ...form, ders_id: e.target.value })} required>
-                  <option value="">Seçin</option>
-                  {dersler.map(d => <option key={d.id} value={d.id}>{d.ad}</option>)}
-                </select>
-              </div>
-              <div className="input-group">
-                <label className="input-label">Konu (Opsiyonel)</label>
-                <input className="input" value={form.konu} onChange={(e) => setForm({ ...form, konu: e.target.value })} placeholder="ör. Enerji Dönüşümleri" />
-              </div>
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
-                <div className="input-group">
-                  <label className="input-label">Sayfa No (Opsiyonel)</label>
-                  <input className="input" type="number" value={form.sayfa} onChange={(e) => setForm({ ...form, sayfa: e.target.value })} placeholder="142" />
-                </div>
-                <div className="input-group">
-                  <label className="input-label">Soru No (Opsiyonel)</label>
-                  <input className="input" value={form.soru_no} onChange={(e) => setForm({ ...form, soru_no: e.target.value })} placeholder="3" />
-                </div>
-              </div>
-              <div style={{ display: 'flex', gap: '12px', marginTop: '8px' }}>
-                <button type="button" className="btn btn-secondary" style={{ flex: 1 }} onClick={() => setShowModal(false)}>İptal</button>
-                <button className="btn btn-primary" type="submit" style={{ flex: 1 }}>Ekle</button>
-              </div>
-            </form>
-          </div>
+                  </td>
+                  <td>
+                    <strong>
+                      {question.dersler?.ad || "Ders belirtilmedi"}
+                    </strong>
+                    <span>{question.konu || "Konu belirtilmedi"}</span>
+                  </td>
+                  <td>{question.kaynak || "—"}</td>
+                  <td>
+                    Sayfa {question.sayfa || "—"} · Soru{" "}
+                    {question.soru_no || "—"}
+                  </td>
+                  <td>{formatDate(question.created_at)}</td>
+                  <td>
+                    <button
+                      className={`status-button ${question.cozuldu ? "is-done" : ""}`}
+                      onClick={() => toggleSolved(question)}
+                    >
+                      {question.cozuldu && <Check size={14} />}
+                      {question.cozuldu ? "Çözüldü" : "Çözülmedi"}
+                    </button>
+                  </td>
+                  <td>
+                    <div className="row-actions">
+                      <button
+                        className="icon-button"
+                        onClick={() => openEdit(question)}
+                        aria-label="Soruyu düzenle"
+                      >
+                        <Edit3 size={16} />
+                      </button>
+                      <button
+                        className="icon-button danger-icon"
+                        onClick={() => removeQuestion(question)}
+                        aria-label="Soruyu sil"
+                      >
+                        <Trash2 size={16} />
+                      </button>
+                    </div>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
         </div>
-      )}
-
-      <style jsx>{`
-        .soru-grid {
-          display: grid;
-          grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
-          gap: 20px;
-        }
-
-        .soru-card {
-          padding: 20px;
-          display: flex;
-          flex-direction: column;
-          transition: all var(--transition-fast);
-        }
-
-        .soru-done { 
-          opacity: 0.6;
-          background: var(--gray-50);
-        }
-        
-        .soru-done .soru-konu { 
-          text-decoration: line-through; 
-          color: var(--text-tertiary);
-        }
-
-        .soru-header {
-          display: flex;
-          justify-content: space-between;
-          align-items: center;
-          margin-bottom: 12px;
-        }
-
-        .soru-ders {
-          font-weight: 700;
-          font-size: 0.875rem;
-          display: flex;
-          align-items: center;
-          gap: 6px;
-        }
-        
-        .soru-actions {
-          display: flex;
-          gap: 4px;
-        }
-        
-        .check-btn {
-          color: var(--gray-400);
-        }
-        
-        .check-btn:hover {
-          color: var(--primary-500);
-          background: var(--primary-50);
-        }
-        
-        .check-done {
-          color: var(--success);
-        }
-        
-        .check-done:hover {
-          color: var(--success-600);
-          background: var(--success-light);
-        }
-        
-        .btn-delete {
-          color: var(--text-tertiary);
-        }
-        
-        .btn-delete:hover {
-          color: var(--error);
-          background: var(--error-light);
-        }
-
-        .soru-content {
-          flex: 1;
-          margin-bottom: 16px;
-        }
-
-        .soru-konu {
-          font-size: 1.125rem;
-          font-weight: 600;
-          color: var(--text-primary);
-          margin-bottom: 12px;
-          line-height: 1.4;
-        }
-
-        .soru-details {
-          display: flex;
-          flex-wrap: wrap;
-          gap: 8px;
-        }
-        
-        .soru-detail-badge {
-          display: flex;
-          align-items: center;
-          gap: 6px;
-          padding: 4px 10px;
-          background: var(--gray-100);
-          color: var(--text-secondary);
-          border-radius: var(--radius-sm);
-          font-size: 0.75rem;
-          font-weight: 500;
-        }
-
-        .soru-footer {
-          font-size: 0.75rem;
-          color: var(--text-tertiary);
-          padding-top: 12px;
-          border-top: 1px dashed var(--border-light);
-        }
-
-        .modal-form {
-          display: flex;
-          flex-direction: column;
-          gap: 16px;
-        }
-
-        @media (max-width: 480px) {
-          .soru-grid {
-            grid-template-columns: 1fr;
-          }
-        }
-      `}</style>
-    </motion.div>
+      </DataState>
+      <Modal
+        open={modalOpen}
+        onClose={() => !saving && setModalOpen(false)}
+        title={editing ? "Soru kaydını düzenle" : "Yeni soru kaydı"}
+      >
+        <form className="study-form" onSubmit={saveQuestion}>
+          <label>
+            Ders
+            <select
+              value={form.ders_id}
+              onChange={(event) =>
+                setForm({ ...form, ders_id: event.target.value })
+              }
+              required
+            >
+              <option value="">Ders seç</option>
+              {courses.map((course) => (
+                <option key={course.id} value={course.id}>
+                  {course.ad}
+                </option>
+              ))}
+            </select>
+          </label>
+          <label>
+            Konu
+            <input
+              value={form.konu}
+              onChange={(event) =>
+                setForm({ ...form, konu: event.target.value })
+              }
+            />
+          </label>
+          <label>
+            Kaynak
+            <input
+              value={form.kaynak}
+              onChange={(event) =>
+                setForm({ ...form, kaynak: event.target.value })
+              }
+              placeholder="Kitap veya deneme adı"
+            />
+          </label>
+          <div className="form-grid-2">
+            <label>
+              Sayfa
+              <input
+                type="number"
+                min="1"
+                value={form.sayfa}
+                onChange={(event) =>
+                  setForm({ ...form, sayfa: event.target.value })
+                }
+              />
+            </label>
+            <label>
+              Soru no
+              <input
+                value={form.soru_no}
+                onChange={(event) =>
+                  setForm({ ...form, soru_no: event.target.value })
+                }
+              />
+            </label>
+          </div>
+          <label>
+            Soru görseli
+            <input
+              type="file"
+              accept="image/jpeg,image/png,image/webp"
+              onChange={(event) => setFile(event.target.files?.[0] || null)}
+            />
+          </label>
+          <div className="form-actions">
+            <button
+              type="button"
+              className="study-button"
+              onClick={() => setModalOpen(false)}
+            >
+              İptal
+            </button>
+            <button
+              className="study-button study-button-primary"
+              disabled={saving}
+            >
+              {saving ? "Kaydediliyor…" : "Kaydet"}
+            </button>
+          </div>
+        </form>
+      </Modal>
+    </div>
   );
 }

@@ -1,15 +1,19 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useUser } from '../layout';
 import { createClient } from '@/lib/supabase/client';
-import { formatDuration } from '@/lib/utils/date';
+import { formatDuration, toLocalDateKey } from '@/lib/utils/date';
 import { motion } from 'framer-motion';
-import { Target, Clock, CalendarDays, Flame, BarChart3, TrendingUp } from 'lucide-react';
+import { Target, Clock, CalendarDays, Flame, BarChart3, TrendingUp, ListChecks } from 'lucide-react';
 import { 
   BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell,
   LineChart, Line, CartesianGrid
 } from 'recharts';
+import { useRealtimeRefresh } from '@/lib/hooks/useRealtimeRefresh';
+import PageHeader from '@/components/ui/PageHeader';
+
+const REALTIME_TABLES = ['calisma_suresi', 'gunluk_gorevler', 'denemeler'];
 
 const containerVariants = {
   hidden: { opacity: 0 },
@@ -24,6 +28,21 @@ const itemVariants = {
   show: { opacity: 1, y: 0, transition: { type: 'spring', stiffness: 300, damping: 24 } }
 };
 
+function SubjectTooltip({ active, payload }) {
+  if (active && payload && payload.length) {
+    const data = payload[0].payload;
+    return <div className="chart-tooltip"><p className="chart-tooltip-title" style={{ color: data.color }}>{data.name}</p><p className="chart-tooltip-desc">{formatDuration(data.minutes)}</p><p className="chart-tooltip-desc">{data.questions} soru</p></div>;
+  }
+  return null;
+}
+
+function TimelineTooltip({ active, payload, label }) {
+  if (active && payload && payload.length) {
+    return <div className="chart-tooltip"><p className="chart-tooltip-title">{label}</p><p className="chart-tooltip-desc"><span style={{ color: 'var(--primary-500)' }}>Süre: </span>{formatDuration(payload[0].value)}</p>{payload[1] && <p className="chart-tooltip-desc"><span style={{ color: '#8B5CF6' }}>Soru: </span>{payload[1].value}</p>}</div>;
+  }
+  return null;
+}
+
 export default function IstatistiklerPage() {
   const { profile } = useUser();
   const supabase = createClient();
@@ -32,27 +51,44 @@ export default function IstatistiklerPage() {
     totalMinutes: 0, 
     totalDays: 0, 
     maxStreak: 0, 
+    completedTasks: 0,
+    averageNet: 0,
     dersDistribution: [],
     timelineData: []
   });
   const [loading, setLoading] = useState(true);
+  const [range, setRange] = useState('week');
 
-  useEffect(() => {
+  const loadStats = useCallback(async () => {
     if (!profile) return;
-    loadStats();
-  }, [profile]);
-
-  async function loadStats() {
     setLoading(true);
 
-    const { data: studyData } = await supabase
+    const startDate = new Date();
+    if (range === 'week') startDate.setDate(startDate.getDate() - 6);
+    if (range === 'month') startDate.setDate(startDate.getDate() - 29);
+
+    let studyQuery = supabase
       .from('calisma_suresi')
       .select('tarih, sure_dakika, soru_sayisi, dersler(ad, renk, ikon)')
       .eq('user_id', profile.id)
       .order('tarih');
+    let taskQuery = supabase.from('gunluk_gorevler').select('tarih,tamamlandi,soru_sayisi').eq('user_id', profile.id);
+    let examQuery = supabase.from('denemeler').select('tarih,deneme_detaylari(net,dogru,yanlis)').eq('user_id', profile.id);
+    if (range !== 'all') {
+      const startKey = toLocalDateKey(startDate);
+      studyQuery = studyQuery.gte('tarih', startKey);
+      taskQuery = taskQuery.gte('tarih', startKey);
+      examQuery = examQuery.gte('tarih', startKey);
+    }
+    const [{ data: studyData }, { data: taskData }, { data: examData }] = await Promise.all([studyQuery, taskQuery, examQuery]);
 
     const totalMinutes = (studyData || []).reduce((s, d) => s + (d.sure_dakika || 0), 0);
-    const totalQuestions = (studyData || []).reduce((s, d) => s + (d.soru_sayisi || 0), 0);
+    const studyQuestions = (studyData || []).reduce((s, d) => s + (d.soru_sayisi || 0), 0);
+    const completedTasks = (taskData || []).filter((task) => task.tamamlandi);
+    const taskQuestions = completedTasks.reduce((sum, task) => sum + (task.soru_sayisi || 0), 0);
+    const totalQuestions = Math.max(studyQuestions, taskQuestions);
+    const examNets = (examData || []).map((exam) => (exam.deneme_detaylari || []).reduce((sum, detail) => sum + Number(detail.net ?? ((detail.dogru || 0) - (detail.yanlis || 0) / 4)), 0));
+    const averageNet = examNets.length ? Number((examNets.reduce((sum, net) => sum + net, 0) / examNets.length).toFixed(1)) : 0;
     const uniqueDays = [...new Set((studyData || []).map(d => d.tarih))];
     const totalDays = uniqueDays.length;
 
@@ -102,50 +138,23 @@ export default function IstatistiklerPage() {
       totalMinutes,
       totalDays,
       maxStreak,
+      completedTasks: completedTasks.length,
+      averageNet,
       dersDistribution: Object.values(dersMap).sort((a, b) => b.minutes - a.minutes),
       timelineData
     });
     setLoading(false);
-  }
+  }, [profile, range, supabase]);
+
+  useEffect(() => {
+    const timer = setTimeout(loadStats, 0);
+    return () => clearTimeout(timer);
+  }, [loadStats]);
+  useRealtimeRefresh({ tables: REALTIME_TABLES, userId: profile?.id, onChange: loadStats });
 
   if (loading) {
     return <div style={{ display: 'flex', justifyContent: 'center', padding: '60px' }}><div className="spinner spinner-lg"></div></div>;
   }
-
-  const CustomTooltipDers = ({ active, payload }) => {
-    if (active && payload && payload.length) {
-      const data = payload[0].payload;
-      return (
-        <div className="chart-tooltip">
-          <p className="chart-tooltip-title" style={{ color: data.color }}>{data.name}</p>
-          <p className="chart-tooltip-desc">{formatDuration(data.minutes)}</p>
-          <p className="chart-tooltip-desc">{data.questions} soru</p>
-        </div>
-      );
-    }
-    return null;
-  };
-
-  const CustomTooltipTimeline = ({ active, payload, label }) => {
-    if (active && payload && payload.length) {
-      return (
-        <div className="chart-tooltip">
-          <p className="chart-tooltip-title">{label}</p>
-          <p className="chart-tooltip-desc">
-            <span style={{ color: 'var(--primary-500)' }}>Süre: </span> 
-            {formatDuration(payload[0].value)}
-          </p>
-          {payload[1] && (
-            <p className="chart-tooltip-desc">
-              <span style={{ color: '#8B5CF6' }}>Soru: </span> 
-              {payload[1].value}
-            </p>
-          )}
-        </div>
-      );
-    }
-    return null;
-  };
 
   return (
     <motion.div 
@@ -153,9 +162,8 @@ export default function IstatistiklerPage() {
       animate={{ opacity: 1 }}
       className="page"
     >
-      <div className="page-header" style={{ marginBottom: '24px' }}>
-        <h1 style={{ fontSize: '1.5rem', fontWeight: 700, color: 'var(--text-primary)' }}>Genel İstatistikler</h1>
-      </div>
+      <PageHeader title="İstatistikler" description="Çalışma kayıtlarından hesaplanan güncel ilerleme görünümü." />
+      <div className="study-segments stats-range"><button className={range === 'week' ? 'is-active' : ''} onClick={() => setRange('week')}>Bu Hafta</button><button className={range === 'month' ? 'is-active' : ''} onClick={() => setRange('month')}>Bu Ay</button><button className={range === 'all' ? 'is-active' : ''} onClick={() => setRange('all')}>Tümü</button></div>
 
       <motion.div 
         variants={containerVariants}
@@ -186,6 +194,18 @@ export default function IstatistiklerPage() {
           <div className="stat-box-value text-white">{stats.maxStreak}</div>
           <div className="stat-box-label text-white-80">En Uzun Seri</div>
         </motion.div>
+
+        <motion.div variants={itemVariants} className="card stat-box">
+          <div className="stat-box-icon"><ListChecks size={32} color="#00A870" /></div>
+          <div className="stat-box-value">{stats.completedTasks}</div>
+          <div className="stat-box-label">Tamamlanan Görev</div>
+        </motion.div>
+
+        <motion.div variants={itemVariants} className="card stat-box">
+          <div className="stat-box-icon"><TrendingUp size={32} color="#00A870" /></div>
+          <div className="stat-box-value">{stats.averageNet || '—'}</div>
+          <div className="stat-box-label">Ortalama Deneme Neti</div>
+        </motion.div>
       </motion.div>
 
       <div className="charts-grid">
@@ -215,7 +235,7 @@ export default function IstatistiklerPage() {
                     tick={{ fill: 'var(--text-tertiary)', fontSize: 12 }} 
                     dx={-10}
                   />
-                  <Tooltip content={<CustomTooltipTimeline />} />
+                  <Tooltip content={<TimelineTooltip />} />
                   <Line 
                     yAxisId="left"
                     type="monotone" 
@@ -256,7 +276,7 @@ export default function IstatistiklerPage() {
                     tick={{ fill: 'var(--text-tertiary)', fontSize: 12 }} 
                     dx={-10}
                   />
-                  <Tooltip content={<CustomTooltipDers />} cursor={{ fill: 'rgba(0,0,0,0.02)' }} />
+                  <Tooltip content={<SubjectTooltip />} cursor={{ fill: 'rgba(0,0,0,0.02)' }} />
                   <Bar dataKey="minutes" radius={[6, 6, 0, 0]}>
                     {stats.dersDistribution.map((entry, index) => (
                       <Cell key={`cell-${index}`} fill={entry.color} />

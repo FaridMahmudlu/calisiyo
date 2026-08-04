@@ -1,313 +1,421 @@
-'use client';
+"use client";
 
-import { useState, useEffect } from 'react';
-import { useUser } from '../layout';
-import { createClient } from '@/lib/supabase/client';
-import { motion, AnimatePresence } from 'framer-motion';
-import { Library, Plus, Trash2, Book, Bookmark } from 'lucide-react';
+import { useCallback, useEffect, useMemo, useState } from "react";
+import Image from "next/image";
+import { BookOpen, Plus, Trash2 } from "lucide-react";
+import { useUser } from "../layout";
+import { createClient } from "@/lib/supabase/client";
+import { getExamTabs, KITAP_TURLERI } from "@/lib/constants/alanlar";
+import { useRealtimeRefresh } from "@/lib/hooks/useRealtimeRefresh";
+import { createStudyImageUrls, uploadStudyImage } from "@/lib/supabase/storage";
+import PageHeader from "@/components/ui/PageHeader";
+import DataState from "@/components/ui/DataState";
+import Modal from "@/components/ui/Modal";
 
-const containerVariants = {
-  hidden: { opacity: 0 },
-  show: {
-    opacity: 1,
-    transition: { staggerChildren: 0.05 }
-  }
-};
-
-const itemVariants = {
-  hidden: { opacity: 0, scale: 0.95 },
-  show: { opacity: 1, scale: 1, transition: { type: 'spring', stiffness: 300, damping: 24 } }
+const REALTIME_TABLES = ["kaynaklarim"];
+const EMPTY_FORM = {
+  ad: "",
+  yayin: "",
+  ders_id: "",
+  sinav_turu: "TYT",
+  kitap_turu: "soru_bankasi",
 };
 
 export default function KaynaklarimPage() {
-  const { profile } = useUser();
-  const supabase = createClient();
-  const [kaynaklar, setKaynaklar] = useState([]);
-  const [sistemKaynaklar, setSistemKaynaklar] = useState([]);
-  const [dersler, setDersler] = useState([]);
-  const [showModal, setShowModal] = useState(false);
-  const [isCustom, setIsCustom] = useState(false);
+  const { profile, setError: setGlobalError } = useUser();
+  const supabase = useMemo(() => createClient(), []);
+  const examTabs = useMemo(
+    () => (profile ? getExamTabs(profile.alan_secimi) : ["TYT", "AYT"]),
+    [profile],
+  );
+  const [activeExam, setActiveExam] = useState("TYT");
+  const [bookType, setBookType] = useState("all");
+  const [resources, setResources] = useState([]);
+  const [catalog, setCatalog] = useState([]);
+  const [courses, setCourses] = useState([]);
+  const [imageUrls, setImageUrls] = useState({});
   const [loading, setLoading] = useState(true);
-  const [selectedSistem, setSelectedSistem] = useState('');
-  const [customForm, setCustomForm] = useState({
-    ad: '', yayin: '', ders_id: '', sinav_turu: 'TYT', kitap_turu: 'soru_bankasi',
-  });
+  const [error, setError] = useState("");
+  const [modalOpen, setModalOpen] = useState(false);
+  const [customMode, setCustomMode] = useState(false);
+  const [catalogId, setCatalogId] = useState("");
+  const [form, setForm] = useState(EMPTY_FORM);
+  const [coverFile, setCoverFile] = useState(null);
+  const [saving, setSaving] = useState(false);
+
+  const loadData = useCallback(async () => {
+    if (!profile?.id) return;
+    setLoading(true);
+    setError("");
+    const [resourceResult, catalogResult, courseResult] = await Promise.all([
+      supabase
+        .from("kaynaklarim")
+        .select("*, kaynaklar_sistem(*, dersler:ders_id(ad,renk,ikon))")
+        .eq("user_id", profile.id)
+        .order("created_at", { ascending: false }),
+      supabase
+        .from("kaynaklar_sistem")
+        .select("*, dersler:ders_id(ad,renk,ikon)")
+        .order("ad"),
+      supabase
+        .from("dersler")
+        .select("*")
+        .contains("alan", [profile.alan_secimi])
+        .order("sira"),
+    ]);
+    const loadError =
+      resourceResult.error || catalogResult.error || courseResult.error;
+    if (loadError) setError(loadError.message);
+    const rows = resourceResult.data || [];
+    setResources(rows);
+    setCatalog(catalogResult.data || []);
+    setCourses(courseResult.data || []);
+    const privatePaths = rows
+      .map((row) => row.kapak_url)
+      .filter((path) => path && !path.startsWith("http"));
+    setImageUrls(await createStudyImageUrls(supabase, privatePaths));
+    setLoading(false);
+  }, [profile, supabase]);
 
   useEffect(() => {
-    if (!profile) return;
-    loadData();
-  }, [profile]);
+    const timer = setTimeout(loadData, 0);
+    return () => clearTimeout(timer);
+  }, [loadData]);
+  useRealtimeRefresh({
+    tables: REALTIME_TABLES,
+    userId: profile?.id,
+    onChange: loadData,
+  });
 
-  async function loadData() {
-    setLoading(true);
-    const [{ data: k }, { data: sk }, { data: d }] = await Promise.all([
-      supabase.from('kaynaklarim').select('*, kaynaklar_sistem(ad, yayin, sinav_turu, kitap_turu, ders_id, dersler:ders_id(ad, renk, ikon))').eq('user_id', profile.id),
-      supabase.from('kaynaklar_sistem').select('*, dersler:ders_id(ad, renk, ikon)'),
-      supabase.from('dersler').select('*').contains('alan', [profile.alan_secimi]).order('sira'),
-    ]);
-    setKaynaklar(k || []);
-    setSistemKaynaklar(sk || []);
-    setDersler(d || []);
-    setLoading(false);
-  }
+  const infoFor = (resource) =>
+    resource.kaynaklar_sistem
+      ? {
+          name: resource.kaynaklar_sistem.ad,
+          publisher: resource.kaynaklar_sistem.yayin,
+          exam: resource.kaynaklar_sistem.sinav_turu,
+          type: resource.kaynaklar_sistem.kitap_turu,
+          course: resource.kaynaklar_sistem.dersler,
+          cover: resource.kaynaklar_sistem.kapak_url || resource.kapak_url,
+        }
+      : {
+          name: resource.custom_ad,
+          publisher: resource.custom_yayin,
+          exam: resource.custom_sinav_turu,
+          type: resource.custom_kitap_turu,
+          course: courses.find(
+            (course) => course.id === resource.custom_ders_id,
+          ),
+          cover: resource.kapak_url,
+        };
 
-  async function handleAddSistem() {
-    if (!selectedSistem) return;
-    await supabase.from('kaynaklarim').insert({ user_id: profile.id, kaynak_sistem_id: selectedSistem });
-    setShowModal(false);
-    setSelectedSistem('');
-    loadData();
-  }
+  const visibleResources = resources.filter((resource) => {
+    const info = infoFor(resource);
+    return (
+      info.exam === activeExam && (bookType === "all" || info.type === bookType)
+    );
+  });
 
-  async function handleAddCustom(e) {
-    e.preventDefault();
-    await supabase.from('kaynaklarim').insert({
-      user_id: profile.id,
-      custom_ad: customForm.ad,
-      custom_yayin: customForm.yayin,
-      custom_ders_id: customForm.ders_id || null,
-      custom_sinav_turu: customForm.sinav_turu,
-      custom_kitap_turu: customForm.kitap_turu,
-    });
-    setShowModal(false);
-    setCustomForm({ ad: '', yayin: '', ders_id: '', sinav_turu: 'TYT', kitap_turu: 'soru_bankasi' });
-    loadData();
-  }
+  const addCatalogResource = async () => {
+    if (!catalogId) return;
+    setSaving(true);
+    const { error: insertError } = await supabase
+      .from("kaynaklarim")
+      .insert({ user_id: profile.id, kaynak_sistem_id: catalogId });
+    setSaving(false);
+    if (insertError)
+      return setGlobalError(`Kaynak eklenemedi: ${insertError.message}`);
+    setCatalogId("");
+    setModalOpen(false);
+    await loadData();
+  };
 
-  async function handleRemove(id) {
-    setKaynaklar(kaynaklar.filter(k => k.id !== id));
-    await supabase.from('kaynaklarim').delete().eq('id', id);
-  }
-
-  function getKaynakInfo(k) {
-    if (k.kaynak_sistem_id && k.kaynaklar_sistem) {
-      return {
-        ad: k.kaynaklar_sistem.ad,
-        yayin: k.kaynaklar_sistem.yayin,
-        sinav: k.kaynaklar_sistem.sinav_turu,
-        ders: k.kaynaklar_sistem.dersler,
-      };
+  const addCustomResource = async (event) => {
+    event.preventDefault();
+    setSaving(true);
+    try {
+      const coverPath = coverFile
+        ? await uploadStudyImage(
+            supabase,
+            profile.id,
+            coverFile,
+            "resource-covers",
+          )
+        : null;
+      const { error: insertError } = await supabase
+        .from("kaynaklarim")
+        .insert({
+          user_id: profile.id,
+          custom_ad: form.ad.trim(),
+          custom_yayin: form.yayin.trim(),
+          custom_ders_id: form.ders_id || null,
+          custom_sinav_turu: form.sinav_turu,
+          custom_kitap_turu: form.kitap_turu,
+          kapak_url: coverPath,
+        });
+      if (insertError) throw insertError;
+      setForm(EMPTY_FORM);
+      setCoverFile(null);
+      setModalOpen(false);
+      await loadData();
+    } catch (saveError) {
+      setGlobalError(`Kaynak eklenemedi: ${saveError.message}`);
+    } finally {
+      setSaving(false);
     }
-    return {
-      ad: k.custom_ad,
-      yayin: k.custom_yayin,
-      sinav: k.custom_sinav_turu,
-      ders: k.custom_ders_id ? dersler.find(d => d.id === k.custom_ders_id) : null,
-    };
-  }
+  };
+
+  const removeResource = async (resource) => {
+    if (
+      !window.confirm(
+        "Bu kaynağı kitaplığından kaldırmak istediğine emin misin?",
+      )
+    )
+      return;
+    const { error: removeError } = await supabase
+      .from("kaynaklarim")
+      .delete()
+      .eq("id", resource.id)
+      .eq("user_id", profile.id);
+    if (removeError)
+      return setGlobalError(`Kaynak kaldırılamadı: ${removeError.message}`);
+    if (resource.kapak_url)
+      await supabase.storage.from("study-assets").remove([resource.kapak_url]);
+    setResources((current) =>
+      current.filter((item) => item.id !== resource.id),
+    );
+  };
+
+  const coverUrl = (path) =>
+    path?.startsWith("http") ? path : imageUrls[path];
+  const typeLabel = (value) =>
+    KITAP_TURLERI.find((type) => type.value === value)?.label ||
+    value ||
+    "Kitap";
 
   return (
-    <motion.div 
-      initial={{ opacity: 0 }}
-      animate={{ opacity: 1 }}
-      className="page"
-    >
-      <div className="page-header" style={{ marginBottom: '24px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-        <h1 style={{ fontSize: '1.5rem', fontWeight: 700, display: 'flex', alignItems: 'center', gap: '8px' }}>
-          <Library size={24} color="var(--primary-500)" />
-          Kaynaklarım
-        </h1>
-        <button className="btn btn-primary" onClick={() => { setShowModal(true); setIsCustom(false); }}>
-          <Plus size={18} /> Kaynak Ekle
-        </button>
-      </div>
-
-      {loading ? (
-        <div style={{ display: 'flex', justifyContent: 'center', padding: '60px' }}>
-          <div className="spinner spinner-lg"></div>
-        </div>
-      ) : kaynaklar.length === 0 ? (
-        <motion.div 
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          className="card empty-state"
-        >
-          <Book size={48} className="empty-state-icon" />
-          <div className="empty-state-title">Henüz kaynak eklenmemiş</div>
-          <div className="empty-state-text">Kullandığın kitapları ve denemeleri buraya ekleyerek programında kullanabilirsin.</div>
-          <button className="btn btn-primary" style={{ marginTop: '20px' }} onClick={() => { setShowModal(true); setIsCustom(false); }}>
-            <Plus size={18} /> Kaynak Ekle
+    <div className="page resources-page">
+      <PageHeader
+        title="Kaynaklarım"
+        description="Kullandığın kitap ve denemeleri yönet; planlarında gerçek kaynaklarını seç."
+        actions={
+          <button
+            className="study-button study-button-primary"
+            onClick={() => setModalOpen(true)}
+          >
+            <Plus size={16} /> Kaynak ekle
           </button>
-        </motion.div>
-      ) : (
-        <motion.div 
-          variants={containerVariants}
-          initial="hidden"
-          animate="show"
-          className="kaynak-grid"
-        >
-          <AnimatePresence>
-            {kaynaklar.map(k => {
-              const info = getKaynakInfo(k);
-              const cardColor = info.ders?.renk || 'var(--primary-500)';
-              
-              return (
-                <motion.div 
-                  variants={itemVariants}
-                  layout
-                  exit={{ opacity: 0, scale: 0.8, transition: { duration: 0.2 } }}
-                  key={k.id} 
-                  className="card kaynak-card card-interactive"
-                  style={{ borderTop: `4px solid ${cardColor}` }}
-                >
-                  <div className="kaynak-top">
-                    <div className="kaynak-icon-wrapper" style={{ background: `${cardColor}15`, color: cardColor }}>
-                      <Bookmark size={20} />
-                    </div>
-                    <button className="btn btn-ghost btn-icon btn-sm btn-delete" onClick={() => handleRemove(k.id)} title="Kaldır">
-                      <Trash2 size={16} />
-                    </button>
-                  </div>
-                  <div className="kaynak-content">
-                    <h3 className="kaynak-name">{info.ad}</h3>
-                    <p className="kaynak-yayin">{info.yayin}</p>
-                  </div>
-                  <div className="kaynak-badges">
-                    <span className="badge badge-info">{info.sinav}</span>
-                    {info.ders && <span className="badge badge-neutral" style={{ color: cardColor }}>{info.ders.ad}</span>}
-                  </div>
-                </motion.div>
-              );
-            })}
-          </AnimatePresence>
-        </motion.div>
-      )}
-
-      {/* Modal */}
-      {showModal && (
-        <div className="modal-overlay" onClick={() => setShowModal(false)}>
-          <div className="modal" onClick={(e) => e.stopPropagation()}>
-            <div className="modal-header">
-              <h3 className="modal-title">Kaynak Ekle</h3>
-              <button className="modal-close" onClick={() => setShowModal(false)}>✕</button>
-            </div>
-
-            <div className="tabs" style={{ marginBottom: '24px' }}>
-              <button className={`tab ${!isCustom ? 'tab-active' : ''}`} onClick={() => setIsCustom(false)}>Sistemden Seç</button>
-              <button className={`tab ${isCustom ? 'tab-active' : ''}`} onClick={() => setIsCustom(true)}>Özel Ekle</button>
-            </div>
-
-            {!isCustom ? (
-              <div>
-                <div className="input-group" style={{ marginBottom: '24px' }}>
-                  <label className="input-label">Kaynak Seçin</label>
-                  <select className="select" value={selectedSistem} onChange={(e) => setSelectedSistem(e.target.value)}>
-                    <option value="">-- Listeden kaynak seçin --</option>
-                    {sistemKaynaklar.map(s => (
-                      <option key={s.id} value={s.id}>{s.ad} - {s.yayin}</option>
-                    ))}
-                  </select>
-                </div>
-                <button className="btn btn-primary" style={{ width: '100%' }} onClick={handleAddSistem} disabled={!selectedSistem}>
-                  <Plus size={18} /> Kaynağı Ekle
-                </button>
-              </div>
-            ) : (
-              <form onSubmit={handleAddCustom} style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-                <div className="input-group">
-                  <label className="input-label">Kitap Adı</label>
-                  <input className="input" value={customForm.ad} onChange={(e) => setCustomForm({ ...customForm, ad: e.target.value })} required placeholder="ör. 3D TYT Matematik Soru Bankası" />
-                </div>
-                <div className="input-group">
-                  <label className="input-label">Yayın Adı</label>
-                  <input className="input" value={customForm.yayin} onChange={(e) => setCustomForm({ ...customForm, yayin: e.target.value })} required placeholder="ör. 3D Yayınları" />
-                </div>
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
-                  <div className="input-group">
-                    <label className="input-label">Sınav Türü</label>
-                    <select className="select" value={customForm.sinav_turu} onChange={(e) => setCustomForm({ ...customForm, sinav_turu: e.target.value })}>
-                      <option value="TYT">TYT</option>
-                      <option value="AYT">AYT</option>
-                      <option value="YDT">YDT</option>
-                    </select>
-                  </div>
-                  <div className="input-group">
-                    <label className="input-label">İlgili Ders</label>
-                    <select className="select" value={customForm.ders_id} onChange={(e) => setCustomForm({ ...customForm, ders_id: e.target.value })}>
-                      <option value="">Seçin (Opsiyonel)</option>
-                      {dersler.map(d => <option key={d.id} value={d.id}>{d.ad}</option>)}
-                    </select>
-                  </div>
-                </div>
-                <button className="btn btn-primary" type="submit" style={{ width: '100%', marginTop: '8px' }}>
-                  <Plus size={18} /> Özel Kaynağı Ekle
-                </button>
-              </form>
-            )}
-          </div>
+        }
+      />
+      <div className="resource-toolbar">
+        <div className="study-segments">
+          {examTabs.map((exam) => (
+            <button
+              key={exam}
+              className={activeExam === exam ? "is-active" : ""}
+              onClick={() => setActiveExam(exam)}
+            >
+              {exam}
+            </button>
+          ))}
         </div>
-      )}
-
-      <style jsx>{`
-        .kaynak-grid {
-          display: grid;
-          grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
-          gap: 20px;
-        }
-
-        .kaynak-card {
-          padding: 24px;
-          display: flex;
-          flex-direction: column;
-          gap: 16px;
-        }
-
-        .kaynak-top {
-          display: flex;
-          justify-content: space-between;
-          align-items: flex-start;
-        }
-
-        .kaynak-icon-wrapper {
-          width: 40px;
-          height: 40px;
-          border-radius: var(--radius-md);
-          display: flex;
-          align-items: center;
-          justify-content: center;
-        }
-        
-        .btn-delete {
-          color: var(--text-tertiary);
-        }
-        
-        .btn-delete:hover {
-          color: var(--error);
-          background: var(--error-light);
-        }
-
-        .kaynak-content {
-          flex: 1;
-        }
-
-        .kaynak-name {
-          font-size: 1rem;
-          font-weight: 700;
-          color: var(--text-primary);
-          margin-bottom: 4px;
-          line-height: 1.4;
-        }
-
-        .kaynak-yayin {
-          font-size: 0.8125rem;
-          color: var(--text-tertiary);
-          font-weight: 500;
-        }
-
-        .kaynak-badges {
-          display: flex;
-          gap: 8px;
-          flex-wrap: wrap;
-          padding-top: 12px;
-          border-top: 1px dashed var(--border-light);
-        }
-        
-        @media (max-width: 480px) {
-          .kaynak-grid {
-            grid-template-columns: 1fr;
-          }
-        }
-      `}</style>
-    </motion.div>
+        <select
+          value={bookType}
+          onChange={(event) => setBookType(event.target.value)}
+        >
+          <option value="all">Tüm kitap türleri</option>
+          {KITAP_TURLERI.map((type) => (
+            <option key={type.value} value={type.value}>
+              {type.label}
+            </option>
+          ))}
+        </select>
+        <span>{visibleResources.length} kaynak</span>
+      </div>
+      <DataState
+        loading={loading}
+        error={error}
+        empty={!visibleResources.length}
+        emptyTitle={`${activeExam} için kaynak yok`}
+        emptyText="Sistem kataloğundan seçebilir veya kendi kaynağını ekleyebilirsin."
+      >
+        <section className="resource-shelf">
+          {visibleResources.map((resource) => {
+            const info = infoFor(resource);
+            const url = coverUrl(info.cover);
+            return (
+              <article className="resource-book" key={resource.id}>
+                <div
+                  className="book-cover"
+                  style={{ borderColor: info.course?.renk || "#00a870" }}
+                >
+                  {url ? (
+                    <Image src={url} alt={`${info.name} kapak görseli`} width={92} height={136} unoptimized />
+                  ) : (
+                    <span>
+                      <BookOpen size={28} />
+                      <small>{info.exam}</small>
+                    </span>
+                  )}
+                </div>
+                <div className="book-copy">
+                  <strong>{info.name}</strong>
+                  <span>{info.publisher}</span>
+                  <div>
+                    <em>{info.exam}</em>
+                    {info.course && <em>{info.course.ad}</em>}
+                    <em>{typeLabel(info.type)}</em>
+                  </div>
+                </div>
+                <button
+                  className="icon-button danger-icon"
+                  onClick={() => removeResource(resource)}
+                  aria-label="Kaynağı kaldır"
+                >
+                  <Trash2 size={16} />
+                </button>
+              </article>
+            );
+          })}
+        </section>
+      </DataState>
+      <Modal
+        open={modalOpen}
+        onClose={() => !saving && setModalOpen(false)}
+        title="Kaynak ekle"
+      >
+        <div className="study-segments modal-tabs">
+          <button
+            className={!customMode ? "is-active" : ""}
+            onClick={() => setCustomMode(false)}
+          >
+            Sistem kataloğu
+          </button>
+          <button
+            className={customMode ? "is-active" : ""}
+            onClick={() => setCustomMode(true)}
+          >
+            Özel kaynak
+          </button>
+        </div>
+        {!customMode ? (
+          <div className="study-form">
+            <label>
+              Kaynak
+              <select
+                value={catalogId}
+                onChange={(event) => setCatalogId(event.target.value)}
+              >
+                <option value="">Katalogdan seç</option>
+                {catalog
+                  .filter((item) => examTabs.includes(item.sinav_turu))
+                  .map((item) => (
+                    <option key={item.id} value={item.id}>
+                      {item.sinav_turu} · {item.ad} · {item.yayin}
+                    </option>
+                  ))}
+              </select>
+            </label>
+            <div className="form-actions">
+              <button
+                className="study-button study-button-primary"
+                onClick={addCatalogResource}
+                disabled={!catalogId || saving}
+              >
+                {saving ? "Ekleniyor…" : "Kitaplığıma ekle"}
+              </button>
+            </div>
+          </div>
+        ) : (
+          <form className="study-form" onSubmit={addCustomResource}>
+            <label>
+              Kitap adı
+              <input
+                value={form.ad}
+                onChange={(event) =>
+                  setForm({ ...form, ad: event.target.value })
+                }
+                required
+              />
+            </label>
+            <label>
+              Yayın
+              <input
+                value={form.yayin}
+                onChange={(event) =>
+                  setForm({ ...form, yayin: event.target.value })
+                }
+                required
+              />
+            </label>
+            <div className="form-grid-2">
+              <label>
+                Sınav
+                <select
+                  value={form.sinav_turu}
+                  onChange={(event) =>
+                    setForm({ ...form, sinav_turu: event.target.value })
+                  }
+                >
+                  {examTabs.map((exam) => (
+                    <option key={exam}>{exam}</option>
+                  ))}
+                </select>
+              </label>
+              <label>
+                Ders
+                <select
+                  value={form.ders_id}
+                  onChange={(event) =>
+                    setForm({ ...form, ders_id: event.target.value })
+                  }
+                >
+                  <option value="">Ders seç</option>
+                  {courses
+                    .filter((course) => course.sinav_turu === form.sinav_turu)
+                    .map((course) => (
+                      <option key={course.id} value={course.id}>
+                        {course.ad}
+                      </option>
+                    ))}
+                </select>
+              </label>
+            </div>
+            <label>
+              Kitap türü
+              <select
+                value={form.kitap_turu}
+                onChange={(event) =>
+                  setForm({ ...form, kitap_turu: event.target.value })
+                }
+              >
+                {KITAP_TURLERI.map((type) => (
+                  <option key={type.value} value={type.value}>
+                    {type.label}
+                  </option>
+                ))}
+              </select>
+            </label>
+            <label>
+              Kapak görseli
+              <input
+                type="file"
+                accept="image/jpeg,image/png,image/webp"
+                onChange={(event) =>
+                  setCoverFile(event.target.files?.[0] || null)
+                }
+              />
+            </label>
+            <div className="form-actions">
+              <button
+                className="study-button study-button-primary"
+                disabled={saving}
+              >
+                {saving ? "Ekleniyor…" : "Kaynağı ekle"}
+              </button>
+            </div>
+          </form>
+        )}
+      </Modal>
+    </div>
   );
 }

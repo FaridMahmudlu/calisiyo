@@ -1,11 +1,15 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useUser } from '../layout';
 import { createClient } from '@/lib/supabase/client';
 import { getExamTabs } from '@/lib/constants/alanlar';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Circle, PlayCircle, CheckCircle2, BookOpen, ChevronDown, ChevronUp } from 'lucide-react';
+import { Circle, PlayCircle, CheckCircle2, BookOpen, ChevronDown, ChevronUp, Search } from 'lucide-react';
+import { useRealtimeRefresh } from '@/lib/hooks/useRealtimeRefresh';
+import PageHeader from '@/components/ui/PageHeader';
+
+const REALTIME_TABLES = ['konu_takibi'];
 
 const containerVariants = {
   hidden: { opacity: 0 },
@@ -21,7 +25,7 @@ const itemVariants = {
 };
 
 export default function KonuTakibiPage() {
-  const { profile } = useUser();
+  const { profile, setError } = useUser();
   const supabase = createClient();
   const examTabs = profile ? getExamTabs(profile.alan_secimi) : ['TYT', 'AYT'];
 
@@ -31,13 +35,10 @@ export default function KonuTakibiPage() {
   const [takip, setTakip] = useState({});
   const [loading, setLoading] = useState(true);
   const [openDersId, setOpenDersId] = useState(null);
+  const [search, setSearch] = useState('');
 
-  useEffect(() => {
+  const loadData = useCallback(async () => {
     if (!profile) return;
-    loadData();
-  }, [profile, activeTab]);
-
-  async function loadData() {
     setLoading(true);
     const sinavTuru = activeTab;
 
@@ -52,9 +53,7 @@ export default function KonuTakibiPage() {
       setDersler(dersData);
       
       // Auto-open first subject if none is open
-      if (dersData.length > 0 && !openDersId) {
-        setOpenDersId(dersData[0].id);
-      }
+      if (dersData.length > 0) setOpenDersId((current) => current || dersData[0].id);
 
       const dersIds = dersData.map(d => d.id);
       const { data: konuData } = await supabase
@@ -88,7 +87,13 @@ export default function KonuTakibiPage() {
       }
     }
     setLoading(false);
-  }
+  }, [activeTab, profile, supabase]);
+
+  useEffect(() => {
+    const timer = setTimeout(loadData, 0);
+    return () => clearTimeout(timer);
+  }, [loadData]);
+  useRealtimeRefresh({ tables: REALTIME_TABLES, userId: profile?.id, onChange: loadData });
 
   async function handleStatusChange(konuId, newDurum) {
     const existing = takip[konuId];
@@ -96,16 +101,21 @@ export default function KonuTakibiPage() {
     // Optimistic update
     setTakip(prev => ({ ...prev, [konuId]: newDurum }));
 
+    let result;
     if (existing) {
-      await supabase
+      result = await supabase
         .from('konu_takibi')
         .update({ durum: newDurum, updated_at: new Date().toISOString() })
         .eq('user_id', profile.id)
         .eq('konu_id', konuId);
     } else {
-      await supabase
+      result = await supabase
         .from('konu_takibi')
         .insert({ user_id: profile.id, konu_id: konuId, durum: newDurum });
+    }
+    if (result.error) {
+      setTakip(prev => ({ ...prev, [konuId]: existing || 'baslanmadi' }));
+      setError(`Konu durumu güncellenemedi: ${result.error.message}`);
     }
   }
 
@@ -125,6 +135,9 @@ export default function KonuTakibiPage() {
   };
 
   const durumCycle = ['baslanmadi', 'devam_ediyor', 'tamamlandi'];
+  const allTopics = Object.values(konular).flat();
+  const completedTotal = allTopics.filter((topic) => takip[topic.id] === 'tamamlandi').length;
+  const inProgressTotal = allTopics.filter((topic) => takip[topic.id] === 'devam_ediyor').length;
   
   function toggleAccordion(id) {
     if (openDersId === id) {
@@ -140,19 +153,23 @@ export default function KonuTakibiPage() {
       animate={{ opacity: 1 }}
       className="page"
     >
+      <PageHeader title="Konu Takibi" description="Alanına uygun konuları durumlarına göre takip et; tamamlanan konular için tekrarlar otomatik oluşur." />
       <div className="page-header" style={{ marginBottom: '24px' }}>
-        <div className="tabs">
+        <div className="study-segments">
           {examTabs.map(tab => (
             <button
               key={tab}
-              className={`tab ${activeTab === tab ? 'tab-active' : ''}`}
+              className={activeTab === tab ? 'is-active' : ''}
               onClick={() => setActiveTab(tab)}
             >
               {tab}
             </button>
           ))}
         </div>
+        <label className="topic-search"><Search size={16} /><input value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Konu ara" /></label>
       </div>
+
+      <div className="study-summary-grid"><div className="study-summary-item"><span className="summary-copy"><span>Toplam konu</span><strong>{allTopics.length}</strong></span></div><div className="study-summary-item"><span className="summary-copy"><span>Devam eden</span><strong>{inProgressTotal}</strong></span></div><div className="study-summary-item"><span className="summary-copy"><span>Tamamlanan</span><strong>{completedTotal}</strong></span></div></div>
 
       {loading ? (
         <div style={{ display: 'flex', justifyContent: 'center', padding: '60px' }}>
@@ -172,9 +189,9 @@ export default function KonuTakibiPage() {
               <div className="empty-state-text">Seçtiğiniz alan ve sınav türüne ait ders bulunamadı. Lütfen profilinizden alanınızı kontrol edin.</div>
             </div>
           ) : (
-            dersler.map((ders) => {
+            dersler.filter((course) => !search || (konular[course.id] || []).some((topic) => topic.ad.toLocaleLowerCase('tr-TR').includes(search.toLocaleLowerCase('tr-TR')))).map((ders) => {
               const stats = getDersStats(ders.id);
-              const dersKonular = konular[ders.id] || [];
+              const dersKonular = (konular[ders.id] || []).filter((topic) => !search || topic.ad.toLocaleLowerCase('tr-TR').includes(search.toLocaleLowerCase('tr-TR')));
               const isOpen = openDersId === ders.id;
 
               return (

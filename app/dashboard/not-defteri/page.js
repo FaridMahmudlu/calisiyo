@@ -1,10 +1,14 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useUser } from '../layout';
 import { createClient } from '@/lib/supabase/client';
 import { motion, AnimatePresence } from 'framer-motion';
 import { NotebookText, Plus, Trash2, Folder, Edit3 } from 'lucide-react';
+import { useRealtimeRefresh } from '@/lib/hooks/useRealtimeRefresh';
+import PageHeader from '@/components/ui/PageHeader';
+
+const REALTIME_TABLES = ['notlar'];
 
 const containerVariants = {
   hidden: { opacity: 0 },
@@ -20,7 +24,7 @@ const itemVariants = {
 };
 
 export default function NotDefteriPage() {
-  const { profile } = useUser();
+  const { profile, setError } = useUser();
   const supabase = createClient();
   const [notlar, setNotlar] = useState([]);
   const [klasorler, setKlasorler] = useState([]);
@@ -30,12 +34,8 @@ export default function NotDefteriPage() {
   const [loading, setLoading] = useState(true);
   const [form, setForm] = useState({ klasor: '', baslik: '', icerik: '' });
 
-  useEffect(() => {
+  const loadData = useCallback(async () => {
     if (!profile) return;
-    loadData();
-  }, [profile]);
-
-  async function loadData() {
     setLoading(true);
     const { data } = await supabase
       .from('notlar')
@@ -47,7 +47,13 @@ export default function NotDefteriPage() {
     const folders = [...new Set((data || []).map(n => n.klasor))];
     setKlasorler(folders);
     setLoading(false);
-  }
+  }, [profile, supabase]);
+
+  useEffect(() => {
+    const timer = setTimeout(loadData, 0);
+    return () => clearTimeout(timer);
+  }, [loadData]);
+  useRealtimeRefresh({ tables: REALTIME_TABLES, userId: profile?.id, onChange: loadData });
 
   const filteredNotes = activeKlasor
     ? notlar.filter(n => n.klasor === activeKlasor)
@@ -63,11 +69,13 @@ export default function NotDefteriPage() {
       updated_at: new Date().toISOString(),
     };
 
+    let result;
     if (editNote) {
-      await supabase.from('notlar').update(payload).eq('id', editNote.id);
+      result = await supabase.from('notlar').update(payload).eq('id', editNote.id).eq('user_id', profile.id);
     } else {
-      await supabase.from('notlar').insert(payload);
+      result = await supabase.from('notlar').insert(payload);
     }
+    if (result.error) return setError(`Not kaydedilemedi: ${result.error.message}`);
     setShowModal(false);
     setEditNote(null);
     setForm({ klasor: '', baslik: '', icerik: '' });
@@ -75,8 +83,11 @@ export default function NotDefteriPage() {
   }
 
   async function handleDelete(id) {
+    if (!window.confirm('Bu notu silmek istediğine emin misin?')) return;
+    const previous = notlar;
     setNotlar(notlar.filter(n => n.id !== id));
-    await supabase.from('notlar').delete().eq('id', id);
+    const { error: deleteError } = await supabase.from('notlar').delete().eq('id', id).eq('user_id', profile.id);
+    if (deleteError) { setNotlar(previous); setError(`Not silinemedi: ${deleteError.message}`); }
   }
 
   function openEdit(note) {
@@ -91,6 +102,7 @@ export default function NotDefteriPage() {
       animate={{ opacity: 1 }}
       className="page"
     >
+      <PageHeader title="Not Defterim" description="Ders notlarını klasörler halinde düzenle, ara ve güncel tut." />
       <div className="page-header" style={{ marginBottom: '24px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '16px' }}>
         <div className="folder-tabs">
           <button 
