@@ -1,6 +1,6 @@
 'use client';
 
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { FaApple } from 'react-icons/fa';
 import { FcGoogle } from 'react-icons/fc';
 import { createClient } from '@/lib/supabase/client';
@@ -13,8 +13,27 @@ const PROVIDERS = [
 export default function SocialAuthButtons({ intent = 'login', onError }) {
   const supabase = useMemo(() => createClient(), []);
   const [loadingProvider, setLoadingProvider] = useState('');
+  const [providerState, setProviderState] = useState({ loading: true, google: false, apple: false });
+
+  useEffect(() => {
+    let active = true;
+    fetch('/api/auth/providers', { cache: 'no-store' })
+      .then((response) => response.json())
+      .then(({ providers }) => {
+        if (active) setProviderState({ loading: false, google: Boolean(providers?.google), apple: Boolean(providers?.apple) });
+      })
+      .catch(() => {
+        if (active) setProviderState({ loading: false, google: false, apple: false });
+      });
+    return () => { active = false; };
+  }, []);
 
   const startOAuth = async (provider) => {
+    if (!providerState[provider]) {
+      const providerName = provider === 'google' ? 'Google' : 'Apple';
+      onError?.(`${providerName} ile giriş henüz hazır değil. E-posta ile hemen devam edebilirsin.`);
+      return;
+    }
     setLoadingProvider(provider);
     onError?.('');
 
@@ -44,15 +63,19 @@ export default function SocialAuthButtons({ intent = 'login', onError }) {
       {PROVIDERS.map(({ id, label, icon: Icon }) => (
         <button
           className="social-auth-button"
-          disabled={Boolean(loadingProvider)}
+          disabled={providerState.loading || Boolean(loadingProvider)}
           key={id}
           onClick={() => startOAuth(id)}
           type="button"
         >
           <Icon aria-hidden="true" size={20} />
           <span>{loadingProvider === id ? 'Yönlendiriliyor…' : label}</span>
+          {!providerState.loading && !providerState[id] && <small>Yakında</small>}
         </button>
       ))}
+      {!providerState.loading && !providerState.google && !providerState.apple && (
+        <p className="social-auth-note">E-posta ile hesap oluşturma ve giriş kullanıma hazır.</p>
+      )}
     </div>
   );
 }

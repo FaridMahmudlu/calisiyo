@@ -39,7 +39,7 @@
 .account-copy { min-width: 0; flex: 1; display: grid; }
 .account-copy strong { font-size: .83rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .account-copy span { color: var(--study-muted); font-size: .68rem; text-transform: capitalize; }
-.icon-button { width: 36px; height: 36px; padding: 0; border: 0; border-radius: 9px; background: transparent; color: #65718a; display: inline-flex; align-items: center; justify-content: center; cursor: pointer; }
+.icon-button { width: 36px; height: 36px; padding: 0; border: 0; border-radius: 9px; background: transparent; color: #65718a; display: inline-flex; align-items: center; justify-content: center; cursor: pointer; transition: background .18s ease, color .18s ease, transform .18s ease; }
 .icon-button:hover { background: #f1f5f4; color: var(--study-ink); }
 .study-main { min-height: 100vh; margin-left: 196px; transition: margin .2s ease; }
 .is-collapsed .study-main { margin-left: 78px; }
@@ -66,11 +66,15 @@
 .study-page-header p { max-width: 700px; margin: 7px 0 0; color: var(--study-muted); font-size: .9rem; line-height: 1.55; }
 .study-eyebrow { display: block; margin-bottom: 5px; color: var(--study-green-dark); font-size: .7rem; font-weight: 800; letter-spacing: .1em; text-transform: uppercase; }
 .study-page-actions { display: flex; align-items: center; gap: 10px; flex: 0 0 auto; }
-.study-panel { background: #fff; border: 1px solid var(--study-border); border-radius: 12px; }
-.study-button { min-height: 42px; padding: 0 17px; border: 1px solid var(--study-border); border-radius: 9px; background: #fff; color: var(--study-ink); display: inline-flex; align-items: center; justify-content: center; gap: 8px; font-size: .84rem; font-weight: 700; cursor: pointer; }
+.study-panel { background: #fff; border: 1px solid var(--study-border); border-radius: 12px; transition: border-color .18s ease, box-shadow .18s ease, transform .18s ease; }
+.study-button { min-height: 42px; padding: 0 17px; border: 1px solid var(--study-border); border-radius: 9px; background: #fff; color: var(--study-ink); display: inline-flex; align-items: center; justify-content: center; gap: 8px; font-size: .84rem; font-weight: 700; cursor: pointer; transition: transform .18s ease, border-color .18s ease, background .18s ease, color .18s ease, box-shadow .18s ease; }
 .study-button:hover { border-color: #b9c7c0; background: #fbfdfc; }
 .study-button-primary { border-color: var(--study-green); background: var(--study-green); color: #fff; }
 .study-button-primary:hover { border-color: var(--study-green-dark); background: var(--study-green-dark); }
+.study-button:hover:not(:disabled) { transform: translateY(-1px); }
+.study-button-primary:hover:not(:disabled) { box-shadow: 0 7px 18px rgba(0,168,112,.16); }
+.study-button:focus-visible, .icon-button:focus-visible, .nav-link:focus-visible { outline: 3px solid rgba(0,168,112,.16); outline-offset: 2px; }
+.study-button:disabled { opacity: .58; cursor: wait; }
 .study-button-danger { color: #c5362c; border-color: #f3c7c4; }
 .study-segments { display: inline-flex; padding: 3px; border: 1px solid var(--study-border); border-radius: 10px; background: #f8fafb; }
 .study-segments button { min-width: 88px; height: 34px; padding: 0 16px; border: 0; border-radius: 7px; background: transparent; color: var(--study-muted); font-weight: 700; cursor: pointer; }

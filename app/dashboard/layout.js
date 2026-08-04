@@ -57,34 +57,39 @@ export default function DashboardLayout({ children }) {
   const [user, setUser] = useState(null);
   const [profile, setProfile] = useState(null);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState('');
+  const [errorState, setErrorState] = useState({ message: '', pathname });
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [collapsed, setCollapsed] = useState(false);
   const [stats, setStats] = useState({ level: 1, xp: 0, streak: 0 });
+  const error = errorState.pathname === pathname ? errorState.message : '';
+  const setError = useCallback((message) => {
+    setErrorState({ message, pathname });
+  }, [pathname]);
 
   const loadAccount = useCallback(async () => {
-    const { data: authData, error: authError } = await supabase.auth.getUser();
-    if (authError || !authData.user) {
+    const response = await fetch('/api/account', { cache: 'no-store' });
+    const result = await response.json().catch(() => ({}));
+    if (response.status === 401) {
       router.replace('/giris');
       return;
     }
+    if (!response.ok || !result.ok) {
+      setError(result.message || 'Çalışma bilgilerin yüklenemedi. Lütfen sayfayı yenileyin.');
+      setLoading(false);
+      return;
+    }
 
-    const authUser = authData.user;
+    const authUser = result.user;
     setUser(authUser);
-    const [{ data: profileData, error: profileError }, { data: tasks }, { data: sessions }] = await Promise.all([
-      supabase.from('profiles').select('*').eq('id', authUser.id).single(),
-      supabase.from('gunluk_gorevler').select('tarih,tamamlandi,soru_sayisi').eq('user_id', authUser.id),
-      supabase.from('calisma_suresi').select('tarih,sure_dakika,soru_sayisi').eq('user_id', authUser.id),
-    ]);
+    setProfile(result.profile || null);
 
-    if (profileError) setError('Profil bilgileri yüklenemedi. Sayfayı yenileyerek tekrar deneyin.');
-    setProfile(profileData || null);
-
-    const completed = (tasks || []).filter((task) => task.tamamlandi);
+    const tasks = result.tasks || [];
+    const sessions = result.sessions || [];
+    const completed = tasks.filter((task) => task.tamamlandi);
     const questionCount = completed.reduce((sum, task) => sum + (task.soru_sayisi || 0), 0)
-      + (sessions || []).reduce((sum, session) => sum + (session.soru_sayisi || 0), 0);
+      + sessions.reduce((sum, session) => sum + (session.soru_sayisi || 0), 0);
     const xpTotal = completed.length * 50 + questionCount * 5;
-    const activeDates = new Set([...completed.map((task) => task.tarih), ...(sessions || []).map((session) => session.tarih)]);
+    const activeDates = new Set([...completed.map((task) => task.tarih), ...sessions.map((session) => session.tarih)]);
     let streak = 0;
     const cursor = new Date();
     if (!activeDates.has(todayStr())) cursor.setDate(cursor.getDate() - 1);
@@ -94,7 +99,7 @@ export default function DashboardLayout({ children }) {
     }
     setStats({ level: Math.floor(xpTotal / 250) + 1, xp: xpTotal % 250, streak });
     setLoading(false);
-  }, [router, supabase]);
+  }, [router, setError]);
 
   useEffect(() => {
     const timer = setTimeout(loadAccount, 0);
@@ -107,12 +112,14 @@ export default function DashboardLayout({ children }) {
   useRealtimeRefresh({ tables: profileRealtimeTables, userId: user?.id, filterColumn: 'id', onChange: loadAccount });
 
   const logout = async () => {
-    const { error: signOutError } = await supabase.auth.signOut();
-    if (signOutError) {
+    const response = await fetch('/api/auth/logout', { method: 'POST' });
+    if (!response.ok) {
       setError('Çıkış yapılamadı. Lütfen tekrar deneyin.');
       return;
     }
+    await supabase.auth.signOut({ scope: 'local' });
     router.replace('/giris');
+    router.refresh();
   };
 
   if (loading) {

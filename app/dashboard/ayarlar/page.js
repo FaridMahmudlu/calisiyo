@@ -22,7 +22,7 @@ export default function AyarlarPage() {
   const hydrate = useCallback(() => {
     if (!profile) return;
     setForm({ full_name: profile.full_name || '', alan_secimi: profile.alan_secimi || 'sayisal' });
-    const metadata = user?.user_metadata?.study_preferences || {};
+    const metadata = profile.study_preferences || user?.user_metadata?.study_preferences || {};
     const storedTheme = typeof window !== 'undefined' ? localStorage.getItem('calisiyo-theme') : null;
     setPreferences({ theme: storedTheme || metadata.theme || 'light', dailyPlan: metadata.dailyPlan ?? true, repeats: metadata.repeats ?? true, pomodoro: metadata.pomodoro ?? true });
   }, [profile, user]);
@@ -44,19 +44,30 @@ export default function AyarlarPage() {
   };
 
   const saveSettings = async () => {
-    setSaving(true);
-    setSaved(false);
-    const [profileResult, authResult] = await Promise.all([
-      supabase.from('profiles').update({ full_name: form.full_name.trim(), alan_secimi: form.alan_secimi }).eq('id', profile.id),
-      supabase.auth.updateUser({ data: { study_preferences: preferences } }),
-    ]);
-    setSaving(false);
-    const saveError = profileResult.error || authResult.error;
-    if (saveError) {
-      setError(`Ayarlar kaydedilemedi: ${saveError.message}`);
+    if (!profile?.id) return;
+    if (form.full_name.trim().length < 2) {
+      setError('Ad soyad en az 2 karakter olmalıdır.');
       return;
     }
-    setProfile({ ...profile, ...form });
+    setSaving(true);
+    setSaved(false);
+    const response = await fetch('/api/account', {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        action: 'settings',
+        fullName: form.full_name,
+        field: form.alan_secimi,
+        preferences,
+      }),
+    });
+    const result = await response.json().catch(() => ({}));
+    setSaving(false);
+    if (!response.ok || !result.ok) {
+      setError(result.message || 'Ayarların kaydedilemedi. Lütfen tekrar deneyin.');
+      return;
+    }
+    setProfile(result.profile);
     setSaved(true);
     setTimeout(() => setSaved(false), 2500);
   };
@@ -65,8 +76,15 @@ export default function AyarlarPage() {
     event.preventDefault();
     if (password.value.length < 8) return setError('Yeni şifre en az 8 karakter olmalıdır.');
     if (password.value !== password.confirm) return setError('Şifre doğrulaması eşleşmiyor.');
-    const { error: passwordError } = await supabase.auth.updateUser({ password: password.value });
-    if (passwordError) return setError(`Şifre değiştirilemedi: ${passwordError.message}`);
+    const response = await fetch('/api/account', {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ action: 'password', password: password.value }),
+    });
+    const result = await response.json().catch(() => ({}));
+    if (!response.ok || !result.ok) {
+      return setError(result.message || 'Şifren değiştirilemedi. Lütfen tekrar deneyin.');
+    }
     setPassword({ value: '', confirm: '' });
     setSaved(true);
   };
@@ -82,7 +100,7 @@ export default function AyarlarPage() {
     }));
     const failed = results.find(([, , queryError]) => queryError);
     setExporting(false);
-    if (failed) return setError(`Veriler dışa aktarılamadı: ${failed[2].message}`);
+    if (failed) return setError('Verilerin hazırlanamadı. Lütfen sayfayı yenileyip tekrar deneyin.');
     const dataObject = Object.fromEntries(results.map(([table, rows]) => [table, rows]));
     let content;
     let mime;

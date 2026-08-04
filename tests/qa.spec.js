@@ -1,7 +1,7 @@
 const { test, expect } = require('@playwright/test');
 const path = require('path');
 
-const baseURL = 'http://127.0.0.1:3100';
+const baseURL = process.env.BASE_URL || 'http://127.0.0.1:3100';
 const qaDir = path.resolve(__dirname, '..', 'design-references', 'qa');
 
 test('public auth, protected navigation, daily CRUD and responsive visuals', async ({ page }) => {
@@ -17,10 +17,28 @@ test('public auth, protected navigation, daily CRUD and responsive visuals', asy
   });
 
   await page.setViewportSize({ width: 1440, height: 1024 });
+  await page.goto(baseURL);
+  await expect(page.getByRole('heading', { name: /YKS hazırlığını tek bir yerde/ })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'İlk planından düzenli takibe dört adım' })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Başlamadan önce bilmek isteyebileceklerin' })).toBeVisible();
+  const landingHeight = await page.evaluate(() => document.documentElement.scrollHeight);
+  for (let y = 0; y < landingHeight; y += 700) {
+    await page.evaluate((nextY) => window.scrollTo(0, nextY), y);
+    await page.waitForTimeout(80);
+  }
+  await page.evaluate(() => window.scrollTo(0, 0));
+  await page.waitForTimeout(250);
+  await page.screenshot({ path: path.join(qaDir, 'landing-desktop.png'), fullPage: true });
+
   await page.goto(`${baseURL}/giris`);
   await expect(page.getByRole('heading', { name: 'Tekrar hoş geldin' })).toBeVisible();
-  await expect(page.getByRole('button', { name: 'Google ile devam et' })).toBeVisible();
-  await expect(page.getByRole('button', { name: 'Apple ile devam et' })).toBeVisible();
+  const googleButton = page.getByRole('button', { name: /Google ile devam et/ });
+  await expect(googleButton).toBeVisible();
+  await expect(page.getByRole('button', { name: /Apple ile devam et/ })).toBeVisible();
+  await expect(googleButton).toBeEnabled();
+  await googleButton.click();
+  await expect(page.locator('.auth-alert')).toContainText('E-posta ile hemen devam edebilirsin');
+  await expect(page).toHaveURL(/\/giris$/);
   await page.screenshot({ path: path.join(qaDir, 'giris-desktop.png') });
 
   await page.goto(`${baseURL}/kayit`);
@@ -97,6 +115,21 @@ test('public auth, protected navigation, daily CRUD and responsive visuals', asy
     await page.waitForTimeout(250);
     await page.screenshot({ path: path.join(qaDir, `${slug}-desktop.png`) });
   }
+
+  await page.goto(`${baseURL}/dashboard/ayarlar`);
+  const nameInput = page.getByLabel('Ad Soyad');
+  await nameInput.fill('QA Ogrencisi Güncel');
+  await page.getByRole('button', { name: 'Değişiklikleri kaydet' }).click();
+  await expect(page.locator('.save-indicator.is-visible')).toContainText('Kaydedildi');
+  await expect(page.locator('.global-error')).toHaveCount(0);
+
+  await page.goto(`${baseURL}/dashboard/hedeflerim`);
+  await page.getByRole('button', { name: 'Hedefleri düzenle' }).click();
+  const goalDialog = page.getByRole('dialog');
+  await goalDialog.getByLabel('TYT net hedefi').fill('75');
+  await goalDialog.getByRole('button', { name: 'Kaydet', exact: true }).click();
+  await expect(goalDialog).toBeHidden();
+  await expect(page.locator('.global-error')).toHaveCount(0);
 
   await page.goto(`${baseURL}/dashboard/pomodoro`);
   const startButton = page.getByRole('button', { name: /Başla/ }).first();

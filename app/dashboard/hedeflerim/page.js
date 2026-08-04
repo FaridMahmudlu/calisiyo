@@ -26,7 +26,7 @@ function ProgressRow({ icon: Icon, title, description, current, target, unit }) 
 }
 
 export default function HedeflerimPage() {
-  const { profile, setError } = useUser();
+  const { profile, setProfile, setError } = useUser();
   const supabase = useMemo(() => createClient(), []);
   const examTabs = useMemo(() => profile ? getExamTabs(profile.alan_secimi) : ['TYT', 'AYT'], [profile]);
   const [activeExam, setActiveExam] = useState('TYT');
@@ -44,22 +44,21 @@ export default function HedeflerimPage() {
     const week = getCurrentWeekDates();
     const start = toLocalDateKey(week[0]);
     const end = toLocalDateKey(week[6]);
-    const [authResult, examsResult, taskResult, studyResult, topicResult] = await Promise.all([
-      supabase.auth.getUser(),
+    const [examsResult, taskResult, studyResult, topicResult] = await Promise.all([
       supabase.from('denemeler').select('sinav_turu, tarih, deneme_detaylari(net,dogru,yanlis)').eq('user_id', profile.id),
       supabase.from('gunluk_gorevler').select('soru_sayisi,tamamlandi,tarih').eq('user_id', profile.id).gte('tarih', start).lte('tarih', end),
       supabase.from('calisma_suresi').select('sure_dakika,soru_sayisi,tarih').eq('user_id', profile.id).gte('tarih', start).lte('tarih', end),
       supabase.from('konu_takibi').select('durum, konular!inner(dersler!inner(sinav_turu))').eq('user_id', profile.id).eq('durum', 'tamamlandi'),
     ]);
-    const firstError = authResult.error || examsResult.error || taskResult.error || studyResult.error || topicResult.error;
-    if (firstError) setError(`Hedef verileri yüklenemedi: ${firstError.message}`);
+    const firstError = examsResult.error || taskResult.error || studyResult.error || topicResult.error;
+    if (firstError) setError('Hedef verilerinin bir bölümü yüklenemedi. Lütfen sayfayı yenileyip tekrar deneyin.');
 
-    const saved = { ...DEFAULT_GOALS, ...(authResult.data?.user?.user_metadata?.study_goals || {}) };
+    const saved = { ...DEFAULT_GOALS, ...(profile.study_goals || {}) };
     saved.nets = { ...DEFAULT_GOALS.nets, ...(saved.nets || {}) };
     saved.topics = { ...DEFAULT_GOALS.topics, ...(saved.topics || {}) };
     setGoals(saved);
     setForm(saved);
-    setUpdatedAt(authResult.data?.user?.user_metadata?.study_goals_updated_at || '');
+    setUpdatedAt(profile.study_goals_updated_at || '');
 
     const exams = (examsResult.data || []).filter((exam) => exam.sinav_turu === activeExam);
     const netValues = exams.map((exam) => (exam.deneme_detaylari || []).reduce((sum, detail) => sum + Number(detail.net ?? ((detail.dogru || 0) - (detail.yanlis || 0) / 4)), 0));
@@ -91,15 +90,24 @@ export default function HedeflerimPage() {
       weeklyQuestions: Number(form.weeklyQuestions) || 0,
       weeklyMinutes: Number(form.weeklyMinutes) || 0,
     };
-    const now = new Date().toISOString();
-    const { error: updateError } = await supabase.auth.updateUser({ data: { study_goals: normalized, study_goals_updated_at: now } });
+    const response = await fetch('/api/account', {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ action: 'goals', goals: normalized }),
+    });
+    const result = await response.json().catch(() => ({}));
     setSaving(false);
-    if (updateError) {
-      setError(`Hedefler kaydedilemedi: ${updateError.message}`);
+    if (!response.ok || !result.ok) {
+      setError(result.message || 'Hedeflerin kaydedilemedi. Lütfen tekrar deneyin.');
       return;
     }
-    setGoals(normalized);
-    setUpdatedAt(now);
+    setGoals(result.goals || normalized);
+    setUpdatedAt(result.updatedAt);
+    setProfile((current) => ({
+      ...current,
+      study_goals: result.goals || normalized,
+      study_goals_updated_at: result.updatedAt,
+    }));
     setEditing(false);
   };
 
