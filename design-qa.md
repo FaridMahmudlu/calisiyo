@@ -3,7 +3,7 @@
 - Source visual truth: `design-references/selected-option-3-gunluk-program.png`
 - Source native pixels: 1487 × 1058
 - Implementation viewport: 1440 × 1024 CSS px, device scale factor 1
-- Implementation URL: `http://127.0.0.1:3101/dashboard/gunluk-program`
+- Implementation URL: `https://calisiyo-theta.vercel.app/dashboard/gunluk-program`
 - Implementation screenshot: `design-references/qa/gunluk-program-desktop.png`
 - Combined source and implementation comparison: `design-references/qa/final-gunluk-program-comparison.png`
 - Statistics source: `design-references/istatistikler.png`
@@ -52,7 +52,8 @@ The source and implementation were rendered side by side in one comparison image
 
 ## Automated evidence
 
-- `npx playwright test --config=playwright.config.js`: 2 passed.
+- Local `npx playwright test --config=playwright.config.js`: 2 passed.
+- Production `BASE_URL=https://calisiyo-theta.vercel.app npx playwright test --config=playwright.config.js`: 2 passed.
 - Browser page errors: 0.
 - Browser console errors: 0.
 - HTTP responses >= 400 during the final run: 0.
