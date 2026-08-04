@@ -4,6 +4,8 @@ import { useState } from 'react';
 import { createClient } from '@/lib/supabase/client';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
+import { motion, AnimatePresence } from 'framer-motion';
+import { BookMarked, User, Mail, Lock, ArrowRight, ArrowLeft, CheckCircle2 } from 'lucide-react';
 
 export default function KayitPage() {
   const [step, setStep] = useState(1);
@@ -79,225 +81,400 @@ export default function KayitPage() {
   ];
 
   return (
-    <div className="auth-container">
-      <div className="auth-card animate-slide-up">
+    <div className="auth-page">
+      <div className="auth-bg-shapes">
+        <div className="auth-shape auth-shape-1" />
+        <div className="auth-shape auth-shape-2" />
+      </div>
+      
+      <motion.div 
+        initial={{ opacity: 0, y: 24, scale: 0.98 }}
+        animate={{ opacity: 1, y: 0, scale: 1 }}
+        transition={{ duration: 0.5, type: 'spring', stiffness: 200, damping: 20 }}
+        className="auth-card"
+      >
+        <Link href="/" className="auth-logo">
+          <div className="auth-logo-icon">
+            <BookMarked size={22} />
+          </div>
+          <span className="auth-logo-text">calisiyo</span>
+        </Link>
+
         <div className="auth-header">
-          <div className="auth-logo">📖</div>
-          <h1 className="auth-title">calisiyo</h1>
-          <p className="auth-subtitle">YKS Çalışma Koçun</p>
+          <h1>Hesap oluştur</h1>
+          <p>YKS hazırlığını bir üst seviyeye taşı.</p>
         </div>
 
-        <div className="auth-steps">
-          <div className={`auth-step ${step >= 1 ? 'auth-step-active' : ''}`}>
-            <div className="auth-step-dot">1</div>
+        {/* Step Indicator */}
+        <div className="steps-row">
+          <div className={`step-item ${step >= 1 ? 'step-active' : ''}`}>
+            <div className="step-dot">{step > 1 ? <CheckCircle2 size={16} /> : '1'}</div>
             <span>Bilgiler</span>
           </div>
-          <div className="auth-step-line"></div>
-          <div className={`auth-step ${step >= 2 ? 'auth-step-active' : ''}`}>
-            <div className="auth-step-dot">2</div>
+          <div className="step-line" />
+          <div className={`step-item ${step >= 2 ? 'step-active' : ''}`}>
+            <div className="step-dot">2</div>
             <span>Alan Seçimi</span>
           </div>
         </div>
 
+        {error && (
+          <motion.div 
+            initial={{ opacity: 0, height: 0 }}
+            animate={{ opacity: 1, height: 'auto' }}
+            className="auth-error"
+          >
+            {error}
+          </motion.div>
+        )}
+
         <form onSubmit={handleSubmit}>
-          {step === 1 && (
-            <div className="auth-form animate-fade-in">
-              <div className="input-group">
-                <label className="input-label" htmlFor="fullName">Ad Soyad</label>
-                <input
-                  id="fullName"
-                  className="input"
-                  type="text"
-                  name="fullName"
-                  value={form.fullName}
-                  onChange={handleChange}
-                  placeholder="Adınızı ve soyadınızı girin"
-                  autoComplete="name"
-                />
-              </div>
-              <div className="input-group">
-                <label className="input-label" htmlFor="email">E-posta</label>
-                <input
-                  id="email"
-                  className="input"
-                  type="email"
-                  name="email"
-                  value={form.email}
-                  onChange={handleChange}
-                  placeholder="ornek@mail.com"
-                  autoComplete="email"
-                />
-              </div>
-              <div className="input-group">
-                <label className="input-label" htmlFor="password">Şifre</label>
-                <input
-                  id="password"
-                  className="input"
-                  type="password"
-                  name="password"
-                  value={form.password}
-                  onChange={handleChange}
-                  placeholder="En az 6 karakter"
-                  autoComplete="new-password"
-                />
-              </div>
-            </div>
-          )}
+          <AnimatePresence mode="wait">
+            {step === 1 && (
+              <motion.div 
+                key="step1"
+                initial={{ opacity: 0, x: -20 }}
+                animate={{ opacity: 1, x: 0 }}
+                exit={{ opacity: 0, x: 20 }}
+                transition={{ duration: 0.2 }}
+                className="auth-form"
+              >
+                <div className="auth-input-group">
+                  <label className="auth-label">Ad Soyad</label>
+                  <div className="auth-input-wrap">
+                    <User size={18} className="auth-input-icon" />
+                    <input
+                      className="auth-input"
+                      type="text"
+                      name="fullName"
+                      value={form.fullName}
+                      onChange={handleChange}
+                      placeholder="Adınızı ve soyadınızı girin"
+                      autoComplete="name"
+                    />
+                  </div>
+                </div>
+                <div className="auth-input-group">
+                  <label className="auth-label">E-posta</label>
+                  <div className="auth-input-wrap">
+                    <Mail size={18} className="auth-input-icon" />
+                    <input
+                      className="auth-input"
+                      type="email"
+                      name="email"
+                      value={form.email}
+                      onChange={handleChange}
+                      placeholder="ornek@mail.com"
+                      autoComplete="email"
+                    />
+                  </div>
+                </div>
+                <div className="auth-input-group">
+                  <label className="auth-label">Şifre</label>
+                  <div className="auth-input-wrap">
+                    <Lock size={18} className="auth-input-icon" />
+                    <input
+                      className="auth-input"
+                      type="password"
+                      name="password"
+                      value={form.password}
+                      onChange={handleChange}
+                      placeholder="En az 6 karakter"
+                      autoComplete="new-password"
+                    />
+                  </div>
+                </div>
+              </motion.div>
+            )}
 
-          {step === 2 && (
-            <div className="auth-form animate-fade-in">
-              <p className="auth-alan-title">Hangi alanda hazırlanıyorsun?</p>
-              <div className="alan-grid">
-                {alanlar.map((alan) => (
-                  <button
-                    type="button"
-                    key={alan.key}
-                    className={`alan-card ${form.alanSecimi === alan.key ? 'alan-card-selected' : ''}`}
-                    onClick={() => handleAlanSelect(alan.key)}
-                  >
-                    <span className="alan-icon">{alan.icon}</span>
-                    <span className="alan-label">{alan.label}</span>
-                    <span className="alan-desc">{alan.desc}</span>
-                  </button>
-                ))}
-              </div>
-            </div>
-          )}
-
-          {error && <div className="auth-error">{error}</div>}
+            {step === 2 && (
+              <motion.div 
+                key="step2"
+                initial={{ opacity: 0, x: 20 }}
+                animate={{ opacity: 1, x: 0 }}
+                exit={{ opacity: 0, x: -20 }}
+                transition={{ duration: 0.2 }}
+                className="auth-form"
+              >
+                <p className="alan-title">Hangi alanda hazırlanıyorsun?</p>
+                <div className="alan-grid">
+                  {alanlar.map((alan) => (
+                    <button
+                      type="button"
+                      key={alan.key}
+                      className={`alan-card ${form.alanSecimi === alan.key ? 'alan-selected' : ''}`}
+                      onClick={() => handleAlanSelect(alan.key)}
+                    >
+                      <span className="alan-icon">{alan.icon}</span>
+                      <span className="alan-label">{alan.label}</span>
+                      <span className="alan-desc">{alan.desc}</span>
+                      {form.alanSecimi === alan.key && (
+                        <motion.div 
+                          initial={{ scale: 0 }}
+                          animate={{ scale: 1 }}
+                          className="alan-check"
+                        >
+                          <CheckCircle2 size={18} />
+                        </motion.div>
+                      )}
+                    </button>
+                  ))}
+                </div>
+              </motion.div>
+            )}
+          </AnimatePresence>
 
           <div className="auth-actions">
             {step === 2 && (
-              <button type="button" className="btn btn-secondary" onClick={() => setStep(1)}>
-                ← Geri
+              <button type="button" className="auth-back" onClick={() => setStep(1)}>
+                <ArrowLeft size={18} /> Geri
               </button>
             )}
-            <button
-              type="submit"
-              className="btn btn-primary btn-lg"
-              disabled={loading}
-              style={{ flex: 1 }}
-            >
+            <button type="submit" className="auth-submit" disabled={loading}>
               {loading ? (
-                <span className="spinner"></span>
+                <div className="spinner" style={{ borderTopColor: 'white', borderColor: 'rgba(255,255,255,0.3)' }} />
               ) : step === 1 ? (
-                'Devam Et →'
+                <>Devam Et <ArrowRight size={18} /></>
               ) : (
-                'Hesap Oluştur'
+                <>Hesap Oluştur <ArrowRight size={18} /></>
               )}
             </button>
           </div>
         </form>
 
-        <p className="auth-footer">
-          Zaten hesabın var mı? <Link href="/giris" className="auth-link">Giriş Yap</Link>
+        <p className="auth-footer-text">
+          Zaten hesabın var mı?{' '}
+          <Link href="/giris" className="auth-link">Giriş Yap</Link>
         </p>
-      </div>
+      </motion.div>
 
       <style jsx>{`
-        .auth-container {
+        .auth-page {
           min-height: 100vh;
           display: flex;
           align-items: center;
           justify-content: center;
           padding: 24px;
-          background: linear-gradient(135deg, var(--primary-50) 0%, #FFFFFF 50%, var(--primary-50) 100%);
+          background: #fafffe;
+          position: relative;
+          overflow: hidden;
+        }
+
+        .auth-bg-shapes {
+          position: absolute;
+          inset: 0;
+          pointer-events: none;
+        }
+
+        .auth-shape {
+          position: absolute;
+          border-radius: 50%;
+          filter: blur(80px);
+          opacity: 0.3;
+        }
+
+        .auth-shape-1 {
+          width: 500px;
+          height: 500px;
+          background: radial-gradient(circle, #a7f3d0, transparent 70%);
+          top: -200px;
+          left: -100px;
+        }
+
+        .auth-shape-2 {
+          width: 400px;
+          height: 400px;
+          background: radial-gradient(circle, #d1fae5, transparent 70%);
+          bottom: -100px;
+          right: -100px;
         }
 
         .auth-card {
+          background: rgba(255, 255, 255, 0.85);
+          backdrop-filter: blur(20px);
+          -webkit-backdrop-filter: blur(20px);
+          border: 1px solid rgba(255, 255, 255, 0.7);
+          border-radius: 28px;
+          padding: 44px 40px;
           width: 100%;
           max-width: 480px;
-          background: var(--bg-primary);
-          border-radius: var(--radius-2xl);
-          padding: 40px;
-          box-shadow: var(--shadow-xl);
-          border: 1px solid var(--border-light);
+          box-shadow: 0 20px 60px -15px rgba(0, 0, 0, 0.08);
+          position: relative;
+          z-index: 1;
+        }
+
+        .auth-logo {
+          display: flex;
+          align-items: center;
+          gap: 10px;
+          text-decoration: none;
+          color: inherit;
+          margin-bottom: 32px;
+          justify-content: center;
+        }
+
+        .auth-logo-icon {
+          width: 40px;
+          height: 40px;
+          border-radius: 12px;
+          background: linear-gradient(135deg, #10b981, #059669);
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          color: white;
+          box-shadow: 0 4px 12px rgba(16, 185, 129, 0.3);
+        }
+
+        .auth-logo-text {
+          font-weight: 800;
+          font-size: 1.375rem;
+          background: linear-gradient(135deg, #059669, #10b981);
+          -webkit-background-clip: text;
+          -webkit-text-fill-color: transparent;
+          background-clip: text;
+          letter-spacing: -0.02em;
         }
 
         .auth-header {
           text-align: center;
-          margin-bottom: 32px;
+          margin-bottom: 28px;
         }
 
-        .auth-logo {
-          font-size: 3rem;
-          margin-bottom: 8px;
-        }
-
-        .auth-title {
+        .auth-header h1 {
           font-size: 1.75rem;
           font-weight: 800;
-          background: linear-gradient(135deg, var(--primary-600), var(--primary-400));
-          -webkit-background-clip: text;
-          -webkit-text-fill-color: transparent;
-          background-clip: text;
+          color: #0f172a;
+          margin-bottom: 8px;
+          letter-spacing: -0.02em;
         }
 
-        .auth-subtitle {
-          font-size: 0.875rem;
-          color: var(--text-tertiary);
-          margin-top: 4px;
+        .auth-header p {
+          font-size: 0.9375rem;
+          color: #64748b;
         }
 
-        .auth-steps {
+        .steps-row {
           display: flex;
           align-items: center;
           justify-content: center;
           gap: 12px;
-          margin-bottom: 32px;
+          margin-bottom: 28px;
         }
 
-        .auth-step {
+        .step-item {
           display: flex;
           align-items: center;
           gap: 8px;
           font-size: 0.8125rem;
-          color: var(--text-tertiary);
-          transition: color var(--transition-fast);
+          font-weight: 500;
+          color: #94a3b8;
+          transition: all 200ms;
         }
 
-        .auth-step-active {
-          color: var(--primary-600);
+        .step-active {
+          color: #059669;
         }
 
-        .auth-step-dot {
-          width: 28px;
-          height: 28px;
+        .step-dot {
+          width: 30px;
+          height: 30px;
           border-radius: 50%;
           display: flex;
           align-items: center;
           justify-content: center;
           font-size: 0.75rem;
-          font-weight: 600;
-          background: var(--gray-100);
-          color: var(--text-tertiary);
-          transition: all var(--transition-fast);
+          font-weight: 700;
+          background: #f1f5f9;
+          color: #94a3b8;
+          transition: all 250ms;
         }
 
-        .auth-step-active .auth-step-dot {
-          background: var(--primary-500);
+        .step-active .step-dot {
+          background: linear-gradient(135deg, #10b981, #059669);
           color: white;
+          box-shadow: 0 3px 10px rgba(16, 185, 129, 0.25);
         }
 
-        .auth-step-line {
+        .step-line {
           width: 40px;
           height: 2px;
-          background: var(--gray-200);
+          background: #e2e8f0;
           border-radius: 1px;
+        }
+
+        .auth-error {
+          background: #fef2f2;
+          color: #dc2626;
+          padding: 12px 16px;
+          border-radius: 12px;
+          font-size: 0.875rem;
+          font-weight: 500;
+          margin-bottom: 20px;
+          border: 1px solid rgba(239, 68, 68, 0.1);
         }
 
         .auth-form {
           display: flex;
           flex-direction: column;
           gap: 20px;
-          margin-bottom: 20px;
+          margin-bottom: 24px;
         }
 
-        .auth-alan-title {
+        .auth-input-group {
+          display: flex;
+          flex-direction: column;
+          gap: 8px;
+        }
+
+        .auth-label {
+          font-size: 0.8125rem;
+          font-weight: 600;
+          color: #334155;
+        }
+
+        .auth-input-wrap {
+          position: relative;
+          display: flex;
+          align-items: center;
+        }
+
+        .auth-input-icon {
+          position: absolute;
+          left: 16px;
+          color: #94a3b8;
+          pointer-events: none;
+        }
+
+        .auth-input {
+          width: 100%;
+          padding: 13px 16px 13px 48px;
+          border: 1.5px solid #e2e8f0;
+          border-radius: 14px;
+          font-size: 0.9375rem;
+          color: #0f172a;
+          background: #ffffff;
+          outline: none;
+          transition: all 200ms;
+        }
+
+        .auth-input::placeholder {
+          color: #cbd5e1;
+        }
+
+        .auth-input:hover {
+          border-color: #cbd5e1;
+        }
+
+        .auth-input:focus {
+          border-color: #10b981;
+          box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.1);
+        }
+
+        .alan-title {
           font-size: 1rem;
           font-weight: 600;
           text-align: center;
-          color: var(--text-primary);
+          color: #0f172a;
           margin-bottom: 4px;
         }
 
@@ -308,28 +485,36 @@ export default function KayitPage() {
         }
 
         .alan-card {
+          position: relative;
           display: flex;
           flex-direction: column;
           align-items: center;
           gap: 6px;
-          padding: 20px 12px;
-          border-radius: var(--radius-lg);
-          border: 2px solid var(--border-light);
-          background: var(--bg-primary);
+          padding: 24px 12px;
+          border-radius: 18px;
+          border: 2px solid #f1f5f9;
+          background: white;
           cursor: pointer;
-          transition: all var(--transition-fast);
+          transition: all 200ms;
           text-align: center;
         }
 
         .alan-card:hover {
-          border-color: var(--primary-300);
-          background: var(--primary-50);
+          border-color: #a7f3d0;
+          background: #fafffe;
         }
 
-        .alan-card-selected {
-          border-color: var(--primary-500);
-          background: var(--primary-50);
-          box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.15);
+        .alan-selected {
+          border-color: #10b981;
+          background: #ecfdf5;
+          box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.12);
+        }
+
+        .alan-check {
+          position: absolute;
+          top: 10px;
+          right: 10px;
+          color: #10b981;
         }
 
         .alan-icon {
@@ -338,49 +523,94 @@ export default function KayitPage() {
 
         .alan-label {
           font-size: 0.875rem;
-          font-weight: 600;
-          color: var(--text-primary);
+          font-weight: 700;
+          color: #0f172a;
         }
 
         .alan-desc {
           font-size: 0.7rem;
-          color: var(--text-tertiary);
+          color: #94a3b8;
           line-height: 1.3;
-        }
-
-        .auth-error {
-          padding: 12px 16px;
-          background: var(--error-light);
-          color: #991B1B;
-          border-radius: var(--radius-md);
-          font-size: 0.8125rem;
-          margin-bottom: 16px;
         }
 
         .auth-actions {
           display: flex;
           gap: 12px;
+          margin-bottom: 24px;
         }
 
-        .auth-footer {
+        .auth-back {
+          display: flex;
+          align-items: center;
+          gap: 6px;
+          padding: 14px 20px;
+          background: white;
+          color: #475569;
+          border: 1.5px solid #e2e8f0;
+          border-radius: 14px;
+          font-size: 0.9375rem;
+          font-weight: 600;
+          cursor: pointer;
+          transition: all 200ms;
+        }
+
+        .auth-back:hover {
+          background: #f8fafc;
+          border-color: #cbd5e1;
+        }
+
+        .auth-submit {
+          flex: 1;
+          padding: 14px 24px;
+          background: linear-gradient(135deg, #10b981, #059669);
+          color: white;
+          border: none;
+          border-radius: 14px;
+          font-size: 1rem;
+          font-weight: 700;
+          cursor: pointer;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          gap: 8px;
+          box-shadow: 0 4px 14px rgba(16, 185, 129, 0.25);
+          transition: all 250ms;
+        }
+
+        .auth-submit:hover:not(:disabled) {
+          transform: translateY(-2px);
+          box-shadow: 0 8px 24px rgba(16, 185, 129, 0.35);
+        }
+
+        .auth-submit:disabled {
+          opacity: 0.7;
+          cursor: not-allowed;
+        }
+
+        .auth-footer-text {
           text-align: center;
-          font-size: 0.8125rem;
-          color: var(--text-tertiary);
-          margin-top: 24px;
+          font-size: 0.875rem;
+          color: #64748b;
         }
 
         .auth-link {
-          color: var(--primary-600);
-          font-weight: 500;
+          color: #059669;
+          font-weight: 600;
+          text-decoration: none;
         }
 
         .auth-link:hover {
-          text-decoration: underline;
+          color: #047857;
         }
 
         @media (max-width: 480px) {
           .auth-card {
-            padding: 28px 20px;
+            padding: 32px 24px;
+            border-radius: 24px;
+          }
+
+          .auth-header h1 {
+            font-size: 1.5rem;
           }
 
           .alan-grid {
