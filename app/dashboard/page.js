@@ -1,58 +1,370 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo, useCallback } from 'react';
 import { useUser } from './layout';
 import { createClient } from '@/lib/supabase/client';
-import { daysUntilYKS, todayStr } from '@/lib/utils/date';
-import { motion } from 'framer-motion';
+import { daysUntilYKS, todayStr, formatDate, formatShortDate, formatDuration, formatTime, GUN_KISA } from '@/lib/utils/date';
+import { motion, AnimatePresence } from 'framer-motion';
 import { 
   Calendar as CalendarIcon, Target, BookOpen, Clock, Info, 
   ChevronLeft, ChevronRight, Flame, Trophy, TrendingUp, 
-  Quote, ArrowRight, CheckCircle2
+  Quote, ArrowRight, CheckCircle2, Circle, Plus, BarChart2, Zap
 } from 'lucide-react';
 import Link from 'next/link';
 import { ResponsiveContainer, AreaChart, Area, XAxis, YAxis, Tooltip } from 'recharts';
 
+const MOTIVATION_QUOTES = [
+  "Bugün attığın küçük adımlar, yarınki büyük başarılarının temeli olacak.",
+  "Disiplin, ne istediğin ile şu an ne istediğin arasındaki seçimdir.",
+  "Gelecek, bugünden hazırlananlara aittir.",
+  "Başarı, her gün tekrarlanan küçük çabaların toplamıdır.",
+  "Zorluklar, başaranların vazgeçmediği yerlerde aşılır.",
+  "Derece yapmak bir tesadüf değil, düzenli çalışmanın sonucudur.",
+];
+
 export default function DashboardPage() {
   const { profile } = useUser();
-  const supabase = createClient();
+  const supabase = useMemo(() => createClient(), []);
   const [loading, setLoading] = useState(true);
 
-  // Mock data for reference chart & heatmap
-  const netData = [
-    { date: '15 May', net: 62 },
-    { date: '22 May', net: 67 },
-    { date: '29 May', net: 71 },
-    { date: '5 Haz', net: 75 },
-    { date: '12 Haz', net: 78 },
-    { date: '19 Haz', net: 84 },
-  ];
+  // Month navigation for heatmap
+  const [currentMonthDate, setCurrentMonthDate] = useState(() => new Date());
 
-  // 12 columns x 7 days heatmap levels
-  const heatmapLevels = [
-    [0,1,2,1,0,0,1],
-    [0,2,3,2,1,0,0],
-    [1,3,4,3,2,1,0],
-    [2,4,3,4,3,2,1],
-    [0,1,2,3,4,3,0],
-    [1,2,3,4,3,2,1],
-    [0,3,4,3,2,1,0],
-    [1,2,3,4,2,1,0],
-    [0,1,2,3,4,3,1],
-    [1,3,4,3,2,1,0],
-    [0,2,3,4,3,2,0],
-    [1,1,2,3,4,3,1],
-  ];
+  // Real Database States
+  const [todayTasks, setTodayTasks] = useState([]);
+  const [allTasks, setAllTasks] = useState([]);
+  const [upcomingTasks, setUpcomingTasks] = useState([]);
+  const [derslerList, setDerslerList] = useState([]);
+  const [konuStatsMap, setKonuStatsMap] = useState({});
+  const [denemeList, setDenemeList] = useState([]);
+  const [calismaSuresiList, setCalismaSuresiList] = useState([]);
+
+  // Quotes
+  const currentQuote = useMemo(() => {
+    const dayOfYear = Math.floor((new Date() - new Date(new Date().getFullYear(), 0, 0)) / 1000 / 60 / 60 / 24);
+    return MOTIVATION_QUOTES[dayOfYear % MOTIVATION_QUOTES.length];
+  }, []);
 
   const daysLeft = daysUntilYKS();
 
-  useEffect(() => {
+  // Load all dashboard data from Supabase
+  const loadDashboardData = useCallback(async () => {
+    if (!profile) return;
+    setLoading(true);
+
+    const today = todayStr();
+
+    // 1. Fetch user's subjects (dersler) for their field
+    const { data: dersData } = await supabase
+      .from('dersler')
+      .select('*')
+      .contains('alan', [profile.alan_secimi || 'sayisal'])
+      .order('sira');
+
+    const currentDersler = dersData || [];
+    setDerslerList(currentDersler);
+
+    // 2. Fetch today's tasks
+    const { data: todayTasksData } = await supabase
+      .from('gunluk_gorevler')
+      .select('*, dersler(ad, renk, ikon, sinav_turu)')
+      .eq('user_id', profile.id)
+      .eq('tarih', today)
+      .order('baslangic_saat');
+
+    setTodayTasks(todayTasksData || []);
+
+    // 3. Fetch all tasks (for total stats & heatmap & streak)
+    const { data: allTasksData } = await supabase
+      .from('gunluk_gorevler')
+      .select('*, dersler(ad, renk, ikon, sinav_turu)')
+      .eq('user_id', profile.id)
+      .order('tarih', { ascending: false });
+
+    setAllTasks(allTasksData || []);
+
+    // 4. Fetch upcoming tasks (uncompleted, today or future)
+    const { data: upcomingData } = await supabase
+      .from('gunluk_gorevler')
+      .select('*, dersler(ad, renk, ikon)')
+      .eq('user_id', profile.id)
+      .gte('tarih', today)
+      .eq('tamamlandi', false)
+      .order('tarih', { ascending: true })
+      .order('baslangic_saat', { ascending: true })
+      .limit(4);
+
+    setUpcomingTasks(upcomingData || []);
+
+    // 5. Fetch topics & tracking for Subject Progress
+    const dersIds = currentDersler.map(d => d.id);
+    if (dersIds.length > 0) {
+      const [{ data: konularData }, { data: takipData }] = await Promise.all([
+        supabase.from('konular').select('id, ders_id').in('ders_id', dersIds),
+        supabase.from('konu_takibi').select('konu_id, durum').eq('user_id', profile.id),
+      ]);
+
+      const takipMap = {};
+      (takipData || []).forEach(t => { takipMap[t.konu_id] = t.durum; });
+
+      const subjectStats = {};
+      currentDersler.forEach(d => {
+        const dersKonulari = (konularData || []).filter(k => k.ders_id === d.id);
+        const total = dersKonulari.length;
+        const completed = dersKonulari.filter(k => takipMap[k.id] === 'tamamlandi').length;
+        const pct = total > 0 ? Math.round((completed / total) * 100) : 0;
+        subjectStats[d.id] = { total, completed, pct };
+      });
+      setKonuStatsMap(subjectStats);
+    }
+
+    // 6. Fetch Denemeler for net development chart & average net
+    const { data: denemeData } = await supabase
+      .from('denemeler')
+      .select('*, deneme_detaylari(net)')
+      .eq('user_id', profile.id)
+      .order('tarih', { ascending: true });
+
+    setDenemeList(denemeData || []);
+
+    // 7. Fetch calisma_suresi table records
+    const { data: calismaData } = await supabase
+      .from('calisma_suresi')
+      .select('*')
+      .eq('user_id', profile.id);
+
+    setCalismaSuresiList(calismaData || []);
+
     setLoading(false);
-  }, []);
+  }, [profile, supabase]);
+
+  useEffect(() => {
+    loadDashboardData();
+
+    // Supabase Real-time subscription for instant dashboard updates
+    if (!profile) return;
+    const channel = supabase
+      .channel('dashboard-realtime')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'gunluk_gorevler', filter: `user_id=eq.${profile.id}` }, () => {
+        loadDashboardData();
+      })
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'denemeler', filter: `user_id=eq.${profile.id}` }, () => {
+        loadDashboardData();
+      })
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'konu_takibi', filter: `user_id=eq.${profile.id}` }, () => {
+        loadDashboardData();
+      })
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [profile, supabase, loadDashboardData]);
+
+  // Task Toggle Helper
+  const handleToggleTask = async (taskId, currentStatus) => {
+    setTodayTasks(prev => prev.map(t => t.id === taskId ? { ...t, tamamlandi: !currentStatus } : t));
+    await supabase.from('gunluk_gorevler').update({ tamamlandi: !currentStatus }).eq('id', taskId);
+    loadDashboardData();
+  };
+
+  // Helper to get task duration in minutes
+  function getTaskMinutes(t) {
+    if (!t.baslangic_saat || !t.bitis_saat) return 40;
+    const [bH, bM] = t.baslangic_saat.split(':').map(Number);
+    const [eH, eM] = t.bitis_saat.split(':').map(Number);
+    const diff = (eH * 60 + eM) - (bH * 60 + bM);
+    return diff > 0 ? diff : 40;
+  }
+
+  // 📊 CALCULATED DYNAMIC STATS
+
+  // 1. Today's Goal (Görevler)
+  const completedTodayTasks = todayTasks.filter(t => t.tamamlandi);
+  const todayTasksCount = todayTasks.length;
+  const completedTodayCount = completedTodayTasks.length;
+  const todayTaskPct = todayTasksCount > 0 ? Math.round((completedTodayCount / todayTasksCount) * 100) : 0;
+
+  // 2. Today's Solved Questions
+  const totalPlannedQuestionsToday = todayTasks.reduce((s, t) => s + (t.soru_sayisi || 0), 0);
+  const solvedQuestionsToday = completedTodayTasks.reduce((s, t) => s + (t.soru_sayisi || 0), 0);
+  const todayQuestionPct = totalPlannedQuestionsToday > 0 ? Math.round((solvedQuestionsToday / totalPlannedQuestionsToday) * 100) : 0;
+
+  // 3. Today's Study Time (Minutes)
+  const todayStudyMinutesFromTasks = completedTodayTasks.reduce((s, t) => s + getTaskMinutes(t), 0);
+  const todayStudyMinutesFromCalisma = calismaSuresiList
+    .filter(c => c.tarih === todayStr())
+    .reduce((s, c) => s + (c.sure_dakika || 0), 0);
+  const todayTotalMinutes = Math.max(todayStudyMinutesFromTasks, todayStudyMinutesFromCalisma);
+  const targetMinutesToday = 300; // 5 hours target
+  const todayTimePct = Math.min(100, Math.round((todayTotalMinutes / targetMinutesToday) * 100));
+
+  // 4. Group today's program by ders
+  const todayDersGrouped = useMemo(() => {
+    const map = {};
+    todayTasks.forEach(task => {
+      const dersName = task.dersler?.ad || 'Genel';
+      const dersIcon = task.dersler?.ikon || '📚';
+      const dersColor = task.dersler?.renk || '#10b981';
+      if (!map[dersName]) {
+        map[dersName] = {
+          name: dersName,
+          icon: dersIcon,
+          color: dersColor,
+          totalQuestions: 0,
+          solvedQuestions: 0,
+          totalTasks: 0,
+          completedTasks: 0,
+        };
+      }
+      map[dersName].totalQuestions += task.soru_sayisi || 0;
+      if (task.tamamlandi) {
+        map[dersName].solvedQuestions += task.soru_sayisi || 0;
+        map[dersName].completedTasks += 1;
+      }
+      map[dersName].totalTasks += 1;
+    });
+    return Object.values(map);
+  }, [todayTasks]);
+
+  // 5. Calculate Contribution Heatmap Matrix (12 columns x 7 days)
+  const heatmapMatrix = useMemo(() => {
+    // Generate dates for past 12 weeks ending this Sunday
+    const todayObj = new Date();
+    const dayOfWeek = todayObj.getDay(); // 0 = Sun
+    const endDate = new Date(todayObj);
+    endDate.setDate(todayObj.getDate() + (dayOfWeek === 0 ? 0 : 7 - dayOfWeek));
+
+    const activityMap = {};
+    allTasks.forEach(t => {
+      if (t.tamamlandi) {
+        activityMap[t.tarih] = (activityMap[t.tarih] || 0) + (t.soru_sayisi || 1);
+      }
+    });
+    calismaSuresiList.forEach(c => {
+      activityMap[c.tarih] = (activityMap[c.tarih] || 0) + (c.sure_dakika || 1);
+    });
+
+    const cols = [];
+    for (let col = 11; col >= 0; col--) {
+      const colDays = [];
+      for (let row = 0; row < 7; row++) {
+        const d = new Date(endDate);
+        d.setDate(endDate.getDate() - (col * 7 + (6 - row)));
+        const dateKey = d.toISOString().split('T')[0];
+        const val = activityMap[dateKey] || 0;
+
+        let level = 0;
+        if (val > 0 && val <= 30) level = 1;
+        else if (val > 30 && val <= 80) level = 2;
+        else if (val > 80 && val <= 150) level = 3;
+        else if (val > 150) level = 4;
+
+        colDays.push({ date: dateKey, level, val });
+      }
+      cols.push(colDays);
+    }
+    return cols;
+  }, [allTasks, calismaSuresiList]);
+
+  // 6. Streak calculation
+  const currentStreak = useMemo(() => {
+    const completedDates = new Set([
+      ...allTasks.filter(t => t.tamamlandi).map(t => t.tarih),
+      ...calismaSuresiList.map(c => c.tarih)
+    ]);
+
+    let streak = 0;
+    const checkDate = new Date();
+    
+    // Check if today is completed or yesterday
+    const todayStrVal = todayStr();
+    if (!completedDates.has(todayStrVal)) {
+      checkDate.setDate(checkDate.getDate() - 1);
+    }
+
+    while (true) {
+      const key = checkDate.toISOString().split('T')[0];
+      if (completedDates.has(key)) {
+        streak++;
+        checkDate.setDate(checkDate.getDate() - 1);
+      } else {
+        break;
+      }
+    }
+    return streak;
+  }, [allTasks, calismaSuresiList]);
+
+  // 7. Overall Summary Stats
+  const totalQuestionsAllTime = useMemo(() => {
+    const q1 = allTasks.filter(t => t.tamamlandi).reduce((s, t) => s + (t.soru_sayisi || 0), 0);
+    const q2 = calismaSuresiList.reduce((s, c) => s + (c.soru_sayisi || 0), 0);
+    return Math.max(q1, q2);
+  }, [allTasks, calismaSuresiList]);
+
+  const totalMinutesAllTime = useMemo(() => {
+    const m1 = allTasks.filter(t => t.tamamlandi).reduce((s, t) => s + getTaskMinutes(t), 0);
+    const m2 = calismaSuresiList.reduce((s, c) => s + (c.sure_dakika || 0), 0);
+    return Math.max(m1, m2);
+  }, [allTasks, calismaSuresiList]);
+
+  // Max study time in a single day
+  const maxStudyDay = useMemo(() => {
+    const dayMap = {};
+    allTasks.filter(t => t.tamamlandi).forEach(t => {
+      dayMap[t.tarih] = (dayMap[t.tarih] || 0) + getTaskMinutes(t);
+    });
+    calismaSuresiList.forEach(c => {
+      dayMap[c.tarih] = Math.max(dayMap[c.tarih] || 0, c.sure_dakika || 0);
+    });
+
+    let maxMins = 0;
+    let maxDate = '';
+    Object.entries(dayMap).forEach(([date, mins]) => {
+      if (mins > maxMins) {
+        maxMins = mins;
+        maxDate = date;
+      }
+    });
+
+    return {
+      duration: maxMins > 0 ? formatDuration(maxMins) : '0sa',
+      date: maxDate ? formatDate(maxDate) : 'Henüz veri yok'
+    };
+  }, [allTasks, calismaSuresiList]);
+
+  // Average Net Calculation
+  const averageNet = useMemo(() => {
+    if (denemeList.length === 0) return '0.0';
+    let totalNets = 0;
+    let count = 0;
+
+    denemeList.forEach(d => {
+      const denemeNet = (d.deneme_detaylari || []).reduce((sum, det) => sum + (det.net || 0), 0);
+      if (denemeNet > 0 || (d.deneme_detaylari && d.deneme_detaylari.length > 0)) {
+        totalNets += denemeNet;
+        count++;
+      }
+    });
+
+    return count > 0 ? (totalNets / count).toFixed(1) : '0.0';
+  }, [denemeList]);
+
+  // Deneme Net Chart Data
+  const chartData = useMemo(() => {
+    return denemeList.map(d => {
+      const net = (d.deneme_detaylari || []).reduce((sum, det) => sum + (det.net || 0), 0);
+      return {
+        date: formatShortDate(d.tarih),
+        net: parseFloat(net.toFixed(2)),
+        yayin: d.yayin || 'Deneme'
+      };
+    });
+  }, [denemeList]);
 
   if (loading) {
     return (
-      <div style={{ display: 'flex', justifyContent: 'center', padding: '60px' }}>
+      <div style={{ display: 'flex', justifyContent: 'center', padding: '80px' }}>
         <div className="spinner spinner-lg"></div>
       </div>
     );
@@ -67,7 +379,7 @@ export default function DashboardPage() {
       {/* Header */}
       <div className="greeting-header">
         <h1 className="greeting-title">
-          Merhaba {profile?.full_name?.split(' ')[0] || 'Kerem'}! 👋
+          Merhaba {profile?.full_name?.split(' ')[0] || 'Öğrenci'}! 👋
         </h1>
         <p className="greeting-sub">
           Bugün harika bir gün, hedeflerine bir adım daha yaklaş!
@@ -100,11 +412,11 @@ export default function DashboardPage() {
           </div>
           <div className="stat-mini-body">
             <div className="stat-mini-num font-mono">
-              12 <span className="stat-mini-denom">/ 18</span>
+              {completedTodayCount} <span className="stat-mini-denom">/ {todayTasksCount}</span>
             </div>
             <div className="stat-mini-sub">Görev Tamamlandı</div>
             <div className="progress-bar progress-bar-sm" style={{ marginTop: '10px' }}>
-              <div className="progress-bar-fill" style={{ width: '66%', background: '#10b981' }}></div>
+              <div className="progress-bar-fill" style={{ width: `${todayTaskPct}%`, background: '#10b981' }}></div>
             </div>
           </div>
         </div>
@@ -119,11 +431,11 @@ export default function DashboardPage() {
           </div>
           <div className="stat-mini-body">
             <div className="stat-mini-num font-mono">
-              320 <span className="stat-mini-denom">/ 450</span>
+              {solvedQuestionsToday} <span className="stat-mini-denom">/ {totalPlannedQuestionsToday}</span>
             </div>
             <div className="stat-mini-sub">Soru Çözüldü</div>
             <div className="progress-bar progress-bar-sm" style={{ marginTop: '10px' }}>
-              <div className="progress-bar-fill" style={{ width: '71%', background: '#3b82f6' }}></div>
+              <div className="progress-bar-fill" style={{ width: `${todayQuestionPct}%`, background: '#3b82f6' }}></div>
             </div>
           </div>
         </div>
@@ -132,15 +444,15 @@ export default function DashboardPage() {
         <div className="card stat-mini-card">
           <div className="stat-mini-header">
             <span className="stat-mini-title">Bugünkü Çalışma Süresi</span>
-            <div className="badge-icon badge-icon-gray">
-              <Info size={16} color="#94a3b8" />
+            <div className="badge-icon badge-icon-amber">
+              <Clock size={16} color="#f59e0b" />
             </div>
           </div>
           <div className="stat-mini-body">
-            <div className="stat-mini-num font-mono">3s 45d</div>
+            <div className="stat-mini-num font-mono">{formatDuration(todayTotalMinutes)}</div>
             <div className="stat-mini-sub">Hedef: 5 Saat</div>
             <div className="progress-bar progress-bar-sm" style={{ marginTop: '10px' }}>
-              <div className="progress-bar-fill" style={{ width: '75%', background: '#f59e0b' }}></div>
+              <div className="progress-bar-fill" style={{ width: `${todayTimePct}%`, background: '#f59e0b' }}></div>
             </div>
           </div>
         </div>
@@ -152,82 +464,41 @@ export default function DashboardPage() {
         <div className="card">
           <div className="card-header-flex">
             <h2 className="card-title">Bugünkü Program</h2>
-            <span className="badge badge-green font-mono">12 / 18</span>
+            <span className="badge badge-green font-mono">{completedTodayCount} / {todayTasksCount}</span>
           </div>
 
-          <div className="subject-progress-list">
-            {/* Matematik */}
-            <div className="subject-row">
-              <div className="subject-icon-box bg-purple-light">
-                <span style={{ fontSize: '12px', fontWeight: 800, color: '#8b5cf6' }}>3D</span>
-              </div>
-              <span className="subject-name">Matematik</span>
-              <div className="progress-bar" style={{ flex: 1 }}>
-                <div className="progress-bar-fill" style={{ width: '60%', background: '#8b5cf6' }}></div>
-              </div>
-              <span className="subject-count font-mono">12 / 20 Soru</span>
+          {todayDersGrouped.length === 0 ? (
+            <div className="program-empty">
+              <CalendarIcon size={36} className="program-empty-icon" />
+              <p className="program-empty-title">Bugün için görev eklenmemiş</p>
+              <p className="program-empty-text">Günlük çalışma programını oluşturarak hedeflerini takip et.</p>
+              <Link href="/dashboard/gunluk-program" className="btn btn-primary btn-sm" style={{ marginTop: '12px' }}>
+                <Plus size={16} /> Görev Ekle
+              </Link>
             </div>
-
-            {/* Türkçe */}
-            <div className="subject-row">
-              <div className="subject-icon-box bg-green-light">
-                <span style={{ fontSize: '12px', fontWeight: 800, color: '#10b981' }}>TR</span>
-              </div>
-              <span className="subject-name">Türkçe</span>
-              <div className="progress-bar" style={{ flex: 1 }}>
-                <div className="progress-bar-fill" style={{ width: '53%', background: '#10b981' }}></div>
-              </div>
-              <span className="subject-count font-mono">8 / 15 Soru</span>
+          ) : (
+            <div className="subject-progress-list">
+              {todayDersGrouped.map((item, idx) => {
+                const pct = item.totalQuestions > 0 ? Math.round((item.solvedQuestions / item.totalQuestions) * 100) : (item.completedTasks / item.totalTasks) * 100;
+                return (
+                  <div key={idx} className="subject-row">
+                    <div className="subject-icon-box" style={{ background: `${item.color}15` }}>
+                      <span style={{ fontSize: '12px', fontWeight: 800, color: item.color }}>
+                        {item.name.slice(0, 3).toUpperCase()}
+                      </span>
+                    </div>
+                    <span className="subject-name">{item.name}</span>
+                    <div className="progress-bar" style={{ flex: 1 }}>
+                      <div className="progress-bar-fill" style={{ width: `${pct}%`, background: item.color }}></div>
+                    </div>
+                    <span className="subject-count font-mono">
+                      {item.solvedQuestions} / {item.totalQuestions} Soru
+                    </span>
+                  </div>
+                );
+              })}
             </div>
-
-            {/* Fizik */}
-            <div className="subject-row">
-              <div className="subject-icon-box bg-blue-light">
-                <span style={{ fontSize: '12px', fontWeight: 800, color: '#3b82f6' }}>FZ</span>
-              </div>
-              <span className="subject-name">Fizik</span>
-              <div className="progress-bar" style={{ flex: 1 }}>
-                <div className="progress-bar-fill" style={{ width: '50%', background: '#60a5fa' }}></div>
-              </div>
-              <span className="subject-count font-mono">5 / 10 Soru</span>
-            </div>
-
-            {/* Kimya */}
-            <div className="subject-row">
-              <div className="subject-icon-box bg-orange-light">
-                <span style={{ fontSize: '12px', fontWeight: 800, color: '#f97316' }}>KM</span>
-              </div>
-              <span className="subject-name">Kimya</span>
-              <div className="progress-bar" style={{ flex: 1 }}>
-                <div className="progress-bar-fill" style={{ width: '60%', background: '#f97316' }}></div>
-              </div>
-              <span className="subject-count font-mono">6 / 10 Soru</span>
-            </div>
-
-            {/* Tarih */}
-            <div className="subject-row">
-              <div className="subject-icon-box bg-amber-light">
-                <span style={{ fontSize: '12px', fontWeight: 800, color: '#f59e0b' }}>TRH</span>
-              </div>
-              <span className="subject-name">Tarih</span>
-              <div className="progress-bar" style={{ flex: 1 }}>
-                <div className="progress-bar-fill" style={{ width: '50%', background: '#f59e0b' }}></div>
-              </div>
-              <span className="subject-count font-mono">4 / 8 Soru</span>
-            </div>
-
-            {/* Biyoloji */}
-            <div className="subject-row">
-              <div className="subject-icon-box bg-green-light">
-                <span style={{ fontSize: '12px', fontWeight: 800, color: '#10b981' }}>BY</span>
-              </div>
-              <span className="subject-name">Biyoloji</span>
-              <div className="progress-bar" style={{ flex: 1 }}>
-                <div className="progress-bar-fill" style={{ width: '60%', background: '#10b981' }}></div>
-              </div>
-              <span className="subject-count font-mono">3 / 5 Soru</span>
-            </div>
-          </div>
+          )}
 
           <Link href="/dashboard/gunluk-program" className="btn btn-soft-green" style={{ marginTop: '20px' }}>
             Tümünü Gör <ChevronRight size={16} />
@@ -242,11 +513,9 @@ export default function DashboardPage() {
               <Info size={15} color="#94a3b8" />
             </div>
             <div className="month-selector">
-              <span className="month-name">Mayıs 2024</span>
-              <div className="month-arrows">
-                <ChevronLeft size={16} className="arrow-btn" />
-                <ChevronRight size={16} className="arrow-btn" />
-              </div>
+              <span className="month-name">
+                {currentMonthDate.toLocaleDateString('tr-TR', { month: 'long', year: 'numeric' })}
+              </span>
             </div>
           </div>
 
@@ -257,10 +526,14 @@ export default function DashboardPage() {
 
           {/* Heatmap Grid */}
           <div className="heatmap-matrix">
-            {heatmapLevels.map((col, cIdx) => (
+            {heatmapMatrix.map((col, cIdx) => (
               <div key={cIdx} className="heatmap-col">
-                {col.map((lvl, rIdx) => (
-                  <div key={rIdx} className={`heatmap-cell heatmap-level-${lvl}`} />
+                {col.map((cell, rIdx) => (
+                  <div 
+                    key={rIdx} 
+                    className={`heatmap-cell heatmap-level-${cell.level}`}
+                    title={`${cell.date}: ${cell.val} çalışma aktivitesi`}
+                  />
                 ))}
               </div>
             ))}
@@ -286,59 +559,29 @@ export default function DashboardPage() {
           <h2 className="card-title" style={{ marginBottom: '20px' }}>Derslere Göre İlerleme</h2>
           
           <div className="subject-progress-list">
-            <div className="subject-row">
-              <div className="subject-icon-box bg-purple-light"><span style={{ fontSize: '11px', fontWeight: '800', color: '#8b5cf6' }}>MAT</span></div>
-              <span className="subject-name">Matematik</span>
-              <div className="progress-bar" style={{ flex: 1 }}>
-                <div className="progress-bar-fill" style={{ width: '72%', background: '#8b5cf6' }}></div>
+            {derslerList.length === 0 ? (
+              <div style={{ color: 'var(--text-tertiary)', fontSize: '0.875rem', padding: '20px 0', textAlign: 'center' }}>
+                Alanınıza uygun dersler bulunamadı.
               </div>
-              <span className="subject-pct font-mono">%72</span>
-            </div>
-
-            <div className="subject-row">
-              <div className="subject-icon-box bg-green-light"><span style={{ fontSize: '11px', fontWeight: '800', color: '#10b981' }}>TRK</span></div>
-              <span className="subject-name">Türkçe</span>
-              <div className="progress-bar" style={{ flex: 1 }}>
-                <div className="progress-bar-fill" style={{ width: '68%', background: '#10b981' }}></div>
-              </div>
-              <span className="subject-pct font-mono">%68</span>
-            </div>
-
-            <div className="subject-row">
-              <div className="subject-icon-box bg-blue-light"><span style={{ fontSize: '11px', fontWeight: '800', color: '#3b82f6' }}>FZK</span></div>
-              <span className="subject-name">Fizik</span>
-              <div className="progress-bar" style={{ flex: 1 }}>
-                <div className="progress-bar-fill" style={{ width: '45%', background: '#60a5fa' }}></div>
-              </div>
-              <span className="subject-pct font-mono">%45</span>
-            </div>
-
-            <div className="subject-row">
-              <div className="subject-icon-box bg-orange-light"><span style={{ fontSize: '11px', fontWeight: '800', color: '#f97316' }}>KMY</span></div>
-              <span className="subject-name">Kimya</span>
-              <div className="progress-bar" style={{ flex: 1 }}>
-                <div className="progress-bar-fill" style={{ width: '40%', background: '#f97316' }}></div>
-              </div>
-              <span className="subject-pct font-mono">%40</span>
-            </div>
-
-            <div className="subject-row">
-              <div className="subject-icon-box bg-green-light"><span style={{ fontSize: '11px', fontWeight: '800', color: '#10b981' }}>BYL</span></div>
-              <span className="subject-name">Biyoloji</span>
-              <div className="progress-bar" style={{ flex: 1 }}>
-                <div className="progress-bar-fill" style={{ width: '55%', background: '#10b981' }}></div>
-              </div>
-              <span className="subject-pct font-mono">%55</span>
-            </div>
-
-            <div className="subject-row">
-              <div className="subject-icon-box bg-amber-light"><span style={{ fontSize: '11px', fontWeight: '800', color: '#f59e0b' }}>TRH</span></div>
-              <span className="subject-name">Tarih</span>
-              <div className="progress-bar" style={{ flex: 1 }}>
-                <div className="progress-bar-fill" style={{ width: '70%', background: '#f59e0b' }}></div>
-              </div>
-              <span className="subject-pct font-mono">%70</span>
-            </div>
+            ) : (
+              derslerList.map((ders) => {
+                const stats = konuStatsMap[ders.id] || { pct: 0 };
+                return (
+                  <div key={ders.id} className="subject-row">
+                    <div className="subject-icon-box" style={{ background: `${ders.renk}15` }}>
+                      <span style={{ fontSize: '11px', fontWeight: '800', color: ders.renk }}>
+                        {ders.ad.slice(0, 3).toUpperCase()}
+                      </span>
+                    </div>
+                    <span className="subject-name">{ders.ad}</span>
+                    <div className="progress-bar" style={{ flex: 1 }}>
+                      <div className="progress-bar-fill" style={{ width: `${stats.pct}%`, background: ders.renk }}></div>
+                    </div>
+                    <span className="subject-pct font-mono">%{stats.pct}</span>
+                  </div>
+                );
+              })
+            )}
           </div>
         </div>
 
@@ -354,19 +597,26 @@ export default function DashboardPage() {
                 <circle 
                   cx="60" cy="60" r="50" 
                   className="ring-fill" 
-                  style={{ strokeDasharray: 314, strokeDashoffset: 60 }} 
+                  style={{ 
+                    strokeDasharray: 314, 
+                    strokeDashoffset: Math.max(0, 314 - (Math.min(30, currentStreak) / 30) * 314) 
+                  }} 
                 />
               </svg>
               <div className="ring-text">
-                <span className="ring-num font-mono">42</span>
+                <span className="ring-num font-mono">{currentStreak}</span>
                 <span className="ring-label">Günlük Seri</span>
               </div>
             </div>
 
             {/* Streak Description */}
             <div className="streak-info-box">
-              <p className="streak-p1">Bugün çalışırsan <strong style={{ color: '#0f172a' }}>43 olacak! 🔥</strong></p>
-              <p className="streak-p2">Çalışmazsan seri sıfırlanacak.</p>
+              <p className="streak-p1">
+                Bugün çalışırsan <strong style={{ color: '#0f172a' }}>{currentStreak + 1} gün olacak! 🔥</strong>
+              </p>
+              <p className="streak-p2">
+                Düzenli çalışma alışkanlığı derece getirir.
+              </p>
 
               <Link href="/dashboard/istatistikler" className="btn btn-soft-green" style={{ marginTop: '20px', width: 'auto' }}>
                 Detayları Gör <ChevronRight size={16} />
@@ -387,8 +637,8 @@ export default function DashboardPage() {
             </div>
           </div>
           <div className="stat-mini-body">
-            <div className="stat-mini-num font-mono">12.540</div>
-            <div className="stat-diff-positive font-mono">+320 bugün</div>
+            <div className="stat-mini-num font-mono">{totalQuestionsAllTime.toLocaleString('tr-TR')}</div>
+            <div className="stat-diff-positive font-mono">+{solvedQuestionsToday} bugün</div>
           </div>
         </div>
 
@@ -401,8 +651,8 @@ export default function DashboardPage() {
             </div>
           </div>
           <div className="stat-mini-body">
-            <div className="stat-mini-num font-mono">158s 45d</div>
-            <div className="stat-diff-positive font-mono">+3s 45d bugün</div>
+            <div className="stat-mini-num font-mono">{formatDuration(totalMinutesAllTime)}</div>
+            <div className="stat-diff-positive font-mono">+{formatDuration(todayTotalMinutes)} bugün</div>
           </div>
         </div>
 
@@ -415,8 +665,8 @@ export default function DashboardPage() {
             </div>
           </div>
           <div className="stat-mini-body">
-            <div className="stat-mini-num font-mono">8 Saat</div>
-            <div className="stat-mini-sub">25 Mayıs 2024</div>
+            <div className="stat-mini-num font-mono">{maxStudyDay.duration}</div>
+            <div className="stat-mini-sub">{maxStudyDay.date}</div>
           </div>
         </div>
 
@@ -429,8 +679,8 @@ export default function DashboardPage() {
             </div>
           </div>
           <div className="stat-mini-body">
-            <div className="stat-mini-num font-mono">78.4</div>
-            <div className="stat-mini-sub">Son 10 Deneme</div>
+            <div className="stat-mini-num font-mono">{averageNet}</div>
+            <div className="stat-mini-sub">Tüm Denemeler</div>
           </div>
         </div>
       </div>
@@ -444,22 +694,33 @@ export default function DashboardPage() {
             <Link href="/dashboard/deneme-analizi" className="link-green">Tümünü Gör</Link>
           </div>
 
-          <div style={{ width: '100%', height: 220 }}>
-            <ResponsiveContainer width="100%" height="100%">
-              <AreaChart data={netData} margin={{ top: 20, right: 20, left: -20, bottom: 0 }}>
-                <defs>
-                  <linearGradient id="netGradient" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="5%" stopColor="#10b981" stopOpacity={0.2}/>
-                    <stop offset="95%" stopColor="#10b981" stopOpacity={0.0}/>
-                  </linearGradient>
-                </defs>
-                <XAxis dataKey="date" stroke="#94a3b8" fontSize={12} tickLine={false} />
-                <YAxis stroke="#94a3b8" fontSize={12} tickLine={false} domain={[0, 100]} />
-                <Tooltip contentStyle={{ background: '#ffffff', borderRadius: '12px', borderColor: '#e2e8f0', boxShadow: '0 4px 12px rgba(0,0,0,0.05)' }} />
-                <Area type="monotone" dataKey="net" stroke="#10b981" strokeWidth={3} fillOpacity={1} fill="url(#netGradient)" dot={{ r: 4, fill: '#10b981' }} />
-              </AreaChart>
-            </ResponsiveContainer>
-          </div>
+          {chartData.length === 0 ? (
+            <div className="program-empty" style={{ padding: '32px 0' }}>
+              <BarChart2 size={36} className="program-empty-icon" />
+              <p className="program-empty-title">Henüz deneme eklenmemiş</p>
+              <p className="program-empty-text">Deneme sonuçlarını ekleyerek net gelişim grafiklerini gör.</p>
+              <Link href="/dashboard/deneme-analizi" className="btn btn-primary btn-sm" style={{ marginTop: '12px' }}>
+                <Plus size={16} /> Deneme Ekle
+              </Link>
+            </div>
+          ) : (
+            <div style={{ width: '100%', height: 220 }}>
+              <ResponsiveContainer width="100%" height="100%">
+                <AreaChart data={chartData} margin={{ top: 20, right: 20, left: -20, bottom: 0 }}>
+                  <defs>
+                    <linearGradient id="netGradient" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="5%" stopColor="#10b981" stopOpacity={0.25}/>
+                      <stop offset="95%" stopColor="#10b981" stopOpacity={0.0}/>
+                    </linearGradient>
+                  </defs>
+                  <XAxis dataKey="date" stroke="#94a3b8" fontSize={12} tickLine={false} />
+                  <YAxis stroke="#94a3b8" fontSize={12} tickLine={false} domain={[0, 'auto']} />
+                  <Tooltip contentStyle={{ background: '#ffffff', borderRadius: '12px', borderColor: '#e2e8f0', boxShadow: '0 4px 12px rgba(0,0,0,0.05)' }} />
+                  <Area type="monotone" dataKey="net" stroke="#10b981" strokeWidth={3} fillOpacity={1} fill="url(#netGradient)" dot={{ r: 4, fill: '#10b981' }} />
+                </AreaChart>
+              </ResponsiveContainer>
+            </div>
+          )}
         </div>
 
         {/* Yaklaşan Görevler */}
@@ -469,51 +730,43 @@ export default function DashboardPage() {
             <Link href="/dashboard/gunluk-program" className="link-green">Tümünü Gör</Link>
           </div>
 
-          <div className="upcoming-tasks-list">
-            <div className="upcoming-task-item">
-              <div className="task-icon-sq bg-green-light">
-                <CheckCircle2 size={16} color="#10b981" />
-              </div>
-              <span className="upcoming-task-name">Matematik: Limit - 30 Soru</span>
-              <div className="upcoming-task-time">
-                <span className="time-day">Bugün</span>
-                <span className="time-hour font-mono">15:00</span>
-              </div>
+          {upcomingTasks.length === 0 ? (
+            <div className="program-empty" style={{ padding: '32px 0' }}>
+              <CheckCircle2 size={36} className="program-empty-icon" style={{ color: 'var(--primary-400)' }} />
+              <p className="program-empty-title">Yaklaşan görev bulunmuyor</p>
+              <p className="program-empty-text">Harika! Bekleyen tüm görevlerini tamamladın.</p>
             </div>
-
-            <div className="upcoming-task-item">
-              <div className="task-icon-sq bg-amber-light">
-                <CheckCircle2 size={16} color="#f59e0b" />
-              </div>
-              <span className="upcoming-task-name">Fizik: Kuvvet - 20 Soru</span>
-              <div className="upcoming-task-time">
-                <span className="time-day">Bugün</span>
-                <span className="time-hour font-mono">17:30</span>
-              </div>
+          ) : (
+            <div className="upcoming-tasks-list">
+              {upcomingTasks.map((t) => (
+                <div key={t.id} className="upcoming-task-item">
+                  <button 
+                    className="task-check-icon-btn" 
+                    onClick={() => handleToggleTask(t.id, t.tamamlandi)}
+                    title="Tamamla"
+                  >
+                    <Circle size={18} color="var(--gray-400)" />
+                  </button>
+                  <div className="upcoming-task-info">
+                    <span className="upcoming-task-ders" style={{ color: t.dersler?.renk || 'var(--primary-600)' }}>
+                      {t.dersler?.ikon} {t.dersler?.ad}
+                    </span>
+                    <span className="upcoming-task-konu">
+                      {t.konu ? t.konu : `${t.soru_sayisi ? t.soru_sayisi + ' Soru' : 'Çalışma Görevi'}`}
+                    </span>
+                  </div>
+                  <div className="upcoming-task-time">
+                    <span className="time-day">
+                      {t.tarih === todayStr() ? 'Bugün' : formatShortDate(t.tarih)}
+                    </span>
+                    {t.baslangic_saat && (
+                      <span className="time-hour font-mono">{formatTime(t.baslangic_saat)}</span>
+                    )}
+                  </div>
+                </div>
+              ))}
             </div>
-
-            <div className="upcoming-task-item">
-              <div className="task-icon-sq bg-blue-light">
-                <CheckCircle2 size={16} color="#3b82f6" />
-              </div>
-              <span className="upcoming-task-name">Kimya: Mol Kavramı - 25 Soru</span>
-              <div className="upcoming-task-time">
-                <span className="time-day">Yarın</span>
-                <span className="time-hour font-mono">11:00</span>
-              </div>
-            </div>
-
-            <div className="upcoming-task-item">
-              <div className="task-icon-sq bg-purple-light">
-                <CheckCircle2 size={16} color="#8b5cf6" />
-              </div>
-              <span className="upcoming-task-name">Deneme: TYT Denemesi</span>
-              <div className="upcoming-task-time">
-                <span className="time-day">27 Mayıs</span>
-                <span className="time-hour font-mono">10:00</span>
-              </div>
-            </div>
-          </div>
+          )}
         </div>
       </div>
 
@@ -524,7 +777,7 @@ export default function DashboardPage() {
             <Quote size={20} color="#10b981" />
           </div>
           <p className="quote-text">
-            Bugün attığın küçük adımlar, yarınki büyük başarılarının temeli olacak.
+            {currentQuote}
           </p>
         </div>
         <div className="quote-illustration">
@@ -664,20 +917,34 @@ export default function DashboardPage() {
           font-size: 0.8125rem;
           font-weight: 600;
           color: #475569;
+          text-transform: capitalize;
         }
 
-        .month-arrows {
+        /* Program empty */
+        .program-empty {
           display: flex;
-          gap: 4px;
-          color: #94a3b8;
+          flex-direction: column;
+          align-items: center;
+          justify-content: center;
+          padding: 24px 16px;
+          text-align: center;
         }
 
-        .arrow-btn {
-          cursor: pointer;
+        .program-empty-icon {
+          color: var(--gray-300);
+          margin-bottom: 8px;
         }
 
-        .arrow-btn:hover {
-          color: #0f172a;
+        .program-empty-title {
+          font-size: 0.9375rem;
+          font-weight: 600;
+          color: var(--text-primary);
+          margin-bottom: 2px;
+        }
+
+        .program-empty-text {
+          font-size: 0.8125rem;
+          color: var(--text-tertiary);
         }
 
         /* Subject Progress List */
@@ -703,17 +970,14 @@ export default function DashboardPage() {
           flex-shrink: 0;
         }
 
-        .bg-purple-light { background: #f3e8ff; }
-        .bg-green-light { background: #e6f9f0; }
-        .bg-blue-light { background: #dbeafe; }
-        .bg-orange-light { background: #ffedd5; }
-        .bg-amber-light { background: #fef3c7; }
-
         .subject-name {
           font-size: 0.875rem;
           font-weight: 600;
           color: #0f172a;
-          width: 90px;
+          width: 100px;
+          white-space: nowrap;
+          overflow: hidden;
+          text-overflow: ellipsis;
         }
 
         .subject-count {
@@ -758,10 +1022,11 @@ export default function DashboardPage() {
           aspect-ratio: 1;
           border-radius: 5px;
           transition: transform 150ms ease;
+          cursor: pointer;
         }
 
         .heatmap-cell:hover {
-          transform: scale(1.2);
+          transform: scale(1.25);
         }
 
         .heatmap-level-0 { background: #f1f5f9; }
@@ -817,6 +1082,7 @@ export default function DashboardPage() {
           stroke: #10b981;
           stroke-width: 10;
           stroke-linecap: round;
+          transition: stroke-dashoffset 800ms ease;
         }
 
         .ring-text {
@@ -863,6 +1129,11 @@ export default function DashboardPage() {
           font-size: 0.8125rem;
           font-weight: 700;
           color: #10b981;
+          text-decoration: none;
+        }
+
+        .link-green:hover {
+          text-decoration: underline;
         }
 
         .upcoming-tasks-list {
@@ -874,27 +1145,54 @@ export default function DashboardPage() {
         .upcoming-task-item {
           display: flex;
           align-items: center;
-          justify-content: space-between;
+          gap: 12px;
           padding: 12px 14px;
           background: #f8fafc;
           border-radius: var(--radius-md);
+          border: 1px solid var(--border-light);
+          transition: all var(--transition-fast);
         }
 
-        .task-icon-sq {
-          width: 32px;
-          height: 32px;
-          border-radius: 8px;
+        .upcoming-task-item:hover {
+          border-color: var(--primary-300);
+          background: #ffffff;
+        }
+
+        .task-check-icon-btn {
+          cursor: pointer;
+          background: none;
+          border: none;
+          padding: 2px;
           display: flex;
           align-items: center;
           justify-content: center;
-          margin-right: 12px;
+          transition: transform 150ms ease;
         }
 
-        .upcoming-task-name {
+        .task-check-icon-btn:hover {
+          transform: scale(1.15);
+        }
+
+        .upcoming-task-info {
+          flex: 1;
+          display: flex;
+          flex-direction: column;
+          gap: 2px;
+          min-width: 0;
+        }
+
+        .upcoming-task-ders {
+          font-size: 0.75rem;
+          font-weight: 700;
+        }
+
+        .upcoming-task-konu {
           font-size: 0.875rem;
           font-weight: 600;
           color: #0f172a;
-          flex: 1;
+          white-space: nowrap;
+          overflow: hidden;
+          text-overflow: ellipsis;
         }
 
         .upcoming-task-time {
@@ -902,11 +1200,13 @@ export default function DashboardPage() {
           flex-direction: column;
           align-items: flex-end;
           line-height: 1.2;
+          flex-shrink: 0;
         }
 
         .time-day {
           font-size: 0.75rem;
           color: #94a3b8;
+          font-weight: 500;
         }
 
         .time-hour {
@@ -941,6 +1241,7 @@ export default function DashboardPage() {
           align-items: center;
           justify-content: center;
           box-shadow: var(--shadow-xs);
+          flex-shrink: 0;
         }
 
         .quote-text {
@@ -966,6 +1267,16 @@ export default function DashboardPage() {
         @media (max-width: 640px) {
           .row-4-grid {
             grid-template-columns: repeat(1, 1fr);
+          }
+
+          .quote-banner-card {
+            flex-direction: column;
+            align-items: flex-start;
+            gap: 16px;
+          }
+
+          .quote-illustration {
+            align-self: flex-end;
           }
         }
       `}</style>
