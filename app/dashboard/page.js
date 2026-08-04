@@ -12,6 +12,7 @@ import {
 } from 'lucide-react';
 import Link from 'next/link';
 import { ResponsiveContainer, AreaChart, Area, XAxis, YAxis, Tooltip } from 'recharts';
+import JourneyLoader from '@/components/ui/JourneyLoader';
 
 const MOTIVATION_QUOTES = [
   "Bugün attığın küçük adımlar, yarınki büyük başarılarının temeli olacak.",
@@ -49,7 +50,10 @@ export default function DashboardPage() {
 
   // Load all dashboard data from Supabase
   const loadDashboardData = useCallback(async () => {
-    if (!profile) return;
+    if (!profile) {
+      setLoading(false);
+      return;
+    }
     setLoading(true);
 
     const today = todayStr();
@@ -364,11 +368,7 @@ export default function DashboardPage() {
   }, [denemeList]);
 
   if (loading) {
-    return (
-      <div style={{ display: 'flex', justifyContent: 'center', padding: '80px' }}>
-        <div className="spinner spinner-lg"></div>
-      </div>
-    );
+    return <JourneyLoader compact label="Dashboard hazırlanıyor" />;
   }
 
   return (

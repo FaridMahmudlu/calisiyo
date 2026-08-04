@@ -1,65 +1,60 @@
 # Design QA
 
-- Source visual truth: `design-references/selected-option-3-gunluk-program.png`
-- Source native pixels: 1487 × 1058
+- Selected landing direction: `design-references/selected-landing-option-2-study-path.png`
 - Implementation viewport: 1440 × 1024 CSS px, device scale factor 1
-- Implementation URL: `https://calisiyo-theta.vercel.app/dashboard/gunluk-program`
-- Implementation screenshot: `design-references/qa/gunluk-program-desktop.png`
-- Combined source and implementation comparison: `design-references/qa/final-gunluk-program-comparison.png`
-- Statistics source: `design-references/istatistikler.png`
-- Statistics implementation: `design-references/qa/demo-istatistikler-desktop.png`
-- Statistics combined comparison: `design-references/qa/final-istatistikler-comparison.png`
-- Landing evidence: `design-references/qa/landing-desktop.png`
-- Mobile evidence: `design-references/qa/gunluk-program-mobile.png` and `design-references/qa/mobile-navigation-open.png`
-- Statistics mobile evidence: `design-references/qa/demo-istatistikler-mobile.png`
-- State: authenticated screens backed by temporary QA rows and the permanent realistic `Mert Kaya` test account
+- Local implementation URL: `http://127.0.0.1:3100`
+- Desktop implementation: `design-references/qa/landing-story-desktop.png`
+- Mobile implementation: `design-references/qa/landing-story-mobile.png`
+- Side-by-side visual review: `design-references/qa/final-landing-study-path-comparison.png`
+- Authenticated dashboard evidence: `design-references/qa/gunluk-program-desktop.png`
+- Responsive navigation evidence: `design-references/qa/gunluk-program-mobile.png` and `design-references/qa/mobile-navigation-open.png`
+- Real demo data evidence: `design-references/qa/demo-dashboard-desktop.png`, `design-references/qa/demo-istatistikler-desktop.png`, and `design-references/qa/demo-istatistikler-mobile.png`
 
-## Full-view comparison evidence
+## Visual comparison
 
-The source and implementation were rendered side by side in one comparison image and inspected together. The implementation preserves the selected concept's narrow white navigation, emerald active state, title and primary action hierarchy, exam segments, centered date control, seven-card week rail, three-part summary, and timeline task layout.
+The selected direction and implementation were placed side by side and inspected as one image. The implementation keeps the selected concept’s emerald 3D study path, planner, focus timer, progress checkpoints, YKS summit, ivory canvas, dark-green typography, compact fixed navigation, and clear conversion actions. The page is intentionally longer than the concept so it can explain every preserved product capability without inventing testimonials, rankings, or success claims.
 
-## Comparison points
+### Landing review
 
-1. Sidebar width, brand position, grouped labels, active row, streak card, and account block follow the source. The implementation keeps all thirteen legacy routes as explicitly required.
-2. Page title and `Görev ekle` action retain the source alignment and emerald/slate hierarchy.
-3. TYT/AYT segments, date navigation, and seven independent day cards match the source spacing, radii, and selected treatment.
-4. The summary uses the same three-column information hierarchy while values come from database rows.
-5. Timeline times, status nodes, task cards, duration pills, completion, edit, and delete controls follow the source density and alignment.
-6. The mobile captures confirm stacked content, bottom navigation, working drawer, and no horizontal clipping.
-7. The statistics implementation retains the selected concept's compact information hierarchy while adding live status, six database-backed KPIs, goal meters, study/question trends, course distribution, exam progression, topic mastery, difficult-question status, and exam history.
-8. The sidebar has one close/open control, no redundant X action, and a keyboard-accessible 210–340 px resize handle. All native selects were replaced with the same minimal, searchable listbox design.
+1. The hero matches the selected direction’s split composition, large left-aligned headline, green route, milestone controls, mountain destination, and 19 August 2027 target.
+2. The generated 3D plan, focus, and progress scenes use one consistent light, material, camera angle, palette, and background.
+3. Scroll-driven parallax and reveal motion support the story without blocking content; reduced-motion preferences are respected.
+4. The fixed navigation, responsive CTA hierarchy, real countdown, chapter links, guide, capability inventory, privacy statement, and footer are functional.
+5. Desktop and 390 px mobile captures have no horizontal overflow, clipped text, or placeholder assets.
 
-## Landing and motion review
+### Dashboard review
 
-- Landing content now explains the actual product journey without testimonials, fabricated results, or unsupported claims.
-- The interactive product tour covers planning, tracking, and improvement using the implemented feature set.
-- The four-step tutorial, privacy explanation, real-data explanation, FAQ, and CTA are responsive and keyboard accessible.
-- Page transitions, hero entrance, product-tour transitions, button/card feedback, and navigation motion use restrained timing and respect `prefers-reduced-motion`.
-- Anonymous previews are explicitly labeled as examples; authenticated progress is calculated from the user's own records.
+1. All legacy routes remain in the panel. The panel has one close/open control and a keyboard-accessible 210–340 px resize handle.
+2. The global top bar is visible on every dashboard route. Bell and profile controls open accessible, dismissible menus.
+3. The notification center has unread state, mark-one, mark-all, action links, empty/loading states, realtime refresh, and preference-aware plan/repeat/Pomodoro events.
+4. The streak card now shows today’s actual minutes against the 30-minute threshold and includes an explanatory info popover.
+5. Native selects are absent; searchable custom listboxes use the same minimal design system.
+6. Loading screens use the Plan → Odak → İlerleme journey animation in compact and full-page states.
 
 ## Functional verification
 
-- Email registration, area selection, immediate authenticated redirect, server-backed logout, and email/password login passed.
-- Apple login and all related availability UI were removed. Google provider availability, Supabase authorization, and the redirect to `accounts.google.com` passed; email remains fully usable.
-- Initial account/profile/stat loading uses a server-validated session and no longer depends on an extra browser `getUser()` call.
-- Settings and goals save through server-validated account endpoints; both passed without an auth-session error.
+- Email registration, field selection, email/password login, server-backed logout, Google authorization redirect, and Apple removal passed.
+- A deliberately profile-less authenticated account repaired its profile during `/api/account` loading and rendered the dashboard with no global error.
+- Account loading now isolates task/session summary failures instead of blanking the entire shell.
+- Notification seed, daily-plan reminder, due-repeat reminder, Pomodoro completion, task completion, exam creation, and 30-minute study triggers are installed with RLS and realtime publication.
+- Notification preferences save to both `profiles.notifications_enabled` and `study_preferences`.
 - Daily task create, edit, complete, and confirmed delete passed against Supabase.
-- All redesigned dashboard routes rendered and were captured without page, console, or HTTP errors.
-- Pomodoro start/pause, mobile drawer, and bottom navigation passed.
-- Temporary QA users and their cascaded rows were removed after each run.
-- The `Mert Kaya` account passed with 84 tasks, 74 focus records, 5 exams, 38 tracked topics, real resources, difficult questions, repeats, and notes.
-- YKS countdown displays the explicit approximate date `19 Ağustos 2027` and labels it as estimated.
+- Settings, goals, Pomodoro start/pause, sidebar resize/collapse, mobile drawer, and all dashboard routes passed.
+- The permanent `Mert Kaya` demo account rendered real tasks, sessions, exams, topics, resources, difficult questions, repeats, notes, goals, and statistics.
+- YKS countdown uses the explicit estimated date `19 Ağustos 2027`.
 
 ## Automated evidence
 
-- Local `npx playwright test --config=playwright.config.js`: 2 passed.
-- Production `BASE_URL=https://calisiyo-theta.vercel.app npx playwright test --config=playwright.config.js`: 2 passed.
+- Local Playwright functional suite: 2 passed, 1 expected credential-gated skip.
+- Dedicated permanent demo-account Playwright run: 1 passed.
 - Browser page errors: 0.
 - Browser console errors: 0.
-- HTTP responses >= 400 during the final run: 0.
+- HTTP responses >= 400 during the final local run: 0.
 - `npm run lint`: passed.
 - `npm run build`: passed on Next.js 16.3.0.
 - `npm audit --omit=dev`: 0 vulnerabilities.
-- Supabase migration `20260804153000_store_account_preferences.sql`: applied successfully.
+- Supabase schema lint: 0 errors.
+- Supabase migrations applied: notifications and streak rules, RLS hardening, profile welcome notification.
+- Supabase database advisors: previous trigger exposure and RLS performance warnings resolved. The remaining leaked-password warning requires Supabase Pro and is not available on the current free plan.
 
 final result: passed

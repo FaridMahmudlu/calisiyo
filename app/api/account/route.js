@@ -2,10 +2,24 @@ import { createClient } from '@/lib/supabase/server';
 
 const DEFAULT_PREFERENCES = {
   theme: 'light',
+  notifications: true,
   dailyPlan: true,
   repeats: true,
   pomodoro: true,
 };
+
+function profileDefaults(user) {
+  const metadata = user.user_metadata || {};
+  const field = ['sayisal', 'esit_agirlik', 'sozel', 'dil'].includes(metadata.alan_secimi)
+    ? metadata.alan_secimi
+    : 'sayisal';
+  const emailName = String(user.email || '').split('@')[0];
+  return {
+    id: user.id,
+    full_name: String(metadata.full_name || metadata.name || emailName || 'Öğrenci').trim(),
+    alan_secimi: field,
+  };
+}
 
 function unauthorized() {
   return Response.json(
@@ -23,17 +37,48 @@ export async function GET() {
   const { data: { user }, error: userError } = await supabase.auth.getUser();
   if (userError || !user) return unauthorized();
 
-  const [{ data: profile, error: profileError }, { data: tasks, error: taskError }, { data: sessions, error: sessionError }] = await Promise.all([
-    supabase.from('profiles').select('*').eq('id', user.id).single(),
+  const { data: existingProfile, error: profileReadError } = await supabase
+    .from('profiles')
+    .select('*')
+    .eq('id', user.id)
+    .maybeSingle();
+
+  if (profileReadError) {
+    console.error('Account profile could not be read', { code: profileReadError.code });
+    return Response.json(
+      { ok: false, message: 'Profil bilgilerin şu anda okunamıyor. Lütfen tekrar dene.' },
+      { status: 500 }
+    );
+  }
+
+  let profile = existingProfile;
+  if (!profile) {
+    const { data: repairedProfile, error: repairError } = await supabase
+      .from('profiles')
+      .upsert(profileDefaults(user), { onConflict: 'id' })
+      .select('*')
+      .single();
+
+    if (repairError || !repairedProfile) {
+      console.error('Account profile could not be repaired', { code: repairError?.code });
+      return Response.json(
+        { ok: false, message: 'Profilin hazırlanamadı. Lütfen tekrar giriş yap.' },
+        { status: 500 }
+      );
+    }
+    profile = repairedProfile;
+  }
+
+  const [{ data: tasks, error: taskError }, { data: sessions, error: sessionError }] = await Promise.all([
     supabase.from('gunluk_gorevler').select('tarih,tamamlandi,soru_sayisi').eq('user_id', user.id),
     supabase.from('calisma_suresi').select('tarih,sure_dakika,soru_sayisi').eq('user_id', user.id),
   ]);
 
-  if (profileError || taskError || sessionError) {
-    return Response.json(
-      { ok: false, message: 'Çalışma bilgilerin yüklenemedi. Lütfen sayfayı yenileyin.' },
-      { status: 500 }
-    );
+  if (taskError || sessionError) {
+    console.error('Account summary loaded partially', {
+      tasks: taskError?.code,
+      sessions: sessionError?.code,
+    });
   }
 
   return Response.json({
@@ -42,6 +87,7 @@ export async function GET() {
     profile,
     tasks: tasks || [],
     sessions: sessions || [],
+    partial: Boolean(taskError || sessionError),
   });
 }
 
@@ -66,7 +112,8 @@ export async function PATCH(request) {
       return invalid('Geçerli bir alan seçmelisin.');
     }
 
-    const preferences = { ...DEFAULT_PREFERENCES, ...(body.preferences || {}) };
+    const notificationsEnabled = body.notificationsEnabled !== false;
+    const preferences = { ...DEFAULT_PREFERENCES, ...(body.preferences || {}), notifications: notificationsEnabled };
     if (!['light', 'dark', 'system'].includes(preferences.theme)) {
       preferences.theme = 'light';
     }
@@ -76,6 +123,7 @@ export async function PATCH(request) {
       .update({
         full_name: fullName,
         alan_secimi: field,
+        notifications_enabled: notificationsEnabled,
         study_preferences: preferences,
       })
       .eq('id', user.id)

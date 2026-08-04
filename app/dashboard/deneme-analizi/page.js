@@ -14,6 +14,7 @@ import {
 } from 'recharts';
 import { useRealtimeRefresh } from '@/lib/hooks/useRealtimeRefresh';
 import PageHeader from '@/components/ui/PageHeader';
+import JourneyLoader from '@/components/ui/JourneyLoader';
 
 const REALTIME_TABLES = ['denemeler'];
 
@@ -186,9 +187,7 @@ export default function DenemeAnaliziPage() {
       </div>
 
       {loading ? (
-        <div style={{ display: 'flex', justifyContent: 'center', padding: '60px' }}>
-          <div className="spinner spinner-lg"></div>
-        </div>
+        <JourneyLoader compact label="Denemelerin hazırlanıyor" />
       ) : denemeler.length === 0 ? (
         <div className="card empty-state">
           <BarChart2 size={48} className="empty-state-icon" />

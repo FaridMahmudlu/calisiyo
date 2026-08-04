@@ -7,6 +7,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { NotebookText, Plus, Trash2, Folder, Edit3 } from 'lucide-react';
 import { useRealtimeRefresh } from '@/lib/hooks/useRealtimeRefresh';
 import PageHeader from '@/components/ui/PageHeader';
+import JourneyLoader from '@/components/ui/JourneyLoader';
 
 const REALTIME_TABLES = ['notlar'];
 
@@ -131,9 +132,7 @@ export default function NotDefteriPage() {
       </div>
 
       {loading ? (
-        <div style={{ display: 'flex', justifyContent: 'center', padding: '60px' }}>
-          <div className="spinner spinner-lg"></div>
-        </div>
+        <JourneyLoader compact label="Notların hazırlanıyor" />
       ) : filteredNotes.length === 0 ? (
         <motion.div 
           initial={{ opacity: 0, scale: 0.95 }}

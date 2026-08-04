@@ -4,13 +4,15 @@ import { createContext, useCallback, useContext, useEffect, useMemo, useRef, use
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import {
-  AlertTriangle, BarChart3, Bell, BookMarked, BookOpen, Calendar, CalendarDays,
-  ChevronDown, FileText, Flame, Home, LogOut, Menu, PanelLeftClose,
+  AlertTriangle, BarChart3, BookMarked, BookOpen, Calendar, CalendarDays,
+  FileText, Flame, Home, Info, LogOut, Menu, PanelLeftClose,
   PanelLeftOpen, RotateCcw, Settings, Target, Timer, X,
 } from 'lucide-react';
 import { createClient } from '@/lib/supabase/client';
 import { todayStr, toLocalDateKey } from '@/lib/utils/date';
 import { useRealtimeRefresh } from '@/lib/hooks/useRealtimeRefresh';
+import JourneyLoader from '@/components/ui/JourneyLoader';
+import HeaderActions from '@/components/dashboard/HeaderActions';
 import './study.css';
 
 const UserContext = createContext(null);
@@ -62,7 +64,8 @@ export default function DashboardLayout({ children }) {
   const [collapsed, setCollapsed] = useState(false);
   const [sidebarWidth, setSidebarWidth] = useState(232);
   const resizingRef = useRef(false);
-  const [stats, setStats] = useState({ level: 1, xp: 0, streak: 0 });
+  const [stats, setStats] = useState({ level: 1, xp: 0, streak: 0, todayMinutes: 0 });
+  const [streakInfoOpen, setStreakInfoOpen] = useState(false);
   const error = errorState.pathname === pathname ? errorState.message : '';
   const setError = useCallback((message) => {
     setErrorState({ message, pathname });
@@ -91,7 +94,11 @@ export default function DashboardLayout({ children }) {
     const questionCount = completed.reduce((sum, task) => sum + (task.soru_sayisi || 0), 0)
       + sessions.reduce((sum, session) => sum + (session.soru_sayisi || 0), 0);
     const xpTotal = completed.length * 50 + questionCount * 5;
-    const activeDates = new Set([...completed.map((task) => task.tarih), ...sessions.map((session) => session.tarih)]);
+    const minutesByDate = sessions.reduce((totals, session) => {
+      totals[session.tarih] = (totals[session.tarih] || 0) + Number(session.sure_dakika || 0);
+      return totals;
+    }, {});
+    const activeDates = new Set(Object.entries(minutesByDate).filter(([, minutes]) => minutes >= 30).map(([date]) => date));
     let streak = 0;
     const cursor = new Date();
     if (!activeDates.has(todayStr())) cursor.setDate(cursor.getDate() - 1);
@@ -99,7 +106,7 @@ export default function DashboardLayout({ children }) {
       streak += 1;
       cursor.setDate(cursor.getDate() - 1);
     }
-    setStats({ level: Math.floor(xpTotal / 250) + 1, xp: xpTotal % 250, streak });
+    setStats({ level: Math.floor(xpTotal / 250) + 1, xp: xpTotal % 250, streak, todayMinutes: minutesByDate[todayStr()] || 0 });
     setLoading(false);
   }, [router, setError]);
 
@@ -165,17 +172,16 @@ export default function DashboardLayout({ children }) {
     }
     await supabase.auth.signOut({ scope: 'local' });
     router.replace('/giris');
-    router.refresh();
   };
 
   if (loading) {
-    return <div className="app-loading" role="status"><span className="brand-mark"><BookMarked size={24} /></span><div className="spinner spinner-lg" /><span>Çalışma alanın hazırlanıyor…</span></div>;
+    return <JourneyLoader />;
   }
 
   const initials = profile?.full_name?.trim()?.charAt(0)?.toLocaleUpperCase('tr-TR') || 'Ö';
 
   return (
-    <UserContext.Provider value={{ user, profile, setProfile, error, setError }}>
+    <UserContext.Provider value={{ user, profile, setProfile, error, setError, reloadAccount: loadAccount, stats }}>
       <div className={`study-layout ${collapsed ? 'is-collapsed' : ''}`} style={{ '--sidebar-width': `${sidebarWidth}px` }}>
         {sidebarOpen && <button className="sidebar-backdrop" aria-label="Menüyü kapat" onClick={() => setSidebarOpen(false)} />}
         <aside className={`study-sidebar ${sidebarOpen ? 'is-open' : ''}`}>
@@ -207,7 +213,12 @@ export default function DashboardLayout({ children }) {
 
           <div className="sidebar-account">
             {!collapsed && (
-              <div className="study-streak"><Flame size={17} /><span><strong>{stats.streak}</strong> günlük seri</span><small>Seviye {stats.level} · {stats.xp}/250 XP</small></div>
+              <div className="study-streak">
+                <Flame size={17} />
+                <span><strong>{stats.streak}</strong> günlük seri <button className="streak-info-button" aria-label="Seri kuralını açıkla" aria-expanded={streakInfoOpen} onClick={() => setStreakInfoOpen((value) => !value)}><Info size={13} /></button></span>
+                <small>Bugün {Math.min(stats.todayMinutes, 30)}/30 dk · Seviye {stats.level}</small>
+                {streakInfoOpen && <div className="streak-info-popover" role="note"><strong>Seri nasıl ilerler?</strong><p>Her gün calisiyo’da Pomodoro veya çalışma kaydı ile en az 30 dakika ders çalış. 30 dakikaya ulaşan gün serine eklenir.</p></div>}
+              </div>
             )}
             <div className="account-row">
               <Link className="avatar" href="/dashboard/ayarlar" aria-label="Profil ayarları">{initials}</Link>
@@ -222,10 +233,7 @@ export default function DashboardLayout({ children }) {
           <header className="study-topbar">
             <button className="icon-button mobile-menu-button" onClick={() => setSidebarOpen(true)} aria-label="Menüyü aç"><Menu size={21} /></button>
             <span className="topbar-context">YKS Çalışma Koçu</span>
-            <div className="topbar-actions">
-              <button className="icon-button" aria-label="Bildirimler"><Bell size={19} /></button>
-              <Link className="topbar-profile" href="/dashboard/ayarlar"><span className="avatar avatar-sm">{initials}</span><ChevronDown size={15} /></Link>
-            </div>
+            <HeaderActions user={user} profile={profile} initials={initials} logout={logout} setError={setError} />
           </header>
           {error && <div className="global-error" role="alert">{error}<button onClick={() => setError('')} aria-label="Uyarıyı kapat"><X size={16} /></button></div>}
           <main className={`study-content ${pathname === '/dashboard' ? 'dashboard-home' : ''}`}>{children}</main>

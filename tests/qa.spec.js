@@ -19,9 +19,9 @@ test('public auth, protected navigation, daily CRUD and responsive visuals', asy
 
   await page.setViewportSize({ width: 1440, height: 1024 });
   await page.goto(baseURL);
-  await expect(page.getByRole('heading', { name: /YKS hazırlığını tek bir yerde/ })).toBeVisible();
-  await expect(page.getByRole('heading', { name: 'İlk planından düzenli takibe dört adım' })).toBeVisible();
-  await expect(page.getByRole('heading', { name: 'Başlamadan önce bilmek isteyebileceklerin' })).toBeVisible();
+  await expect(page.getByRole('heading', { name: /Dağınık çalışmayı/ })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Planından YKS hedefine kadar tek, bağlı bir akış.' })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Teknik ayar yok. Çalışma var.' })).toBeVisible();
   const landingHeight = await page.evaluate(() => document.documentElement.scrollHeight);
   for (let y = 0; y < landingHeight; y += 700) {
     await page.evaluate((nextY) => window.scrollTo(0, nextY), y);
@@ -29,7 +29,14 @@ test('public auth, protected navigation, daily CRUD and responsive visuals', asy
   }
   await page.evaluate(() => window.scrollTo(0, 0));
   await page.waitForTimeout(250);
-  await page.screenshot({ path: path.join(qaDir, 'landing-desktop.png'), fullPage: true });
+  await page.screenshot({ path: path.join(qaDir, 'landing-story-desktop.png'), fullPage: true });
+
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.reload();
+  await expect(page.getByRole('heading', { name: /Dağınık çalışmayı/ })).toBeVisible();
+  await expect.poll(() => page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true);
+  await page.screenshot({ path: path.join(qaDir, 'landing-story-mobile.png'), fullPage: true });
+  await page.setViewportSize({ width: 1440, height: 1024 });
 
   await page.goto(`${baseURL}/giris`);
   await expect(page.getByRole('heading', { name: 'Tekrar hoş geldin' })).toBeVisible();
@@ -69,6 +76,22 @@ test('public auth, protected navigation, daily CRUD and responsive visuals', asy
   await page.getByRole('button', { name: 'Giriş Yap' }).click();
   await expect(page).toHaveURL(/\/dashboard$/);
   await expect(page.getByText('QA Ogrencisi').first()).toBeVisible();
+  await expect(page.locator('.global-error')).toHaveCount(0);
+
+  const notificationButton = page.getByRole('button', { name: /bildirim/i }).first();
+  await notificationButton.click();
+  await expect(page.getByRole('region', { name: 'Bildirimler' })).toBeVisible();
+  await expect(page.getByText('Bildirim merkezi hazır')).toBeVisible();
+  await page.getByRole('button', { name: 'Tüm bildirimleri okundu işaretle' }).click();
+  await notificationButton.click();
+
+  await page.getByRole('button', { name: 'Profil menüsü' }).click();
+  await expect(page.getByRole('region', { name: 'Profil menüsü' })).toBeVisible();
+  await expect(page.getByText('Profil ve ayarlar')).toBeVisible();
+  await page.keyboard.press('Escape');
+
+  await page.getByRole('button', { name: 'Seri kuralını açıkla' }).click();
+  await expect(page.getByText('Seri nasıl ilerler?')).toBeVisible();
 
   const sidebar = page.locator('.study-sidebar');
   const resizer = page.getByRole('separator', { name: 'Panel genişliyini dəyiş' });
@@ -132,7 +155,12 @@ test('public auth, protected navigation, daily CRUD and responsive visuals', asy
     await page.screenshot({ path: path.join(qaDir, `${slug}-desktop.png`) });
   }
 
+  await page.context().grantPermissions(['notifications'], { origin: baseURL });
   await page.goto(`${baseURL}/dashboard/ayarlar`);
+  const notificationToggle = page.getByText('Bildirim merkezi').locator('xpath=ancestor::label').getByRole('checkbox');
+  await expect(notificationToggle).toBeChecked();
+  await notificationToggle.uncheck();
+  await notificationToggle.check();
   const nameInput = page.getByLabel('Ad Soyad');
   await nameInput.fill('QA Ogrencisi Güncel');
   await page.getByRole('button', { name: 'Değişiklikleri kaydet' }).click();
@@ -162,4 +190,16 @@ test('public auth, protected navigation, daily CRUD and responsive visuals', asy
   await page.screenshot({ path: path.join(qaDir, 'mobile-navigation-open.png') });
 
   expect(browserErrors).toEqual([]);
+});
+
+test('an authenticated account with a missing profile repairs itself and loads', async ({ page }) => {
+  test.skip(!process.env.REPAIR_EMAIL || !process.env.QA_PASSWORD, 'Profile-repair credentials are required.');
+  await page.goto(`${baseURL}/giris`);
+  await page.getByLabel('E-posta').fill(process.env.REPAIR_EMAIL);
+  await page.locator('input[autocomplete="current-password"]').fill(process.env.QA_PASSWORD);
+  await page.getByRole('button', { name: 'Giriş Yap' }).click();
+  await expect(page).toHaveURL(/\/dashboard$/);
+  await expect(page.getByText('Onarim QA Ogrencisi').first()).toBeVisible();
+  await expect(page.locator('.global-error')).toHaveCount(0);
+  await expect(page.getByRole('heading', { name: /Merhaba/ })).toBeVisible();
 });

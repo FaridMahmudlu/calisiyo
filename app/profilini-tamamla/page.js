@@ -46,7 +46,7 @@ export default function ProfiliniTamamlaPage() {
 
     const profile = { full_name: form.fullName.trim(), alan_secimi: form.alanSecimi };
     const [{ error: profileError }, { error: metadataError }] = await Promise.all([
-      supabase.from('profiles').update(profile).eq('id', user.id),
+      supabase.from('profiles').upsert({ id: user.id, ...profile }, { onConflict: 'id' }),
       supabase.auth.updateUser({ data: profile }),
     ]);
 

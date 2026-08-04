@@ -10,6 +10,7 @@ import { Repeat, Plus, CheckCircle2, Circle, Calendar, Clock, BookOpen } from 'l
 import { useRealtimeRefresh } from '@/lib/hooks/useRealtimeRefresh';
 import PageHeader from '@/components/ui/PageHeader';
 import Select from '@/components/ui/Select';
+import JourneyLoader from '@/components/ui/JourneyLoader';
 
 const REALTIME_TABLES = ['tekrarlar'];
 
@@ -124,9 +125,7 @@ export default function TekrarlarimPage() {
       </div>
 
       {loading ? (
-        <div style={{ display: 'flex', justifyContent: 'center', padding: '60px' }}>
-          <div className="spinner spinner-lg"></div>
-        </div>
+        <JourneyLoader compact label="Tekrarların hazırlanıyor" />
       ) : tekrarlar.length === 0 ? (
         <motion.div 
           initial={{ opacity: 0, scale: 0.95 }}

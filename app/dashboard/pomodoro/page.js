@@ -67,19 +67,42 @@ export default function PomodoroPage() {
     if (result.error) setError(`Oturum istatistiklere kaydedilemedi: ${result.error.message}`);
   }, [courseId, preset.work, profile, resourceId, setError, supabase]);
 
+  const notifyPomodoroStage = useCallback(async (completedBreak) => {
+    if (profile?.notifications_enabled === false || profile?.study_preferences?.pomodoro === false) return;
+    const title = completedBreak ? 'Mola bitti' : 'Odak oturumu tamamlandı';
+    const body = completedBreak
+      ? 'Hazırsan yeni odak oturumuna başlayabilirsin.'
+      : `${preset.work} dakikalık çalışma istatistiklerine kaydedildi.`;
+    const uniqueId = globalThis.crypto?.randomUUID?.() || `${Date.now()}-${completedBreak ? 'break' : 'focus'}`;
+    const { error } = await supabase.from('notifications').insert({
+      user_id: profile.id,
+      kind: 'reminder',
+      title,
+      body,
+      action_url: '/dashboard/pomodoro',
+      dedupe_key: `pomodoro-${uniqueId}`,
+    });
+    if (error) setError('Pomodoro bildirimi oluşturulamadı.');
+    if (typeof Notification !== 'undefined' && Notification.permission === 'granted') {
+      new Notification(title, { body, tag: uniqueId });
+    }
+  }, [preset.work, profile, setError, supabase]);
+
   const finishStage = useCallback(() => {
     if (finishedRef.current) return;
     finishedRef.current = true;
     setRunning(false);
     if (!breakMode) {
       recordFocusSession();
+      notifyPomodoroStage(false);
       setBreakMode(true);
       setTimeLeft(preset.breakMinutes * 60);
     } else {
+      notifyPomodoroStage(true);
       setBreakMode(false);
       setTimeLeft(preset.work * 60);
     }
-  }, [breakMode, preset.breakMinutes, preset.work, recordFocusSession]);
+  }, [breakMode, notifyPomodoroStage, preset.breakMinutes, preset.work, recordFocusSession]);
 
   useEffect(() => {
     if (!running) {

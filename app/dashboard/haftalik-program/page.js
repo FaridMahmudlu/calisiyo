@@ -9,6 +9,7 @@ import { ChevronLeft, ChevronRight, CheckCircle2, ListTodo, HelpCircle, Trophy }
 import { useRealtimeRefresh } from '@/lib/hooks/useRealtimeRefresh';
 import { getExamTabs } from '@/lib/constants/alanlar';
 import PageHeader from '@/components/ui/PageHeader';
+import JourneyLoader from '@/components/ui/JourneyLoader';
 
 const REALTIME_TABLES = ['gunluk_gorevler'];
 
@@ -132,7 +133,7 @@ export default function HaftalikProgramPage() {
       </motion.div>
 
       {loading ? (
-        <div style={{ display: 'flex', justifyContent: 'center', padding: '60px' }}><div className="spinner spinner-lg"></div></div>
+        <JourneyLoader compact label="Haftalık planın hazırlanıyor" />
       ) : (
         <motion.div 
           variants={containerVariants}

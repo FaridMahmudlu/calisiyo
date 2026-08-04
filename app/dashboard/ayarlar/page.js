@@ -7,13 +7,14 @@ import { createClient } from '@/lib/supabase/client';
 import { ALANLAR, getExamTabs } from '@/lib/constants/alanlar';
 import PageHeader from '@/components/ui/PageHeader';
 
-const DATA_TABLES = ['profiles', 'gunluk_gorevler', 'kaynaklarim', 'yapamadiklari', 'tekrarlar', 'denemeler', 'deneme_detaylari', 'calisma_suresi', 'notlar', 'konu_takibi'];
+const DATA_TABLES = ['profiles', 'gunluk_gorevler', 'kaynaklarim', 'yapamadiklari', 'tekrarlar', 'denemeler', 'deneme_detaylari', 'calisma_suresi', 'notlar', 'konu_takibi', 'notifications'];
 
 export default function AyarlarPage() {
   const { user, profile, setProfile, setError } = useUser();
   const supabase = useMemo(() => createClient(), []);
   const [form, setForm] = useState({ full_name: '', alan_secimi: 'sayisal' });
-  const [preferences, setPreferences] = useState({ theme: 'light', dailyPlan: true, repeats: true, pomodoro: true });
+  const [preferences, setPreferences] = useState({ theme: 'light', notifications: true, dailyPlan: true, repeats: true, pomodoro: true });
+  const [browserPermission, setBrowserPermission] = useState('default');
   const [password, setPassword] = useState({ value: '', confirm: '' });
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
@@ -24,7 +25,13 @@ export default function AyarlarPage() {
     setForm({ full_name: profile.full_name || '', alan_secimi: profile.alan_secimi || 'sayisal' });
     const metadata = profile.study_preferences || user?.user_metadata?.study_preferences || {};
     const storedTheme = typeof window !== 'undefined' ? localStorage.getItem('calisiyo-theme') : null;
-    setPreferences({ theme: storedTheme || metadata.theme || 'light', dailyPlan: metadata.dailyPlan ?? true, repeats: metadata.repeats ?? true, pomodoro: metadata.pomodoro ?? true });
+    setPreferences({
+      theme: storedTheme || metadata.theme || 'light',
+      notifications: profile.notifications_enabled ?? metadata.notifications ?? true,
+      dailyPlan: metadata.dailyPlan ?? true,
+      repeats: metadata.repeats ?? true,
+      pomodoro: metadata.pomodoro ?? true,
+    });
   }, [profile, user]);
 
   useEffect(() => {
@@ -38,10 +45,36 @@ export default function AyarlarPage() {
     document.documentElement.dataset.theme = resolved === 'dark' ? 'dark' : 'light';
   }, [preferences.theme]);
 
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setBrowserPermission(typeof Notification === 'undefined' ? 'unsupported' : Notification.permission);
+    }, 0);
+    return () => clearTimeout(timer);
+  }, []);
+
   const applyTheme = (theme) => {
     setPreferences((current) => ({ ...current, theme }));
     localStorage.setItem('calisiyo-theme', theme);
   };
+
+  const requestBrowserPermission = async () => {
+    if (typeof Notification !== 'undefined' && Notification.permission === 'default') {
+      const permission = await Notification.requestPermission();
+      setBrowserPermission(permission);
+    }
+  };
+
+  const toggleNotifications = async (enabled) => {
+    setPreferences((current) => ({ ...current, notifications: enabled }));
+    if (enabled) await requestBrowserPermission();
+  };
+
+  const permissionLabel = {
+    granted: 'Tarayıcı bildirimi açık',
+    denied: 'Tarayıcı izni engellendi',
+    default: 'Tarayıcı izni bekliyor',
+    unsupported: 'Bu tarayıcı masaüstü bildirimi desteklemiyor',
+  }[browserPermission];
 
   const saveSettings = async () => {
     if (!profile?.id) return;
@@ -59,6 +92,7 @@ export default function AyarlarPage() {
         fullName: form.full_name,
         field: form.alan_secimi,
         preferences,
+        notificationsEnabled: preferences.notifications,
       }),
     });
     const result = await response.json().catch(() => ({}));
@@ -134,7 +168,7 @@ export default function AyarlarPage() {
 
       <section className="settings-section study-panel"><div className="settings-intro"><Monitor size={20} /><div><h2>Görünüm</h2><p>Uygulamanın görünüm temasını seç.</p></div></div><div className="theme-options">{[['light', 'Açık tema', Sun], ['dark', 'Koyu tema', Moon], ['system', 'Sistem ayarı', Monitor]].map(([value, label, Icon]) => <button key={value} className={preferences.theme === value ? 'is-selected' : ''} onClick={() => applyTheme(value)}><Icon size={18} />{label}</button>)}</div></section>
 
-      <section className="settings-section study-panel"><div className="settings-intro"><Bell size={20} /><div><h2>Bildirimler</h2><p>Hatırlatıcı tercihlerini yönet.</p></div></div><div className="toggle-list">{[['dailyPlan', 'Günlük plan hatırlatıcısı', 'Her gün planını hatırlatır.'], ['repeats', 'Tekrar hatırlatıcıları', 'Tekrar zamanı geldiğinde bildirir.'], ['pomodoro', 'Pomodoro bitiş bildirimi', 'Odak veya mola süresi bittiğinde bildirir.']].map(([key, label, text]) => <label key={key}><span><strong>{label}</strong><small>{text}</small></span><input type="checkbox" checked={preferences[key]} onChange={(event) => setPreferences({ ...preferences, [key]: event.target.checked })} /></label>)}</div></section>
+      <section className="settings-section study-panel"><div className="settings-intro"><Bell size={20} /><div><h2>Bildirimler</h2><p>Uygulama içi ve tarayıcı bildirimlerini tek yerden yönet.</p></div></div><div className="notification-settings-wrap"><div className="toggle-list notification-settings"><label className="notification-master"><span><strong>Bildirim merkezi</strong><small>Önemli plan, çalışma, seri ve deneme gelişmelerini gösterir.</small><em>{permissionLabel}</em></span><input type="checkbox" checked={preferences.notifications} onChange={(event) => toggleNotifications(event.target.checked)} /></label>{[['dailyPlan', 'Günlük plan hatırlatıcısı', 'Her gün planını hatırlatır.'], ['repeats', 'Tekrar hatırlatıcıları', 'Tekrar zamanı geldiğinde bildirir.'], ['pomodoro', 'Pomodoro bitiş bildirimi', 'Odak veya mola süresi bittiğinde bildirir.']].map(([key, label, text]) => <label key={key} className={!preferences.notifications ? 'is-disabled' : ''}><span><strong>{label}</strong><small>{text}</small></span><input type="checkbox" checked={preferences[key]} disabled={!preferences.notifications} onChange={(event) => setPreferences({ ...preferences, [key]: event.target.checked })} /></label>)}</div>{preferences.notifications && browserPermission === 'default' && <button className="browser-notification-button" onClick={requestBrowserPermission}><Bell size={15} /> Tarayıcı bildirimlerini aç</button>}{preferences.notifications && browserPermission === 'denied' && <p className="browser-notification-help">Tarayıcı bildirimi engellenmiş. Adres çubuğundaki site izinlerinden bildirimleri açabilirsin.</p>}</div></section>
 
       <section className="settings-section study-panel"><div className="settings-intro"><LockKeyhole size={20} /><div><h2>Güvenlik</h2><p>Hesabının şifresini güncelle.</p></div></div><form className="settings-fields password-fields" onSubmit={updatePassword}><label>Yeni şifre<input type="password" minLength="8" value={password.value} onChange={(event) => setPassword({ ...password, value: event.target.value })} /></label><label>Yeni şifre tekrar<input type="password" minLength="8" value={password.confirm} onChange={(event) => setPassword({ ...password, confirm: event.target.value })} /></label><button className="study-button">Şifreyi değiştir</button></form></section>
 

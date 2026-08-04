@@ -8,6 +8,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { Circle, PlayCircle, CheckCircle2, BookOpen, ChevronDown, ChevronUp, Search } from 'lucide-react';
 import { useRealtimeRefresh } from '@/lib/hooks/useRealtimeRefresh';
 import PageHeader from '@/components/ui/PageHeader';
+import JourneyLoader from '@/components/ui/JourneyLoader';
 
 const REALTIME_TABLES = ['konu_takibi'];
 
@@ -172,9 +173,7 @@ export default function KonuTakibiPage() {
       <div className="study-summary-grid"><div className="study-summary-item"><span className="summary-copy"><span>Toplam konu</span><strong>{allTopics.length}</strong></span></div><div className="study-summary-item"><span className="summary-copy"><span>Devam eden</span><strong>{inProgressTotal}</strong></span></div><div className="study-summary-item"><span className="summary-copy"><span>Tamamlanan</span><strong>{completedTotal}</strong></span></div></div>
 
       {loading ? (
-        <div style={{ display: 'flex', justifyContent: 'center', padding: '60px' }}>
-          <div className="spinner spinner-lg"></div>
-        </div>
+        <JourneyLoader compact label="Konu ilerlemen hazırlanıyor" />
       ) : (
         <motion.div 
           variants={containerVariants}
