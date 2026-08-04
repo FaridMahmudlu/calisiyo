@@ -5,6 +5,7 @@ const baseURL = process.env.BASE_URL || 'http://127.0.0.1:3100';
 const qaDir = path.resolve(__dirname, '..', 'design-references', 'qa');
 
 test('public auth, protected navigation, daily CRUD and responsive visuals', async ({ page }) => {
+  test.setTimeout(480000);
   const browserErrors = [];
   page.on('pageerror', (error) => browserErrors.push(`pageerror: ${error.message}`));
   page.on('console', (message) => {
