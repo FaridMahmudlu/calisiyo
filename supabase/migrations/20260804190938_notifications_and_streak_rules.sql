@@ -138,21 +138,19 @@ begin
     return new;
   end if;
 
-  if tg_table_name = 'gunluk_gorevler'
-    and tg_op = 'UPDATE'
-    and new.tamamlandi
-    and not coalesce(old.tamamlandi, false)
-  then
-    insert into public.notifications (user_id, kind, title, body, action_url, dedupe_key)
-    values (
-      target_user,
-      'success',
-      'Görev tamamlandı',
-      coalesce(nullif(new.konu, ''), 'Günlük planındaki bir çalışma') || ' tamamlandı.',
-      '/dashboard/gunluk-program',
-      'task-completed-' || new.id::text
-    )
-    on conflict (user_id, dedupe_key) do nothing;
+  if tg_table_name = 'gunluk_gorevler' then
+    if tg_op = 'UPDATE' and new.tamamlandi and not coalesce(old.tamamlandi, false) then
+      insert into public.notifications (user_id, kind, title, body, action_url, dedupe_key)
+      values (
+        target_user,
+        'success',
+        'Görev tamamlandı',
+        coalesce(nullif(new.konu, ''), 'Günlük planındaki bir çalışma') || ' tamamlandı.',
+        '/dashboard/gunluk-program',
+        'task-completed-' || new.id::text
+      )
+      on conflict (user_id, dedupe_key) do nothing;
+    end if;
   elsif tg_table_name = 'denemeler' and tg_op = 'INSERT' then
     insert into public.notifications (user_id, kind, title, body, action_url, dedupe_key)
     values (
