@@ -7,6 +7,11 @@ export default function Modal({ open, title, description, onClose, children, siz
   const titleId = useId();
   const descriptionId = useId();
   const dialogRef = useRef(null);
+  const onCloseRef = useRef(onClose);
+
+  useEffect(() => {
+    onCloseRef.current = onClose;
+  }, [onClose]);
 
   useEffect(() => {
     if (!open) return undefined;
@@ -16,9 +21,9 @@ export default function Modal({ open, title, description, onClose, children, siz
     focusable?.focus();
 
     const onKeyDown = (event) => {
-      if (event.key === 'Escape') onClose();
-      if (event.key !== 'Tab' || !dialog) return;
-      const controls = [...dialog.querySelectorAll('button, input, select, textarea, [href]')]
+      if (event.key === 'Escape') onCloseRef.current?.();
+      if (event.key !== 'Tab' || !dialogRef.current) return;
+      const controls = [...dialogRef.current.querySelectorAll('button, input, select, textarea, [href]')]
         .filter((element) => !element.disabled && element.tabIndex !== -1);
       if (!controls.length) return;
       const first = controls[0];
@@ -37,12 +42,12 @@ export default function Modal({ open, title, description, onClose, children, siz
       document.removeEventListener('keydown', onKeyDown);
       previous?.focus?.();
     };
-  }, [open, onClose]);
+  }, [open]);
 
   if (!open) return null;
 
   return (
-    <div className="modal-overlay" onMouseDown={(event) => event.target === event.currentTarget && onClose()}>
+    <div className="modal-overlay" onMouseDown={(event) => event.target === event.currentTarget && onClose?.()}>
       <section
         ref={dialogRef}
         className={`modal modal-${size}`}

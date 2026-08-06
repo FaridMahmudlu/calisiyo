@@ -4,7 +4,6 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 import { Check, CheckCircle2, ChevronLeft, ChevronRight, Circle, Clock3, Edit3, ListChecks, Plus, Trash2 } from 'lucide-react';
 import { useUser } from '../layout';
 import { createClient } from '@/lib/supabase/client';
-import { getExamTabs } from '@/lib/constants/alanlar';
 import { formatDate, formatDuration, formatTime, parseLocalDate, toLocalDateKey, todayStr } from '@/lib/utils/date';
 import { useRealtimeRefresh } from '@/lib/hooks/useRealtimeRefresh';
 import PageHeader from '@/components/ui/PageHeader';
@@ -27,7 +26,6 @@ export default function GunlukProgramPage() {
   const { profile, setError: setGlobalError } = useUser();
   const supabase = useMemo(() => createClient(), []);
   const [selectedDate, setSelectedDate] = useState(todayStr());
-  const [activeExam, setActiveExam] = useState('TYT');
   const [tasks, setTasks] = useState([]);
   const [dersler, setDersler] = useState([]);
   const [kaynaklar, setKaynaklar] = useState([]);
@@ -38,7 +36,6 @@ export default function GunlukProgramPage() {
   const [form, setForm] = useState(EMPTY_FORM);
   const [saving, setSaving] = useState(false);
 
-  const examTabs = useMemo(() => profile ? getExamTabs(profile.alan_secimi) : ['TYT', 'AYT'], [profile]);
   const realtimeTables = useMemo(() => ['gunluk_gorevler', 'kaynaklarim'], []);
 
   const loadData = useCallback(async () => {
@@ -64,7 +61,7 @@ export default function GunlukProgramPage() {
   }, [loadData]);
   useRealtimeRefresh({ tables: realtimeTables, userId: profile?.id, onChange: loadData });
 
-  const visibleTasks = useMemo(() => tasks.filter((task) => !activeExam || task.dersler?.sinav_turu === activeExam), [activeExam, tasks]);
+  const visibleTasks = tasks;
   const completedCount = visibleTasks.filter((task) => task.tamamlandi).length;
   const totalMinutes = visibleTasks.reduce((sum, task) => sum + taskDuration(task), 0);
   const progress = visibleTasks.length ? Math.round(completedCount / visibleTasks.length * 100) : 0;
@@ -150,9 +147,6 @@ export default function GunlukProgramPage() {
       <PageHeader title="Günlük Program" description="Günün çalışma akışını planla, tamamladıkça ilerlemeni anında gör." actions={<button className="study-button study-button-primary" onClick={openCreate}><Plus size={17} /> Görev ekle</button>} />
 
       <div className="daily-toolbar">
-        <div className="study-segments" aria-label="Sınav türü">
-          {examTabs.map((tab) => <button key={tab} className={activeExam === tab ? 'is-active' : ''} onClick={() => setActiveExam(tab)}>{tab}</button>)}
-        </div>
         <div className="daily-date-control">
           <button className="icon-button" onClick={() => shiftDay(-1)} aria-label="Önceki gün"><ChevronLeft size={19} /></button>
           <strong>{formatDate(selectedDate)}</strong>
@@ -174,7 +168,7 @@ export default function GunlukProgramPage() {
         <div className="study-summary-item"><span className="summary-icon"><ListChecks size={20} /></span><span className="summary-copy"><span>Tamamlanan görev</span><strong>{completedCount} / {visibleTasks.length}</strong></span></div>
       </div>
 
-      <DataState loading={loading} error={error} empty={!visibleTasks.length} emptyTitle={`${activeExam} için görev yok`} emptyText="Bu gün için ilk çalışma görevini ekleyebilirsin.">
+      <DataState loading={loading} error={error} empty={!visibleTasks.length} emptyTitle="Henüz görev eklenmedi" emptyText="Bu gün için ilk çalışma görevini ekleyebilirsin.">
         <section className="daily-timeline" aria-label="Günlük görevler">
           {visibleTasks.map((task) => {
             const resource = kaynaklar.find((item) => item.id === task.kaynak_id);
@@ -197,13 +191,13 @@ export default function GunlukProgramPage() {
         </section>
       </DataState>
 
-      <Modal open={modalOpen} onClose={() => !saving && setModalOpen(false)} title={editing ? 'Görevi düzenle' : 'Yeni görev'} description={`${formatDate(selectedDate)} · ${activeExam}`}>
+      <Modal open={modalOpen} onClose={() => !saving && setModalOpen(false)} title={editing ? 'Görevi düzenle' : 'Yeni görev'} description={formatDate(selectedDate)}>
         <form className="study-form" onSubmit={saveTask}>
           <div className="form-grid-2">
             <label>Başlangıç<input type="time" value={form.baslangic_saat} onChange={(event) => setForm({ ...form, baslangic_saat: event.target.value })} required /></label>
             <label>Bitiş<input type="time" value={form.bitis_saat} min={form.baslangic_saat} onChange={(event) => setForm({ ...form, bitis_saat: event.target.value })} required /></label>
           </div>
-          <label>Ders<Select ariaLabel="Ders" value={form.ders_id} onChange={(value) => setForm({ ...form, ders_id: value })} placeholder="Ders seç" options={dersler.filter((course) => course.sinav_turu === activeExam).map((course) => ({ value: course.id, label: course.ad }))} /></label>
+          <label>Ders<Select ariaLabel="Ders" value={form.ders_id} onChange={(value) => setForm({ ...form, ders_id: value })} placeholder="Ders seç" options={dersler.map((course) => ({ value: course.id, label: `${course.ad}${course.sinav_turu ? ` (${course.sinav_turu})` : ''}` }))} /></label>
           <label>Konu<input value={form.konu} onChange={(event) => setForm({ ...form, konu: event.target.value })} placeholder="Örn. Bölme ve bölünebilme" /></label>
           <label>Kaynak<Select ariaLabel="Kaynak" value={form.kaynak_id} onChange={(value) => setForm({ ...form, kaynak_id: value })} placeholder="Kaynak seç (isteğe bağlı)" options={[{ value: '', label: 'Kaynak seçilmesin' }, ...kaynaklar.map((resource) => ({ value: resource.id, label: resource.kaynaklar_sistem?.ad || resource.custom_ad }))]} /></label>
           <div className="form-grid-2">
