@@ -1,7 +1,5 @@
 import './globals.css';
 import './public.css';
-import { Analytics } from '@vercel/analytics/react';
-import { SpeedInsights } from '@vercel/speed-insights/next';
 import { GoogleAnalytics } from '@next/third-parties/google';
 import PostHogProvider from '@/components/analytics/PostHogProvider';
 
@@ -35,8 +33,6 @@ export default function RootLayout({ children }) {
       <body>
         <PostHogProvider>
           {children}
-          <Analytics />
-          <SpeedInsights />
           {gaId && <GoogleAnalytics gaId={gaId} />}
         </PostHogProvider>
       </body>
