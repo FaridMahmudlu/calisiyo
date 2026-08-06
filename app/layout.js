@@ -1,5 +1,9 @@
 import './globals.css';
 import './public.css';
+import { Analytics } from '@vercel/analytics/react';
+import { SpeedInsights } from '@vercel/speed-insights/next';
+import { GoogleAnalytics } from '@next/third-parties/google';
+import PostHogProvider from '@/components/analytics/PostHogProvider';
 
 export const metadata = {
   title: 'calisiyo – YKS Çalışma Koçu',
@@ -18,6 +22,8 @@ export const metadata = {
 };
 
 export default function RootLayout({ children }) {
+  const gaId = process.env.NEXT_PUBLIC_GA_MEASUREMENT_ID;
+
   return (
     <html lang="tr">
       <head>
@@ -26,7 +32,14 @@ export default function RootLayout({ children }) {
         <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
         <meta name="theme-color" content="#00a870" />
       </head>
-      <body>{children}</body>
+      <body>
+        <PostHogProvider>
+          {children}
+          <Analytics />
+          <SpeedInsights />
+          {gaId && <GoogleAnalytics gaId={gaId} />}
+        </PostHogProvider>
+      </body>
     </html>
   );
 }
