@@ -1,7 +1,7 @@
 const { test, expect } = require('@playwright/test');
 const path = require('path');
 
-const baseURL = process.env.BASE_URL || 'http://127.0.0.1:3100';
+const baseURL = process.env.BASE_URL || 'http://localhost:3000';
 const qaDir = path.resolve(__dirname, '..', 'design-references', 'qa');
 
 test('realistic demo account renders live dashboard and statistics', async ({ page }) => {
