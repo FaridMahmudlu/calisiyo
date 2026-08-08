@@ -32,10 +32,9 @@ export default function IletisimPage() {
             <strong>calisiyo</strong>, YKS hazırlık sürecindeki öğrencilere destek olmak amacıyla geliştirilmiş bireysel bir ed-tech projesidir.
           </p>
           <ul>
-            <li><strong>Proje Geliştiricisi & Veri Sorumlusu:</strong> Farid Mahmudlu</li>
+            <li><strong>Hizmet Sağlayıcı & Veri Sorumlusu:</strong> calisiyo Ekibi</li>
             <li><strong>Proje Adı:</strong> calisiyo – YKS Çalışma Koçu</li>
-            <li><strong>Resmi E-posta:</strong> <a href="mailto:destek@calisiyo.com">destek@calisiyo.com</a></li>
-            <li><strong>Destek E-posta:</strong> <a href="mailto:seid2008ferid@gmail.com">seid2008ferid@gmail.com</a></li>
+            <li><strong>Resmi İletişim E-posta:</strong> <a href="mailto:destek@calisiyo.com">destek@calisiyo.com</a></li>
             <li><strong>Web Sitesi:</strong> <a href="https://calisiyo-theta.vercel.app" target="_blank" rel="noopener noreferrer">https://calisiyo-theta.vercel.app</a></li>
           </ul>
 

@@ -29,7 +29,7 @@ export default function KvkkPage() {
         <section className="legal-content">
           <h2>1. Veri Sorumlusunun Kimliği</h2>
           <p>
-            6698 sayılı Kişisel Verilerin Korunması Kanunu (“KVKK”) uyarınca, <strong>calisiyo</strong> platformu kapsamında işlenen kişisel verileriniz bakımından veri sorumlusu, bireysel geliştirici ve veri sorumlusu sıfatıyla <strong>Farid Mahmudlu</strong>’dur.
+            6698 sayılı Kişisel Verilerin Korunması Kanunu (“KVKK”) uyarınca, <strong>calisiyo</strong> platformu kapsamında işlenen kişisel verileriniz bakımından veri sorumlusu sıfatıyla <strong>calisiyo Ekibi</strong> (“calisiyo”) olarak hareket edilmektedir.
           </p>
 
           <h2>2. İşlenen Kişisel Verileriniz ve Toplama Yöntemi</h2>
