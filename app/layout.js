@@ -1,5 +1,6 @@
 import './globals.css';
 import './public.css';
+import './landing-3d.css';
 import { GoogleAnalytics } from '@next/third-parties/google';
 import PostHogProvider from '@/components/analytics/PostHogProvider';
 
