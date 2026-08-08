@@ -6,124 +6,150 @@ import { useRouter } from 'next/navigation';
 import { FcGoogle } from 'react-icons/fc';
 import { createClient } from '@/lib/supabase/client';
 
-const PROVIDERS = [{ id: 'google', label: 'Google ile devam et', icon: FcGoogle }];
-
 export default function SocialAuthButtons({ intent = 'login', onError }) {
   const router = useRouter();
   const supabase = useMemo(() => createClient(), []);
   const googleButtonRef = useRef(null);
-  const [loadingProvider, setLoadingProvider] = useState('');
-  const [googleScriptReady, setGoogleScriptReady] = useState(false);
-  const [googleIdentityEnabled, setGoogleIdentityEnabled] = useState(false);
-  const [providerState, setProviderState] = useState({ loading: true, google: false });
+  const [loading, setLoading] = useState(false);
+  const [gisRendered, setGisRendered] = useState(false);
   const googleClientId = process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID;
 
-  useEffect(() => {
-    const timer = setTimeout(() => {
-      setGoogleIdentityEnabled(Boolean(googleClientId) && !['localhost', '127.0.0.1'].includes(window.location.hostname));
-    }, 0);
-    return () => clearTimeout(timer);
-  }, [googleClientId]);
-
-  useEffect(() => {
-    let active = true;
-    fetch('/api/auth/providers', { cache: 'no-store' })
-      .then((response) => response.json())
-      .then(({ providers }) => {
-        if (active) setProviderState({ loading: false, google: Boolean(providers?.google) });
-      })
-      .catch(() => {
-        if (active) setProviderState({ loading: false, google: false });
-      });
-    return () => { active = false; };
-  }, []);
-
-  const finishGoogleIdentity = useCallback(async ({ credential }) => {
+  // Handle GIS One-Tap / ID Token callback
+  const handleGoogleIdToken = useCallback(async ({ credential }) => {
     if (!credential) {
+      console.error('[Google Auth]: ID token credential was empty.');
       onError?.('Google oturumu başlatılamadı. E-posta ile devam edebilirsin.');
       return;
     }
-    setLoadingProvider('google');
+    setLoading(true);
     onError?.('');
-    const { data, error } = await supabase.auth.signInWithIdToken({ provider: 'google', token: credential });
-    if (error) {
-      setLoadingProvider('');
-      onError?.('Google ile giriş tamamlanamadı. Lütfen tekrar dene.');
-      return;
+
+    try {
+      const { data, error } = await supabase.auth.signInWithIdToken({
+        provider: 'google',
+        token: credential,
+      });
+
+      if (error) {
+        console.error('[Google Auth Error]: signInWithIdToken failed', error);
+        setLoading(false);
+        onError?.('Google ile giriş tamamlanamadı. Lütfen tekrar dene.');
+        return;
+      }
+
+      const hasField = Boolean(data.user?.user_metadata?.alan_secimi);
+      router.replace(intent === 'signup' || !hasField ? '/profilini-tamamla' : '/dashboard');
+    } catch (err) {
+      console.error('[Google Auth Exception]:', err);
+      setLoading(false);
+      onError?.('Bir hata oluştu. Lütfen tekrar dene.');
     }
-    const hasField = Boolean(data.user?.user_metadata?.alan_secimi);
-    router.replace(intent === 'signup' || !hasField ? '/profilini-tamamla' : '/dashboard');
   }, [intent, onError, router, supabase]);
 
-  useEffect(() => {
-    if (!googleIdentityEnabled || !googleScriptReady || !providerState.google || !googleButtonRef.current || !window.google?.accounts?.id) return;
-    googleButtonRef.current.replaceChildren();
-    window.google.accounts.id.initialize({
-      client_id: googleClientId,
-      callback: finishGoogleIdentity,
-      context: intent === 'signup' ? 'signup' : 'signin',
-      itp_support: true,
-      use_fedcm_for_prompt: true,
-    });
-    window.google.accounts.id.renderButton(googleButtonRef.current, {
-      type: 'standard',
-      theme: 'outline',
-      size: 'large',
-      text: 'continue_with',
-      shape: 'rectangular',
-      logo_alignment: 'left',
-      width: Math.max(260, Math.floor(googleButtonRef.current.getBoundingClientRect().width)),
-    });
-  }, [finishGoogleIdentity, googleClientId, googleIdentityEnabled, googleScriptReady, intent, providerState.google]);
-
-  const startOAuth = async (provider) => {
-    if (!providerState[provider]) {
-      onError?.('Google ile giriş hazırlanıyor. Şimdilik e-posta ile hemen devam edebilirsin.');
+  // Try initializing GIS button when script is available
+  const initGisButton = useCallback(() => {
+    if (!googleClientId || !googleButtonRef.current || !window.google?.accounts?.id) {
       return;
     }
-    setLoadingProvider(provider);
+
+    try {
+      googleButtonRef.current.replaceChildren();
+      window.google.accounts.id.initialize({
+        client_id: googleClientId,
+        callback: handleGoogleIdToken,
+        context: intent === 'signup' ? 'signup' : 'signin',
+        itp_support: true,
+        use_fedcm_for_prompt: true,
+      });
+
+      window.google.accounts.id.renderButton(googleButtonRef.current, {
+        type: 'standard',
+        theme: 'outline',
+        size: 'large',
+        text: 'continue_with',
+        shape: 'rectangular',
+        logo_alignment: 'left',
+        width: Math.max(280, Math.floor(googleButtonRef.current.getBoundingClientRect().width || 280)),
+      });
+
+      setGisRendered(true);
+    } catch (err) {
+      console.warn('[Google Auth]: GIS render fallbacked to OAuth button', err);
+      setGisRendered(false);
+    }
+  }, [googleClientId, handleGoogleIdToken, intent]);
+
+  useEffect(() => {
+    if (typeof window !== 'undefined' && window.google?.accounts?.id) {
+      const timer = setTimeout(() => {
+        initGisButton();
+      }, 0);
+      return () => clearTimeout(timer);
+    }
+  }, [initGisButton]);
+
+  // Standard OAuth Fallback Trigger
+  const startStandardGoogleOAuth = async () => {
+    setLoading(true);
     onError?.('');
 
-    const callback = new URL('/auth/callback', window.location.origin);
-    callback.searchParams.set(
-      'next',
-      intent === 'signup' ? '/profilini-tamamla' : '/dashboard'
-    );
+    try {
+      const callback = new URL('/auth/callback', window.location.origin);
+      callback.searchParams.set(
+        'next',
+        intent === 'signup' ? '/profilini-tamamla' : '/dashboard'
+      );
 
-    const { error } = await supabase.auth.signInWithOAuth({
-      provider,
-      options: { redirectTo: callback.toString() },
-    });
+      const { error } = await supabase.auth.signInWithOAuth({
+        provider: 'google',
+        options: { redirectTo: callback.toString() },
+      });
 
-    if (error) {
-      const message = /provider|enabled|unsupported/i.test(error.message)
-        ? 'Google ile giriş şu anda kullanılamıyor. E-posta ile devam edebilirsin.'
-        : error.message;
-      onError?.(message);
-      setLoadingProvider('');
+      if (error) {
+        console.error('[Google OAuth Error]:', error);
+        const message = /provider|enabled|unsupported/i.test(error.message)
+          ? 'Google ile giriş şu anda kullanılamıyor. E-posta ile devam edebilirsin.'
+          : error.message;
+        onError?.(message);
+        setLoading(false);
+      }
+    } catch (err) {
+      console.error('[Google OAuth Exception]:', err);
+      onError?.('Google yönlendirmesi sırasında bir hata oluştu.');
+      setLoading(false);
     }
   };
 
   return (
-    <div className="social-auth" aria-label="Sosyal hesap ile devam et">
-      {googleIdentityEnabled && <Script src="https://accounts.google.com/gsi/client" strategy="afterInteractive" onLoad={() => setGoogleScriptReady(true)} />}
-      {googleIdentityEnabled && providerState.google ? (
-        <div className={`google-identity-button ${loadingProvider ? 'is-loading' : ''}`} ref={googleButtonRef} aria-label="Google ile devam et" />
-      ) : PROVIDERS.map(({ id, label, icon: Icon }) => (
+    <div className="social-auth" aria-label="Google ile devam et">
+      {/* Load GIS script asynchronously */}
+      {googleClientId && (
+        <Script
+          src="https://accounts.google.com/gsi/client"
+          strategy="afterInteractive"
+          onLoad={initGisButton}
+          onError={() => console.warn('[Google Auth]: GIS script failed to load, using OAuth fallback.')}
+        />
+      )}
+
+      {/* GIS container slot */}
+      <div
+        ref={googleButtonRef}
+        className="google-identity-button"
+        style={{ display: gisRendered ? 'block' : 'none' }}
+      />
+
+      {/* Standard Google Button (Always visible on first paint & fallback) */}
+      {!gisRendered && (
         <button
           className="social-auth-button"
-          disabled={providerState.loading || Boolean(loadingProvider)}
-          key={id}
-          onClick={() => startOAuth(id)}
+          disabled={loading}
+          onClick={startStandardGoogleOAuth}
           type="button"
         >
-          <Icon aria-hidden="true" size={20} />
-          <span>{loadingProvider === id ? 'Yönlendiriliyor…' : label}</span>
-          {!providerState.loading && !providerState[id] && <small>Yakında</small>}
+          <FcGoogle aria-hidden="true" size={20} />
+          <span>{loading ? 'Yönlendiriliyor…' : 'Google ile devam et'}</span>
         </button>
-      ))}
-      {!providerState.loading && !providerState.google && (
-        <p className="social-auth-note">E-posta ile hesap oluşturma ve giriş kullanıma hazır.</p>
       )}
     </div>
   );

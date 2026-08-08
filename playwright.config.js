@@ -10,7 +10,14 @@ module.exports = defineConfig({
   timeout: 240000,
   outputDir: './tmp/playwright-results',
   use: {
+    baseURL: 'http://localhost:3000',
     trace: 'retain-on-failure',
     screenshot: 'only-on-failure',
+  },
+  webServer: {
+    command: 'npm run start',
+    url: 'http://localhost:3000',
+    reuseExistingServer: true,
+    timeout: 120000,
   },
 });
