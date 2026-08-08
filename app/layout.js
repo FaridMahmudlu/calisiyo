@@ -5,7 +5,7 @@ import { GoogleAnalytics } from '@next/third-parties/google';
 import PostHogProvider from '@/components/analytics/PostHogProvider';
 
 export const metadata = {
-  metadataBase: new URL(process.env.NEXT_PUBLIC_SITE_URL || 'https://calisiyo.vercel.app'),
+  metadataBase: new URL(process.env.NEXT_PUBLIC_SITE_URL || 'https://calisiyo-theta.vercel.app'),
   title: 'calisiyo – YKS Çalışma Koçu',
   description: 'TYT, AYT ve YDT hazırlık sürecini günlük plan, konu takibi, deneme analizi ve çalışma araçlarıyla yönet.',
   keywords: 'YKS, TYT, AYT, YDT, çalışma programı, deneme analizi, konu takibi',
@@ -23,7 +23,7 @@ export const metadata = {
   openGraph: {
     title: 'calisiyo – YKS Çalışma Koçu',
     description: 'TYT, AYT ve YDT hazırlık sürecini günlük plan, konu takibi, deneme analizi ve çalışma araçlarıyla yönet.',
-    url: 'https://calisiyo.vercel.app',
+    url: 'https://calisiyo-theta.vercel.app',
     siteName: 'calisiyo',
     images: [
       {
@@ -46,6 +46,41 @@ export const metadata = {
 
 export default function RootLayout({ children }) {
   const gaId = process.env.NEXT_PUBLIC_GA_MEASUREMENT_ID;
+  const baseUrl = process.env.NEXT_PUBLIC_SITE_URL || 'https://calisiyo-theta.vercel.app';
+
+  const jsonLd = {
+    '@context': 'https://schema.org',
+    '@graph': [
+      {
+        '@type': 'WebSite',
+        '@id': `${baseUrl}/#website`,
+        'url': baseUrl,
+        'name': 'calisiyo',
+        'description': 'YKS hazırlığını net bir çalışma yoluna dönüştür.',
+        'inLanguage': 'tr-TR',
+      },
+      {
+        '@type': 'Organization',
+        '@id': `${baseUrl}/#organization`,
+        'name': 'calisiyo',
+        'url': baseUrl,
+        'logo': `${baseUrl}/brand/calisiyo-logo.svg`,
+        'sameAs': [],
+      },
+      {
+        '@type': 'SoftwareApplication',
+        '@id': `${baseUrl}/#application`,
+        'name': 'calisiyo – YKS Çalışma Koçu',
+        'operatingSystem': 'Web',
+        'applicationCategory': 'EducationalApplication',
+        'offers': {
+          '@type': 'Offer',
+          'price': '0',
+          'priceCurrency': 'TRY',
+        },
+      },
+    ],
+  };
 
   return (
     <html lang="tr">
@@ -54,6 +89,10 @@ export default function RootLayout({ children }) {
         <link rel="preconnect" href="https://fonts.googleapis.com" />
         <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
         <meta name="theme-color" content="#00a870" />
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
+        />
       </head>
       <body>
         <PostHogProvider>

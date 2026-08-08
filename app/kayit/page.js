@@ -27,6 +27,7 @@ export default function KayitPage() {
       if (form.fullName.trim().length < 2) return setError('Ad soyad alanını doldurmalısın.');
       if (form.password.length < 8) return setError('Şifre en az 8 karakter olmalıdır.');
       if (form.password !== form.confirmPassword) return setError('Şifreler birbiriyle eşleşmiyor.');
+      if (!form.consent) return setError('Devam etmek için üyelik şartlarını kabul etmelisin.');
       setStep(2);
       return;
     }
@@ -106,6 +107,14 @@ export default function KayitPage() {
                 <label>E-posta<div><Mail size={17} /><input type="email" value={form.email} onChange={(event) => setForm({ ...form, email: event.target.value })} autoComplete="email" required /></div></label>
                 <label>Şifre<div><Lock size={17} /><input type={showPassword ? 'text' : 'password'} minLength="8" value={form.password} onChange={(event) => setForm({ ...form, password: event.target.value })} autoComplete="new-password" required /><button type="button" onClick={() => setShowPassword((value) => !value)} aria-label={showPassword ? 'Şifreyi gizle' : 'Şifreyi göster'}>{showPassword ? <EyeOff size={17} /> : <Eye size={17} />}</button></div><small className="auth-help">En az 8 karakter kullan.</small></label>
                 <label>Şifreyi doğrula<div><Lock size={17} /><input type={showPassword ? 'text' : 'password'} minLength="8" value={form.confirmPassword} onChange={(event) => setForm({ ...form, confirmPassword: event.target.value })} autoComplete="new-password" required /></div></label>
+                <label className="auth-checkbox-label" style={{ display: 'flex', alignItems: 'flex-start', gap: '9px', fontSize: '0.72rem', color: '#52685f', cursor: 'pointer', marginTop: '4px' }}>
+                  <input type="checkbox" checked={form.consent || false} onChange={(e) => setForm({ ...form, consent: e.target.checked })} required style={{ width: '16px', height: '16px', marginTop: '2px', accentColor: '#00a870' }} />
+                  <span>
+                    <Link href="/kullanim-sartlari" target="_blank" style={{ color: '#00a870', textDecoration: 'underline' }}>Kullanım Şartları</Link>’nı,{' '}
+                    <Link href="/gizlilik" target="_blank" style={{ color: '#00a870', textDecoration: 'underline' }}>Gizlilik Politikası</Link>’nı ve{' '}
+                    <Link href="/kvkk" target="_blank" style={{ color: '#00a870', textDecoration: 'underline' }}>KVKK Aydınlatma Metni</Link>’ni okudum, kabul ediyorum.
+                  </span>
+                </label>
               </>
             ) : (
               <div className="signup-fields">

@@ -304,6 +304,12 @@ export default function Landing3DExperience() {
                 <Link key={link.href} href={link.href}>{link.label}</Link>
               ))}
             </div>
+            <div>
+              <strong>Yasal & İletişim</strong>
+              {FOOTER.legalLinks.map((link) => (
+                <Link key={link.href} href={link.href}>{link.label}</Link>
+              ))}
+            </div>
             <small>{FOOTER.copyright}</small>
           </div>
         </footer>

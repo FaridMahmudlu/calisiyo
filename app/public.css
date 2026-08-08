@@ -97,7 +97,7 @@
 .landing-final-cta h2 { max-width: 760px; margin: 18px auto 11px; font-size: clamp(2.6rem, 5vw, 5rem); line-height: 1; letter-spacing: -.06em; }
 .landing-final-cta p { max-width: 650px; margin: 0 auto 28px; color: #62776e; line-height: 1.7; }
 .story-footer { padding: 70px 0 32px; border-top: 1px solid #dfe8e4; background: #fff; }
-.footer-grid { display: grid; grid-template-columns: 1.5fr .7fr .7fr; gap: 60px; }
+.footer-grid { display: grid; grid-template-columns: 1.4fr .7fr .7fr 1fr; gap: 40px; }
 .footer-grid > div { display: flex; flex-direction: column; align-items: flex-start; gap: 9px; }
 .footer-grid > div:first-child p { max-width: 330px; color: #687d74; font-size: .72rem; line-height: 1.6; }
 .footer-grid strong { margin-bottom: 5px; font-size: .7rem; }
@@ -236,3 +236,68 @@
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { scroll-behavior: auto !important; animation-duration: .01ms !important; animation-iteration-count: 1 !important; transition-duration: .01ms !important; }
 }
+
+/* ═══════════════════════════════════════════
+   LEGAL PAGES STYLES
+   ═══════════════════════════════════════════ */
+
+.legal-shell {
+  max-width: 900px;
+  margin: 140px auto 80px;
+  padding: 40px;
+  border: 1px solid #dfe9e5;
+  border-radius: 24px;
+  background: #ffffff;
+  box-shadow: 0 10px 40px rgba(16, 37, 31, 0.04);
+}
+
+.legal-shell h1 {
+  margin: 12px 0 6px;
+  font-size: clamp(2rem, 3.5vw, 2.8rem);
+  letter-spacing: -.04em;
+  color: #10251f;
+}
+
+.legal-subtitle {
+  color: #657970;
+  font-size: 0.85rem;
+  font-weight: 600;
+}
+
+.legal-divider {
+  margin: 24px 0 32px;
+  border: 0;
+  height: 1px;
+  background: #e2ede8;
+}
+
+.legal-content h2 {
+  margin: 28px 0 12px;
+  font-size: 1.35rem;
+  color: #07875f;
+  letter-spacing: -.02em;
+}
+
+.legal-content p, .legal-content li {
+  color: #3d564e;
+  font-size: 0.92rem;
+  line-height: 1.75;
+}
+
+.legal-content ul {
+  margin: 12px 0 20px 24px;
+  display: grid;
+  gap: 8px;
+}
+
+.legal-content a {
+  color: #00a870;
+  font-weight: 700;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+.legal-content a:hover {
+  color: #07875f;
+}
+

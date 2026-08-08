@@ -146,5 +146,11 @@ export const FOOTER = {
     { label: 'Giriş yap', href: '/giris', internal: true },
     { label: 'Ücretsiz hesap oluştur', href: '/kayit', internal: true },
   ],
+  legalLinks: [
+    { label: 'Gizlilik Politikası', href: '/gizlilik', internal: true },
+    { label: 'KVKK Aydınlatma Metni', href: '/kvkk', internal: true },
+    { label: 'Kullanım Şartları', href: '/kullanim-sartlari', internal: true },
+    { label: 'İletişim', href: '/iletisim', internal: true },
+  ],
   copyright: '© 2026 calisiyo · YKS Çalışma Koçu',
 };
