@@ -115,40 +115,26 @@
 .calisiyo-logo {
   display: inline-flex;
   align-items: center;
-  gap: .5em;
   color: inherit;
   line-height: 1;
 }
 
-.calisiyo-logo-mark {
-  width: 1.72em;
-  height: 1.72em;
-  flex: 0 0 auto;
-  display: inline-flex;
-  filter: drop-shadow(0 5px 10px rgba(0, 168, 112, .14));
-  transition: transform .22s cubic-bezier(.22, 1, .36, 1), filter .22s ease;
-}
-
-.calisiyo-logo-mark-image {
-  width: 100%;
-  height: 100%;
+.calisiyo-logo-image {
+  width: auto;
+  height: 2.2rem;
+  max-height: 38px;
+  object-fit: contain;
   display: block;
+  transition: transform .22s cubic-bezier(.22, 1, .36, 1);
 }
 
-.calisiyo-logo-wordmark {
-  color: currentColor;
-  font-weight: 800;
-  letter-spacing: -.058em;
-}
-
-a:hover > .calisiyo-logo .calisiyo-logo-mark,
-a:focus-visible > .calisiyo-logo .calisiyo-logo-mark {
-  filter: drop-shadow(0 7px 14px rgba(0, 168, 112, .2));
-  transform: translateY(-1px) rotate(-2deg);
+a:hover > .calisiyo-logo .calisiyo-logo-image,
+a:focus-visible > .calisiyo-logo .calisiyo-logo-image {
+  transform: translateY(-1px);
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .calisiyo-logo-mark { transition: none; }
+  .calisiyo-logo-image { transition: none; }
 }
 
 html {
