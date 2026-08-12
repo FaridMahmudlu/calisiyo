@@ -1,65 +1,66 @@
 'use client';
 
-import { useMemo } from 'react';
-import Image from 'next/image';
-import { Avatar, Style } from '@dicebear/core';
-import adventurer from '@dicebear/styles/adventurer.json';
-
-const avatarStyle = new Style(adventurer);
-
-export const AVATAR_OPTIONS = {
-  hair: [
-    'short01', 'short02', 'short03', 'short04', 'short05', 'short06',
-    'short07', 'short08', 'short09', 'short10', 'long01', 'long02',
-    'long03', 'long04', 'long05', 'long06',
-  ],
-  skin: ['f2d3b1', 'ecad80', '9e5622', '763900'],
-  hairColor: ['0e0e0e', 'e5d7a3', 'b9a05f', '796a45', '6a4e35', '562306', 'afafaf', '85c2c6', 'dba3be', '592454', 'ac6511', 'cb6820'],
-  background: ['e8f7f1', 'eaf2ff', 'fff1df', 'f0ebff', 'ffe9ef', 'e8f4f8'],
-  glasses: ['none', 'variant01', 'variant02', 'variant03', 'variant04', 'variant05'],
-  expression: ['variant01', 'variant05', 'variant10', 'variant14', 'variant18', 'variant22'],
+const SPRITE_MODELS = {
+  navy: {
+    label: 'Deniz',
+    description: 'Lacivert kapüşonlu, enerjik ve sakin',
+    src: '/assets/classroom/sprites/student-navy-v1.webp',
+    ratio: 2,
+  },
+  sage: {
+    label: 'Ada',
+    description: 'Adaçayı tonları, sıcak ve dengeli',
+    src: '/assets/classroom/sprites/student-sage-v1.webp',
+    ratio: 1.5,
+  },
+  rust: {
+    label: 'Emir',
+    description: 'Kiremit sweatshirt, meraklı ve düzenli',
+    src: '/assets/classroom/sprites/student-rust-v1.webp',
+    ratio: 1,
+  },
 };
 
-export const DEFAULT_AVATAR = {
-  seed: 'calisiyo-student',
-  hair: 'short01',
-  skin: 'f2d3b1',
-  hairColor: '0e0e0e',
-  background: 'e8f7f1',
-  glasses: 'none',
-  expression: 'variant01',
+const DIRECTION_FRAME = {
+  south: [0, 0], south_west: [1, 0], west: [2, 0], north_west: [3, 0],
+  north: [0, 1], north_east: [1, 1], east: [2, 1], south_east: [3, 1],
 };
 
-export function buildAvatarDataUri(input = DEFAULT_AVATAR) {
-  const avatar = { ...DEFAULT_AVATAR, ...input };
-  return new Avatar(avatarStyle, {
-    seed: avatar.seed,
-    hairVariant: avatar.hair,
-    skinColor: avatar.skin,
-    hairColor: avatar.hairColor,
-    backgroundColor: avatar.background,
-    mouthVariant: avatar.expression,
-    glassesVariant: avatar.glasses === 'none' ? 'variant01' : avatar.glasses,
-    glassesProbability: avatar.glasses === 'none' ? 0 : 100,
-    earringsProbability: 0,
-    detailsProbability: 0,
-    size: 160,
-    borderRadius: 28,
-  }).toDataUri();
-}
+export const AVATAR_MODELS = SPRITE_MODELS;
+export const DEFAULT_AVATAR = { model: 'navy' };
 
-export default function ClassroomAvatar({ avatar, name, size = 80, priority = false, className = '' }) {
-  const source = useMemo(() => buildAvatarDataUri(avatar), [avatar]);
+export default function ClassroomAvatar({ avatar, name, size = 80, facing = 'south', moving = false, className = '' }) {
+  const modelKey = SPRITE_MODELS[avatar?.model] ? avatar.model : 'navy';
+  const model = SPRITE_MODELS[modelKey];
+  const [column, row] = DIRECTION_FRAME[facing] || DIRECTION_FRAME.south;
+  const sheetHeight = size * 2;
+  const sheetWidth = sheetHeight * model.ratio;
+  const frameWidth = sheetWidth / 4;
+
   return (
-    <Image
-      className={className}
-      src={source}
-      alt={`${name || 'Öğrenci'} karakteri`}
-      width={size}
-      height={size}
-      unoptimized
-      priority={priority}
-      draggable={false}
-    />
+    <span
+      className={`classroom-sprite sprite-${modelKey} ${moving ? 'is-moving' : ''} ${className}`}
+      role="img"
+      aria-label={`${name || 'Öğrenci'} karakteri, ${model.label} görünümü`}
+      style={{ width: size, height: size }}
+    >
+      <span className="classroom-sprite-frame" style={{ width: frameWidth, height: size }}>
+        {/* Generated project asset; the clipped atlas frame changes with movement direction. */}
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img
+          src={model.src}
+          alt=""
+          draggable="false"
+          width={Math.round(sheetWidth)}
+          height={Math.round(sheetHeight)}
+          style={{
+            width: sheetWidth,
+            height: sheetHeight,
+            left: -(column * frameWidth),
+            top: -(row * size),
+          }}
+        />
+      </span>
+    </span>
   );
 }

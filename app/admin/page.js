@@ -5,7 +5,7 @@ import {
   Activity, AlertTriangle, ArrowUpRight, Ban, BarChart3,
   BellRing, CheckCircle2, Clock3, FileText, Gauge,
   GraduationCap, MessageSquarePlus, RefreshCw, Search, Send, ShieldCheck,
-  Sparkles, Target, UserCheck, UsersRound,
+  Sparkles, Target, UserCheck, UsersRound, Volume2, VolumeX,
 } from 'lucide-react';
 import {
   Area, AreaChart, CartesianGrid, ResponsiveContainer,
@@ -35,6 +35,13 @@ const ROLE_OPTIONS = [
 const AUDIENCE_OPTIONS = [
   { value: 'all', label: 'Tüm aktif hesaplar', description: 'Yöneticiler dahil tüm aktif kullanıcılar' },
   { value: 'active_students', label: 'Yalnızca öğrenciler', description: 'Yönetim rolü olmayan aktif kullanıcılar' },
+];
+const MODERATION_DURATIONS = [
+  { value: '15', label: '15 dakika', description: 'Kısa süreli uyarı' },
+  { value: '60', label: '1 saat', description: 'Geçici erişim kısıtı' },
+  { value: '1440', label: '24 saat', description: 'Bir günlük kısıt' },
+  { value: '10080', label: '7 gün', description: 'Uzun süreli inceleme' },
+  { value: '43200', label: '30 gün', description: 'Ciddi ihlal' },
 ];
 
 const number = (value) => Number(value || 0).toLocaleString('tr-TR');
@@ -66,6 +73,9 @@ export default function AdminPage() {
   const [detail, setDetail] = useState(null);
   const [detailLoading, setDetailLoading] = useState(false);
   const [statusReason, setStatusReason] = useState('');
+  const [moderation, setModeration] = useState(null);
+  const [moderationDuration, setModerationDuration] = useState('1440');
+  const [moderationClock, setModerationClock] = useState(() => Date.now());
   const [selectedRole, setSelectedRole] = useState('student');
   const [adminNote, setAdminNote] = useState('');
   const [actionBusy, setActionBusy] = useState('');
@@ -83,6 +93,8 @@ export default function AdminPage() {
   }, [range, supabase]);
 
   const loadUsers = useCallback(async (targetPage = 1, query = '') => {
+    const { error: cleanupError } = await supabase.rpc('admin_cleanup_expired_moderation');
+    if (cleanupError) throw cleanupError;
     const { data, error } = await supabase.rpc('admin_list_users', {
       p_search: query || null,
       p_page: targetPage,
@@ -133,6 +145,11 @@ export default function AdminPage() {
     return () => { supabase.removeChannel(channel); };
   }, [loadActivity, loadOverview, supabase]);
 
+  useEffect(() => {
+    const timer = window.setInterval(() => setModerationClock(Date.now()), 30000);
+    return () => window.clearInterval(timer);
+  }, []);
+
   const runSearch = async (event) => {
     event.preventDefault();
     setPage(1);
@@ -149,25 +166,32 @@ export default function AdminPage() {
     setSelectedRole(userItem.role || 'student');
     setStatusReason(userItem.statusReason || '');
     setDetail(null);
+    setModeration(null);
     setDetailLoading(true);
-    const { data, error } = await supabase.rpc('admin_get_user_detail', { p_user_id: userItem.id });
+    const [{ data, error }, { data: moderationData, error: moderationError }] = await Promise.all([
+      supabase.rpc('admin_get_user_detail', { p_user_id: userItem.id }),
+      supabase.rpc('admin_get_user_moderation', { p_user_id: userItem.id }),
+    ]);
     setDetailLoading(false);
     if (error) showNotice('error', error.message || 'Kullanıcı detayı yüklenemedi.');
-    else setDetail(data);
+    else { setDetail(data); setModeration(moderationError ? null : moderationData); }
   };
 
-  const setUserStatus = async (nextStatus) => {
+  const moderateUser = async (action) => {
     if (!selected) return;
-    setActionBusy('status');
-    const { error } = await supabase.rpc('admin_set_user_status', {
+    setActionBusy(action);
+    const { data, error } = await supabase.rpc('admin_moderate_user', {
       p_user_id: selected.id,
-      p_status: nextStatus,
-      p_reason: nextStatus === 'suspended' ? statusReason : null,
+      p_action: action,
+      p_duration_minutes: ['suspend', 'mute'].includes(action) ? Number(moderationDuration) : null,
+      p_reason: ['suspend', 'mute'].includes(action) ? statusReason : null,
     });
     setActionBusy('');
     if (error) { showNotice('error', error.message); return; }
-    showNotice('success', nextStatus === 'suspended' ? 'Hesap güvenli şekilde askıya alındı.' : 'Hesap yeniden etkinleştirildi.');
-    setSelected(null);
+    const messages = { suspend: 'Hesap seçilen süre boyunca askıya alındı.', activate: 'Hesap yeniden etkinleştirildi.', mute: 'Sosyal iletişim seçilen süre boyunca sınırlandı.', unmute: 'İletişim kısıtı kaldırıldı.' };
+    showNotice('success', messages[action]);
+    setModeration((current) => ({ ...current, status: action === 'suspend' ? 'suspended' : action === 'activate' ? 'active' : current?.status, suspendedUntil: action === 'suspend' ? data?.until : action === 'activate' ? null : current?.suspendedUntil, mutedUntil: action === 'mute' ? data?.until : action === 'unmute' ? null : current?.mutedUntil, statusReason: action === 'suspend' ? statusReason : action === 'activate' ? null : current?.statusReason, muteReason: action === 'mute' ? statusReason : action === 'unmute' ? null : current?.muteReason }));
+    setStatusReason('');
     await Promise.all([loadUsers(), loadOverview(), loadActivity()]);
   };
 
@@ -280,9 +304,10 @@ export default function AdminPage() {
       <Modal open={Boolean(selected)} onClose={() => setSelected(null)} title={selected?.name || 'Kullanıcı'} description={selected?.email} size="lg">
         {detailLoading ? <div className="admin-detail-loading"><RefreshCw className="is-spinning" size={22} /> Kullanıcı bilgileri hazırlanıyor…</div> : detail && (
           <div className="admin-user-detail">
-            <section className="user-detail-summary"><div><span className="admin-user-avatar large">{String(selected.name || 'Ö').charAt(0)}</span><div><strong>{selected.name}</strong><small>{selected.field?.replace('_', ' ') || 'Alan seçilmedi'} · {dateTime(selected.createdAt)} tarihinde katıldı</small></div></div><span className={`account-status is-${selected.status}`}>{selected.status === 'active' ? 'Aktif hesap' : 'Askıda'}</span></section>
+            <section className="user-detail-summary"><div><span className="admin-user-avatar large">{String(selected.name || 'Ö').charAt(0)}</span><div><strong>{selected.name}</strong><small>{selected.field?.replace('_', ' ') || 'Alan seçilmedi'} · {dateTime(selected.createdAt)} tarihinde katıldı</small></div></div><span className={`account-status is-${moderation?.status || selected.status}`}>{(moderation?.status || selected.status) === 'active' ? 'Aktif hesap' : 'Askıda'}</span></section>
             <section className="detail-metrics">{[['Toplam çalışma', minutes(selected.studyMinutes)], ['Soru', number(selected.questions)], ['Seri', `${selected.streak} gün`], ['Seviye', `${selected.level} · ${number(selected.xp)} XP`], ['Arkadaş', number(selected.friends)], ['Sınıf', number(selected.groups)]].map(([label, value]) => <div key={label}><span>{label}</span><strong>{value}</strong></div>)}</section>
-            <section className="detail-management"><div><h3>Hesap erişimi</h3><p>Askıya alınan hesap uygulama verilerine RLS seviyesinde erişemez.</p></div>{selected.status === 'active' ? <div className="suspend-control"><textarea value={statusReason} onChange={(event) => setStatusReason(event.target.value)} maxLength={240} placeholder="Askıya alma nedeni (zorunlu)" /><button onClick={() => setUserStatus('suspended')} disabled={!statusReason.trim() || actionBusy === 'status'}><Ban size={16} /> Hesabı askıya al</button></div> : <button className="reactivate-button" onClick={() => setUserStatus('active')} disabled={actionBusy === 'status'}><UserCheck size={16} /> Hesabı yeniden etkinleştir</button>}</section>
+            <section className="detail-management moderation-management"><div><h3>Hesap erişimi</h3><p>Askıya alma seçilen sürenin sonunda otomatik biter ve RLS erişimi yeniden açılır.{moderation?.suspendedUntil ? ` Bitiş: ${dateTime(moderation.suspendedUntil)}` : ''}</p></div>{moderation?.status === 'suspended' && (!moderation.suspendedUntil || Date.parse(moderation.suspendedUntil) > moderationClock) ? <button className="reactivate-button" onClick={() => moderateUser('activate')} disabled={actionBusy === 'activate'}><UserCheck size={16} /> Hesabı şimdi etkinleştir</button> : <div className="moderation-action-grid"><Select value={moderationDuration} onChange={setModerationDuration} options={MODERATION_DURATIONS} ariaLabel="Askıya alma süresi" /><textarea value={statusReason} onChange={(event) => setStatusReason(event.target.value)} maxLength={240} placeholder="İşlem nedeni (zorunlu)" /><button onClick={() => moderateUser('suspend')} disabled={!statusReason.trim() || actionBusy === 'suspend'}><Ban size={16} /> Süreli askıya al</button></div>}</section>
+            <section className="detail-management moderation-management"><div><h3>Sosyal iletişim</h3><p>Susturulan kullanıcı sınıf sohbeti, tepkiler ve ortak odak başlatma araçlarını kullanamaz.{moderation?.mutedUntil ? ` Bitiş: ${dateTime(moderation.mutedUntil)}` : ''}</p></div>{moderation?.mutedUntil && Date.parse(moderation.mutedUntil) > moderationClock ? <button className="reactivate-button" onClick={() => moderateUser('unmute')} disabled={actionBusy === 'unmute'}><Volume2 size={16} /> Susturmayı kaldır</button> : <div className="moderation-action-grid"><Select value={moderationDuration} onChange={setModerationDuration} options={MODERATION_DURATIONS} ariaLabel="Susturma süresi" /><textarea value={statusReason} onChange={(event) => setStatusReason(event.target.value)} maxLength={240} placeholder="Susturma nedeni (zorunlu)" /><button onClick={() => moderateUser('mute')} disabled={!statusReason.trim() || actionBusy === 'mute'}><VolumeX size={16} /> Süreli sustur</button></div>}</section>
             {role === 'super_admin' && <section className="detail-management"><div><h3>Yönetim rolü</h3><p>En az yetki ilkesine göre yalnızca gerekli rolü verin.</p></div><div className="role-control"><Select value={selectedRole} onChange={setSelectedRole} options={ROLE_OPTIONS} ariaLabel="Kullanıcı rolü" /><button onClick={saveRole} disabled={actionBusy === 'role'}>Rolü kaydet</button></div></section>}
             {role !== 'moderator' && <section className="detail-notes"><header><div><h3>Yönetici notları</h3><p>Bu notlar kullanıcıya gösterilmez.</p></div><MessageSquarePlus size={18} /></header><form onSubmit={addNote}><textarea value={adminNote} onChange={(event) => setAdminNote(event.target.value)} minLength={2} maxLength={1000} placeholder="İç ekip için güvenli bir not ekle…" /><button disabled={actionBusy === 'note'}>Not ekle</button></form><div>{(detail.notes || []).map((note) => <article key={note.id}><p>{note.note}</p><small>{note.authorName || 'Yönetici'} · {dateTime(note.createdAt)}</small></article>)}</div></section>}
           </div>

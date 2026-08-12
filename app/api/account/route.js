@@ -70,7 +70,9 @@ export async function GET() {
     profile = repairedProfile;
   }
 
-  if (profile.account_status === 'suspended') {
+  const suspensionActive = profile.account_status === 'suspended'
+    && (!profile.suspended_until || Date.parse(profile.suspended_until) > Date.now());
+  if (suspensionActive) {
     return Response.json({
       ok: false,
       code: 'account_suspended',
@@ -85,19 +87,22 @@ export async function GET() {
     { data: sessions, error: sessionError },
     { data: progress, error: progressError },
     { data: adminRole, error: roleError },
+    { data: liveStreak, error: streakError },
   ] = await Promise.all([
     supabase.from('gunluk_gorevler').select('tarih,tamamlandi,soru_sayisi').eq('user_id', user.id),
     supabase.from('calisma_suresi').select('tarih,sure_dakika,soru_sayisi').eq('user_id', user.id),
     supabase.rpc('get_my_progress'),
     supabase.rpc('current_admin_role'),
+    supabase.rpc('get_live_streak'),
   ]);
 
-  if (taskError || sessionError || progressError || roleError) {
+  if (taskError || sessionError || progressError || roleError || streakError) {
     console.error('Account summary loaded partially', {
       tasks: taskError?.code,
       sessions: sessionError?.code,
       progress: progressError?.code,
       role: roleError?.code,
+      streak: streakError?.code,
     });
   }
 
@@ -109,7 +114,8 @@ export async function GET() {
     sessions: sessions || [],
     progress: progress || null,
     adminRole: adminRole || null,
-    partial: Boolean(taskError || sessionError || progressError || roleError),
+    liveStreak: liveStreak || null,
+    partial: Boolean(taskError || sessionError || progressError || roleError || streakError),
   });
 }
 

@@ -4,9 +4,9 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import Link from 'next/link';
 import { useParams, useRouter } from 'next/navigation';
 import {
-  ArrowLeft, BookOpenCheck, Check, Clipboard, Clock3, Coffee,
+  ArrowLeft, ArrowRightLeft, BookOpenCheck, Check, Clipboard, Clock3, Coffee,
   Flame, Goal, LockKeyhole, LogOut, Palette, PauseCircle,
-  Play, Settings2, Sparkles, TimerReset, Trophy, UsersRound,
+  Play, Send, Settings2, ShieldCheck, Sparkles, TimerReset, Trash2, Trophy, UserMinus, UsersRound, Volume2, VolumeX,
 } from 'lucide-react';
 import { createClient } from '@/lib/supabase/client';
 import { useUser } from '../../layout';
@@ -63,12 +63,23 @@ export default function ClassroomPage() {
   const [focusDuration, setFocusDuration] = useState(25);
   const [focusBusy, setFocusBusy] = useState(false);
   const [remainingSeconds, setRemainingSeconds] = useState(0);
+  const [clockNow, setClockNow] = useState(() => Date.now());
   const [roomSettingsOpen, setRoomSettingsOpen] = useState(false);
   const [roomSettingsBusy, setRoomSettingsBusy] = useState(false);
   const [roomTheme, setRoomTheme] = useState('sunny');
   const [roomMotto, setRoomMotto] = useState('');
   const [weeklyGoal, setWeeklyGoal] = useState('1200');
+  const [roomDescription, setRoomDescription] = useState('');
+  const [roomPermissions, setRoomPermissions] = useState({ focus: true, chat: true, react: true });
+  const [chatText, setChatText] = useState('');
+  const [chatBusy, setChatBusy] = useState(false);
+  const [moderationTarget, setModerationTarget] = useState(null);
+  const [moderationReason, setModerationReason] = useState('');
+  const [moderationDuration, setModerationDuration] = useState('60');
+  const [moderationBusy, setModerationBusy] = useState(false);
+  const [ownershipConfirm, setOwnershipConfirm] = useState(false);
   const presenceStartedRef = useRef(false);
+  const realtimeChannelRef = useRef(null);
   const latestMoveRef = useRef(null);
   const lastLocalMoveAtRef = useRef(0);
   const moveTimerRef = useRef(null);
@@ -83,7 +94,7 @@ export default function ClassroomPage() {
   const loadRoom = useCallback(async ({ quiet = false } = {}) => {
     if (!groupId || !userId) return;
     if (!quiet) setLoading(true);
-    const { data: roomData, error: roomError } = await supabase.rpc('get_group_room', { p_group_id: groupId });
+    const { data: roomData, error: roomError } = await supabase.rpc('get_group_room_v3', { p_group_id: groupId });
     if (roomError) {
       setError(roomError.message || 'Çalışma sınıfı yüklenemedi.');
     } else {
@@ -101,13 +112,19 @@ export default function ClassroomPage() {
         return {
           x: Number(me.positionX ?? 50),
           y: Number(me.positionY ?? 72),
-          facing: me.facing || 'right',
+          facing: me.facing || 'east',
         };
       });
       if (roomData?.room) {
         setRoomTheme(roomData.room.theme || 'sunny');
         setRoomMotto(roomData.room.motto || 'Birlikte odaklan, kendi ritminde ilerle.');
+        setRoomDescription(roomData.room.description || 'Birlikte düzenli çalışmak için kurulan özel sınıf.');
         setWeeklyGoal(String(roomData.room.weeklyGoalMinutes || 1200));
+        setRoomPermissions({
+          focus: roomData.room.membersCanStartFocus !== false,
+          chat: roomData.room.membersCanChat !== false,
+          react: roomData.room.membersCanReact !== false,
+        });
       }
     }
     setLoading(false);
@@ -132,6 +149,11 @@ export default function ClassroomPage() {
         ? { ...member, presence: nextStatus, focusSubject: subject || null }
         : member),
     } : current);
+    realtimeChannelRef.current?.send({
+      type: 'broadcast',
+      event: 'status',
+      payload: { userId, status: nextStatus, focusSubject: subject || null, sentAt: Date.now() },
+    });
     return true;
   }, [focusSubject, groupId, status, supabase, userId]);
 
@@ -145,7 +167,7 @@ export default function ClassroomPage() {
     });
     if (moveError) setError(moveError.message || 'Sınıftaki konumun güncellenemedi.');
     if (!moveError && moved?.throttled) {
-      setLocalPosition({ x: Number(moved.x), y: Number(moved.y), facing: moved.facing || 'right' });
+      setLocalPosition({ x: Number(moved.x), y: Number(moved.y), facing: moved.facing || 'east' });
     }
   }, [groupId, supabase, userId]);
 
@@ -153,6 +175,10 @@ export default function ClassroomPage() {
     lastLocalMoveAtRef.current = Date.now();
     setLocalPosition(next);
     latestMoveRef.current = next;
+    realtimeChannelRef.current?.send({
+      type: 'broadcast', event: 'move',
+      payload: { userId, x: Number(next.x.toFixed(2)), y: Number(next.y.toFixed(2)), facing: next.facing, sentAt: Date.now() },
+    });
     if (moveTimerRef.current) window.clearTimeout(moveTimerRef.current);
     if (immediate) {
       moveTimerRef.current = null;
@@ -162,8 +188,8 @@ export default function ClassroomPage() {
     moveTimerRef.current = window.setTimeout(() => {
       sendMove(latestMoveRef.current);
       moveTimerRef.current = null;
-    }, 120);
-  }, [sendMove]);
+    }, 260);
+  }, [sendMove, userId]);
 
   useEffect(() => {
     const timer = window.setTimeout(loadRoom, 0);
@@ -182,17 +208,55 @@ export default function ClassroomPage() {
 
   useEffect(() => {
     if (!groupId || !userId) return undefined;
-    const channel = supabase.channel(`classroom-v2-${groupId}`)
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'study_presence', filter: `group_id=eq.${groupId}` }, () => loadRoom({ quiet: true }))
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'study_group_members', filter: `group_id=eq.${groupId}` }, () => loadRoom({ quiet: true }))
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'study_group_focus_sessions', filter: `group_id=eq.${groupId}` }, () => loadRoom({ quiet: true }))
-      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'study_group_reactions', filter: `group_id=eq.${groupId}` }, () => loadRoom({ quiet: true }))
-      .subscribe();
+    let disposed = false;
+    let channel = null;
+    const setupRealtime = async () => {
+      await supabase.realtime.setAuth();
+      if (disposed) return;
+      channel = supabase.channel(`classroom:${groupId}`, {
+        config: { private: true, broadcast: { self: false, ack: false }, presence: { key: userId } },
+      })
+        .on('broadcast', { event: 'move' }, ({ payload }) => {
+          if (!payload?.userId || payload.userId === userId) return;
+          setData((current) => current ? { ...current, members: current.members.map((member) => member.userId === payload.userId ? { ...member, positionX: payload.x, positionY: payload.y, facing: payload.facing } : member) } : current);
+        })
+        .on('broadcast', { event: 'status' }, ({ payload }) => {
+          if (!payload?.userId || payload.userId === userId) return;
+          setData((current) => current ? { ...current, members: current.members.map((member) => member.userId === payload.userId ? { ...member, presence: payload.status, focusSubject: payload.focusSubject } : member) } : current);
+        })
+        .on('broadcast', { event: 'reaction' }, ({ payload }) => {
+          if (!payload?.id) return;
+          setData((current) => current ? { ...current, reactions: [payload, ...(current.reactions || []).filter((item) => item.id !== payload.id)].slice(0, 12) } : current);
+        })
+        .on('broadcast', { event: 'message' }, ({ payload }) => {
+          if (!payload?.id) return;
+          setData((current) => current ? { ...current, messages: [...(current.messages || []).filter((item) => item.id !== payload.id), payload].slice(-60) } : current);
+        })
+        .on('broadcast', { event: 'message-delete' }, ({ payload }) => {
+          if (!payload?.id) return;
+          setData((current) => current ? { ...current, messages: (current.messages || []).filter((item) => item.id !== payload.id) } : current);
+        })
+        .on('presence', { event: 'sync' }, () => {
+          const activeUserIds = new Set(Object.values(channel.presenceState()).flat().map((entry) => entry.userId));
+          setData((current) => current ? { ...current, members: current.members.map((member) => activeUserIds.has(member.userId) ? { ...member, presence: member.presence === 'offline' ? 'online' : member.presence } : member) } : current);
+        })
+        .on('postgres_changes', { event: '*', schema: 'public', table: 'study_group_members', filter: `group_id=eq.${groupId}` }, () => loadRoom({ quiet: true }))
+        .on('postgres_changes', { event: '*', schema: 'public', table: 'study_group_focus_sessions', filter: `group_id=eq.${groupId}` }, () => loadRoom({ quiet: true }))
+        .subscribe(async (connectionStatus) => {
+          if (connectionStatus === 'SUBSCRIBED' && !disposed) {
+            realtimeChannelRef.current = channel;
+            await channel.track({ userId, joinedAt: new Date().toISOString() });
+          }
+        });
+    };
+    setupRealtime().catch(() => setError('Canlı sınıf bağlantısı kurulamadı. Sayfayı yenileyebilirsin.'));
     const heartbeat = window.setInterval(() => updatePresence(status, focusSubject, { quiet: true }), 45000);
     return () => {
       window.clearInterval(heartbeat);
       if (moveTimerRef.current) window.clearTimeout(moveTimerRef.current);
-      supabase.removeChannel(channel);
+      disposed = true;
+      realtimeChannelRef.current = null;
+      if (channel) supabase.removeChannel(channel);
     };
   }, [focusSubject, groupId, loadRoom, status, supabase, updatePresence, userId]);
 
@@ -215,6 +279,11 @@ export default function ClassroomPage() {
     return () => window.clearInterval(timer);
   }, [data?.focusSession, loadRoom]);
 
+  useEffect(() => {
+    const timer = window.setInterval(() => setClockNow(Date.now()), 30000);
+    return () => window.clearInterval(timer);
+  }, []);
+
   const room = data?.room;
   const members = data?.members || [];
   const me = members.find((member) => member.userId === userId);
@@ -235,7 +304,11 @@ export default function ClassroomPage() {
   };
 
   const enterZone = async (zone) => {
-    const next = { x: zone.x, y: zone.y, facing: zone.x < Number(localPosition?.x ?? 50) ? 'left' : 'right' };
+    const dx = zone.x - Number(localPosition?.x ?? 50);
+    const dy = zone.y - Number(localPosition?.y ?? 72);
+    const vertical = Math.abs(dy) > 2 ? (dy < 0 ? 'north' : 'south') : '';
+    const horizontal = Math.abs(dx) > 2 ? (dx < 0 ? 'west' : 'east') : '';
+    const next = { x: zone.x, y: zone.y, facing: vertical && horizontal ? `${vertical}_${horizontal}` : horizontal || vertical || 'east' };
     moveCharacter(next, { immediate: true });
     setStatus(zone.status);
     await updatePresence(zone.status, focusSubject, { quiet: true });
@@ -263,19 +336,12 @@ export default function ClassroomPage() {
       return;
     }
     setData((current) => current ? { ...current, reactions: [created, ...(current.reactions || [])].slice(0, 12) } : current);
+    realtimeChannelRef.current?.send({ type: 'broadcast', event: 'reaction', payload: created });
   };
 
-  const saveAvatar = async (avatar, shuffle) => {
+  const saveAvatar = async (avatar) => {
     setAvatarBusy(true);
-    const { data: saved, error: avatarError } = await supabase.rpc('update_classroom_avatar', {
-      p_hair: avatar.hair,
-      p_skin: avatar.skin,
-      p_hair_color: avatar.hairColor,
-      p_background: avatar.background,
-      p_glasses: avatar.glasses,
-      p_expression: avatar.expression,
-      p_shuffle: shuffle,
-    });
+    const { data: saved, error: avatarError } = await supabase.rpc('update_classroom_character', { p_model: avatar.model });
     setAvatarBusy(false);
     if (avatarError) {
       setError(avatarError.message || 'Karakterin kaydedilemedi.');
@@ -283,7 +349,7 @@ export default function ClassroomPage() {
     }
     setData((current) => current ? {
       ...current,
-      members: current.members.map((member) => member.userId === userId ? { ...member, avatar: saved } : member),
+      members: current.members.map((member) => member.userId === userId ? { ...member, avatarModel: saved.model } : member),
     } : current);
     await updatePresence(status, focusSubject, { quiet: true });
     setAvatarOpen(false);
@@ -321,11 +387,15 @@ export default function ClassroomPage() {
   const saveRoomSettings = async (event) => {
     event.preventDefault();
     setRoomSettingsBusy(true);
-    const { data: updated, error: settingsError } = await supabase.rpc('update_study_group_room', {
+    const { data: updated, error: settingsError } = await supabase.rpc('update_study_group_room_v3', {
       p_group_id: groupId,
       p_theme: roomTheme,
       p_motto: roomMotto,
+      p_description: roomDescription,
       p_weekly_goal_minutes: Number(weeklyGoal),
+      p_members_can_start_focus: roomPermissions.focus,
+      p_members_can_chat: roomPermissions.chat,
+      p_members_can_react: roomPermissions.react,
     });
     setRoomSettingsBusy(false);
     if (settingsError) {
@@ -351,6 +421,45 @@ export default function ClassroomPage() {
   };
 
   const canStopFocus = data?.focusSession && (data.focusSession.startedBy === userId || isOwner);
+  const muteExpiresAt = [room?.viewerMutedUntil, room?.globalMutedUntil].filter(Boolean).sort().at(-1);
+  const viewerIsMuted = muteExpiresAt && Date.parse(muteExpiresAt) > clockNow;
+  const moderationByUser = new Map((data?.memberModeration || []).map((item) => [item.userId, item]));
+
+  const sendMessage = async (event) => {
+    event.preventDefault();
+    const body = chatText.trim();
+    if (!body) return;
+    setChatBusy(true);
+    const { data: message, error: messageError } = await supabase.rpc('send_classroom_message', { p_group_id: groupId, p_body: body });
+    setChatBusy(false);
+    if (messageError) { setError(messageError.message || 'Mesaj gönderilemedi.'); return; }
+    const enriched = { ...message, name: me?.name || 'Sen' };
+    setChatText('');
+    setData((current) => current ? { ...current, messages: [...(current.messages || []), enriched].slice(-60) } : current);
+    realtimeChannelRef.current?.send({ type: 'broadcast', event: 'message', payload: enriched });
+  };
+
+  const deleteMessage = async (messageId) => {
+    const { error: deleteError } = await supabase.rpc('delete_classroom_message', { p_message_id: messageId });
+    if (deleteError) { setError(deleteError.message || 'Mesaj silinemedi.'); return; }
+    setData((current) => current ? { ...current, messages: (current.messages || []).filter((item) => item.id !== messageId) } : current);
+    realtimeChannelRef.current?.send({ type: 'broadcast', event: 'message-delete', payload: { id: messageId } });
+  };
+
+  const moderateMember = async (action) => {
+    if (!moderationTarget) return;
+    setModerationBusy(true);
+    const { error: moderationError } = await supabase.rpc('moderate_study_group_member', {
+      p_group_id: groupId, p_user_id: moderationTarget.userId, p_action: action,
+      p_duration_minutes: action === 'mute' ? Number(moderationDuration) : null,
+      p_reason: action === 'mute' ? moderationReason : null,
+    });
+    setModerationBusy(false);
+    if (moderationError) { setError(moderationError.message || 'Üye işlemi tamamlanamadı.'); return; }
+    setModerationTarget(null); setModerationReason(''); setOwnershipConfirm(false);
+    await loadRoom({ quiet: true });
+    showNotice(action === 'remove' ? 'Üye sınıftan çıkarıldı.' : action === 'mute' ? 'Üye seçilen süre boyunca susturuldu.' : action === 'transfer_owner' ? 'Sınıf sahipliği güvenle devredildi.' : 'Üyenin susturması kaldırıldı.');
+  };
 
   return (
     <div className="classroom-page">
@@ -364,7 +473,8 @@ export default function ClassroomPage() {
               <div>
                 <span><UsersRound size={16} /> Canlı çalışma sınıfı</span>
                 <h1>{room.name}</h1>
-                <p><b>{onlineCount}</b> kişi burada · {members.length}/{room.maxMembers} üye · Konumlar ve tepkiler anlık</p>
+                <p>{room.description}</p>
+                <small className="classroom-live-summary"><b>{onlineCount}</b> kişi burada · {members.length}/{room.maxMembers} üye · Private realtime bağlı</small>
               </div>
               <div className="classroom-header-actions">
                 {room.inviteCode && <button onClick={copyInvite}><Clipboard size={16} /> {copied ? 'Kod kopyalandı' : room.inviteCode}</button>}
@@ -372,6 +482,7 @@ export default function ClassroomPage() {
                 <button className="leave-room-button" onClick={() => setLeaveOpen(true)}><LogOut size={16} /> {isOwner ? 'Sınıfı kapat' : 'Sınıftan ayrıl'}</button>
               </div>
             </header>
+            {viewerIsMuted && <div className="classroom-muted-banner"><VolumeX size={17} /><div><strong>Sınıf iletişimin geçici olarak sınırlandı</strong><span>{room.viewerMuteReason || room.globalMuteReason || 'Moderasiya kararı'} · {new Intl.DateTimeFormat('tr-TR', { dateStyle: 'short', timeStyle: 'short' }).format(new Date(muteExpiresAt))} tarihine kadar</span></div></div>}
 
             <section className="classroom-overview-grid">
               <ClassroomScene
@@ -400,7 +511,7 @@ export default function ClassroomPage() {
                       <h2>Birlikte başlayın</h2>
                       <p>Aynı sayacı paylaşın; herkes kendi dersine odaklansın.</p>
                       <div className="focus-duration-options">{FOCUS_DURATIONS.map((minutes) => <button key={minutes} className={focusDuration === minutes ? 'is-active' : ''} onClick={() => setFocusDuration(minutes)}>{minutes} dk</button>)}</div>
-                      <button className="start-focus-button" onClick={startFocus} disabled={focusBusy}><Play size={16} /> {focusBusy ? 'Başlatılıyor…' : 'Ortak odağı başlat'}</button>
+                      <button className="start-focus-button" onClick={startFocus} disabled={focusBusy || viewerIsMuted || (!isOwner && !room.membersCanStartFocus)}><Play size={16} /> {focusBusy ? 'Başlatılıyor…' : 'Ortak odağı başlat'}</button>
                     </>
                   )}
                 </article>
@@ -418,15 +529,32 @@ export default function ClassroomPage() {
                     <label><span>Şu an ne çalışıyorsun?</span><input value={focusSubject} onChange={(event) => setFocusSubject(event.target.value)} maxLength={60} placeholder="Örn. TYT Matematik · Problemler" /></label>
                     <button disabled={presenceBusy}>{presenceBusy ? 'Güncelleniyor…' : 'Durumumu güncelle'}</button>
                   </form>
-                  <button className="customize-avatar-button" onClick={() => setAvatarOpen(true)}><Palette size={17} /><span><b>Karakterimi özelleştir</b><small>Saç, renk, gözlük ve ifadeni seç</small></span>{me && <ClassroomAvatar avatar={me.avatar} name={me.name} size={44} />}</button>
+                  <button className="customize-avatar-button" onClick={() => setAvatarOpen(true)}><Palette size={17} /><span><b>Karakterimi özelleştir</b><small>8 yönlü profesyonel görünümünü seç</small></span>{me && <ClassroomAvatar avatar={{ model: me.avatarModel }} name={me.name} size={52} facing="south_east" />}</button>
                   <div className="classroom-privacy-note"><LockKeyhole size={15} /><span>Canlı durumun, karakterin ve konumun yalnızca bu sınıfın üyelerine görünür.</span></div>
                 </article>
 
                 <article className="reaction-card study-panel">
                   <header><span>Sessiz tepkiler</span><h2>Sınıfa küçük bir işaret bırak</h2></header>
-                  <div>{Object.entries(REACTION_META).map(([key, meta]) => { const Icon = meta.icon; return <button key={key} onClick={() => sendReaction(key)} title={meta.label} aria-label={meta.label}><Icon size={18} /><span>{meta.label}</span></button>; })}</div>
+                  <div>{Object.entries(REACTION_META).map(([key, meta]) => { const Icon = meta.icon; return <button key={key} disabled={viewerIsMuted || (!isOwner && !room.membersCanReact)} onClick={() => sendReaction(key)} title={meta.label} aria-label={meta.label}><Icon size={18} /><span>{meta.label}</span></button>; })}</div>
                 </article>
               </aside>
+            </section>
+
+            <section className="classroom-community-grid">
+              <article className="classroom-chat study-panel">
+                <header><div><span><Volume2 size={15} /> Sınıf sohbeti</span><h2>Odak bozmayan kısa iletişim</h2></div><em>{(data.messages || []).length} mesaj</em></header>
+                <div className="classroom-message-list" aria-live="polite">
+                  {(data.messages || []).length === 0 ? <div className="classroom-chat-empty"><Send size={22} /><strong>İlk mesajı sen bırak</strong><span>Ders, kaynak veya mola planını sınıfınla paylaş.</span></div> : (data.messages || []).map((message) => (
+                    <article key={message.id} className={message.userId === userId ? 'is-me' : ''}><span>{String(message.name || 'Ö').charAt(0).toLocaleUpperCase('tr-TR')}</span><div><strong>{message.userId === userId ? 'Sen' : message.name}<time>{new Intl.DateTimeFormat('tr-TR', { hour: '2-digit', minute: '2-digit' }).format(new Date(message.createdAt))}</time></strong><p>{message.body}</p></div>{(message.userId === userId || isOwner) && !message.deletedAt && <button onClick={() => deleteMessage(message.id)} aria-label="Mesajı sil"><Trash2 size={14} /></button>}</article>
+                  ))}
+                </div>
+                <form onSubmit={sendMessage}><input value={chatText} onChange={(event) => setChatText(event.target.value)} maxLength={400} disabled={viewerIsMuted || (!isOwner && !room.membersCanChat)} placeholder={viewerIsMuted ? 'Sohbet erişimin geçici olarak sınırlandı' : 'Sınıfa kısa bir mesaj yaz…'} /><button disabled={chatBusy || !chatText.trim() || viewerIsMuted || (!isOwner && !room.membersCanChat)}><Send size={16} /> Gönder</button></form>
+              </article>
+
+              <article className="classroom-members-panel study-panel">
+                <header><div><span><ShieldCheck size={15} /> Üyeler</span><h2>{isOwner ? 'Sınıfını güvenle yönet' : 'Sınıf arkadaşların'}</h2></div><em>{members.length}/{room.maxMembers}</em></header>
+                <div>{members.map((member) => { const memberModeration = moderationByUser.get(member.userId); const isMuted = memberModeration?.mutedUntil && Date.parse(memberModeration.mutedUntil) > clockNow; return <article key={member.userId}><ClassroomAvatar avatar={{ model: member.avatarModel }} name={member.name} size={46} facing="south_east" /><div><strong>{member.userId === userId ? 'Sen' : member.name}{member.role === 'owner' ? ' · Kurucu' : ''}</strong><small>{member.presence === 'offline' ? 'Çevrimdışı' : STATUS_META[member.presence]?.label || 'Sınıfta'}{isMuted ? ' · Susturuldu' : ''}</small></div>{isOwner && member.userId !== userId && <button onClick={() => { setModerationTarget({ ...member, isMuted }); setModerationReason(memberModeration?.muteReason || ''); setOwnershipConfirm(false); }}><ShieldCheck size={15} /> Yönet</button>}</article>; })}</div>
+              </article>
             </section>
 
             <section className="classroom-lower-grid">
@@ -441,7 +569,7 @@ export default function ClassroomPage() {
                 <header><span>Haftalık katkı</span><h2>Sınıf ritmi</h2></header>
                 <div>
                   {[...members].sort((a, b) => Number(b.weeklyMinutes) - Number(a.weeklyMinutes)).map((member, index) => (
-                    <article key={member.userId}><em>{index + 1}</em><span className="ranking-avatar"><ClassroomAvatar avatar={member.avatar} name={member.name} size={34} /></span><div><strong>{member.userId === userId ? 'Sen' : member.name}</strong><small>{member.presence === 'studying' ? 'Şu anda çalışıyor' : `${member.studyDays ?? '—'} çalışma günü`}</small></div><b>{Number(member.weeklyMinutes || 0).toLocaleString('tr-TR')} dk</b></article>
+                    <article key={member.userId}><em>{index + 1}</em><span className="ranking-avatar"><ClassroomAvatar avatar={{ model: member.avatarModel }} name={member.name} size={42} facing="south_east" /></span><div><strong>{member.userId === userId ? 'Sen' : member.name}</strong><small>{member.presence === 'studying' ? 'Şu anda çalışıyor' : `${member.studyDays ?? '—'} çalışma günü`}</small></div><b>{Number(member.weeklyMinutes || 0).toLocaleString('tr-TR')} dk</b></article>
                   ))}
                 </div>
               </article>
@@ -459,15 +587,25 @@ export default function ClassroomPage() {
         )}
       </DataState>
 
-      {avatarOpen && <AvatarStudio open onClose={() => setAvatarOpen(false)} initialAvatar={me?.avatar} name={me?.name || 'Sen'} onSave={saveAvatar} busy={avatarBusy} />}
+      {avatarOpen && <AvatarStudio open onClose={() => setAvatarOpen(false)} initialAvatar={{ model: me?.avatarModel }} name={me?.name || 'Sen'} onSave={saveAvatar} busy={avatarBusy} />}
 
       <Modal open={roomSettingsOpen} onClose={() => setRoomSettingsOpen(false)} title="Sınıf atmosferini düzenle" description="Bu ayarlar tüm sınıf üyelerinin gördüğü ortak alanı değiştirir.">
         <form className="room-settings-form" onSubmit={saveRoomSettings}>
           <label><span>Sınıf teması</span><Select value={roomTheme} onChange={setRoomTheme} options={THEME_OPTIONS} ariaLabel="Sınıf teması" /></label>
           <label><span>Tahta mesajı</span><input value={roomMotto} onChange={(event) => setRoomMotto(event.target.value)} minLength={2} maxLength={80} required /></label>
+          <label><span>Sınıf açıklaması</span><textarea value={roomDescription} onChange={(event) => setRoomDescription(event.target.value)} minLength={8} maxLength={180} required /></label>
           <label><span>Haftalık ortak hedef (dakika)</span><input type="number" value={weeklyGoal} onChange={(event) => setWeeklyGoal(event.target.value)} min="30" max="50000" required /></label>
+          <fieldset className="room-permission-options"><legend>Üye yetkileri</legend>{[['focus','Ortak odak başlatabilsin'],['chat','Sohbete yazabilsin'],['react','Sessiz tepki gönderebilsin']].map(([key,label]) => <label key={key}><span>{label}</span><input type="checkbox" checked={roomPermissions[key]} onChange={(event) => setRoomPermissions((current) => ({ ...current, [key]: event.target.checked }))} /></label>)}</fieldset>
           <footer><button type="button" className="study-button" onClick={() => setRoomSettingsOpen(false)}>Vazgeç</button><button className="study-button study-button-primary" disabled={roomSettingsBusy}>{roomSettingsBusy ? 'Kaydediliyor…' : 'Sınıfı güncelle'}</button></footer>
         </form>
+      </Modal>
+
+      <Modal open={Boolean(moderationTarget)} onClose={() => { setModerationTarget(null); setOwnershipConfirm(false); }} title={`${moderationTarget?.name || 'Üye'} · sınıf yönetimi`} description="Susturma yalnızca bu sınıfın sohbet, tepki ve ortak odak araçlarını sınırlar.">
+        <div className="member-moderation-form">
+          {moderationTarget?.isMuted ? <button className="study-button study-button-primary" onClick={() => moderateMember('unmute')} disabled={moderationBusy}><Volume2 size={16} /> Susturmayı kaldır</button> : <><label><span>Süre</span><Select value={moderationDuration} onChange={setModerationDuration} ariaLabel="Susturma süresi" options={[{ value:'15',label:'15 dakika'},{ value:'60',label:'1 saat'},{ value:'1440',label:'24 saat'},{ value:'10080',label:'7 gün' }]} /></label><label><span>Neden</span><textarea value={moderationReason} onChange={(event) => setModerationReason(event.target.value)} maxLength={240} placeholder="Üyeye uygulanacak sınırın nedenini yaz" /></label><button className="study-button study-button-primary" onClick={() => moderateMember('mute')} disabled={moderationBusy || !moderationReason.trim()}><VolumeX size={16} /> Seçilen süre sustur</button></>}
+          <div className={`moderation-transfer${ownershipConfirm ? ' is-confirming' : ''}`}><div><strong>{ownershipConfirm ? 'Bu değişikliği onaylıyor musun?' : 'Sınıf sahipliğini devret'}</strong><span>{ownershipConfirm ? `${moderationTarget?.name} yeni sınıf sahibi olacak.` : 'Yeni sahip ayarları ve üyeleri yönetir; sen normal üye olarak kalırsın.'}</span></div>{ownershipConfirm ? <span className="ownership-confirm-actions"><button onClick={() => setOwnershipConfirm(false)} disabled={moderationBusy}>Vazgeç</button><button onClick={() => moderateMember('transfer_owner')} disabled={moderationBusy}><ArrowRightLeft size={16} /> Onayla ve devret</button></span> : <button onClick={() => setOwnershipConfirm(true)} disabled={moderationBusy}><ArrowRightLeft size={16} /> Sahipliği devret</button>}</div>
+          <div className="moderation-danger"><div><strong>Sınıftan çıkar</strong><span>Yeniden katılmak için davet koduna ihtiyaç duyar.</span></div><button onClick={() => moderateMember('remove')} disabled={moderationBusy}><UserMinus size={16} /> Üyeyi çıkar</button></div>
+        </div>
       </Modal>
 
       <Modal open={leaveOpen} onClose={() => setLeaveOpen(false)} title={isOwner ? 'Çalışma sınıfını kapat' : 'Sınıftan ayrıl'} description={isOwner && members.length > 1 ? 'Sınıfta başka üyeler varken sahipliği devretmeden kapatamazsın.' : 'Bu işlemden sonra yeniden katılmak için davet koduna ihtiyacın olacak.'}>

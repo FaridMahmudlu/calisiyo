@@ -71,6 +71,7 @@ export default function DashboardLayout({ children }) {
     todayMinutes: 0,
   });
   const [streakInfoOpen, setStreakInfoOpen] = useState(false);
+  const [activePomodoroMinutes, setActivePomodoroMinutes] = useState(0);
   const error = errorState.pathname === pathname ? errorState.message : '';
   const setError = useCallback((message) => {
     setErrorState({ message, pathname });
@@ -124,8 +125,8 @@ export default function DashboardLayout({ children }) {
       levelTitle: progress?.title || 'Yeni Başlangıç',
       progressPercent: progress?.progressPercent ?? ((xpTotal % 250) / 250) * 100,
       xpToNext: progress?.xpToNext ?? (250 - (xpTotal % 250)),
-      streak,
-      todayMinutes: minutesByDate[todayStr()] || 0,
+      streak: result.liveStreak?.streak ?? streak,
+      todayMinutes: result.liveStreak?.todayMinutes ?? minutesByDate[todayStr()] ?? 0,
     });
     setLoading(false);
   }, [router, setError]);
@@ -146,6 +147,26 @@ export default function DashboardLayout({ children }) {
   useEffect(() => {
     window.localStorage.setItem('calisiyo-sidebar-width', String(sidebarWidth));
   }, [sidebarWidth]);
+
+  useEffect(() => {
+    if (!user?.id) return undefined;
+    const readLivePomodoro = () => {
+      try {
+        const stored = JSON.parse(window.localStorage.getItem(`calisiyo-pomodoro-v1:${user.id}`) || 'null');
+        if (!stored?.sessionKey || stored.breakMode || stored.studyDate !== todayStr()) { setActivePomodoroMinutes(0); return; }
+        const presets = [25, 50, 90];
+        const totalMinutes = stored.customActive ? Math.min(180, Math.max(1, Number(stored.custom?.work) || 25)) : (presets[Number(stored.presetIndex)] || 25);
+        const remainingSeconds = stored.running && Number(stored.deadline)
+          ? Math.max(0, Math.ceil((Number(stored.deadline) - Date.now()) / 1000))
+          : Math.max(0, Number(stored.timeLeft) || 0);
+        setActivePomodoroMinutes(Math.min(totalMinutes, Math.floor(Math.max(0, totalMinutes * 60 - remainingSeconds) / 60)));
+      } catch { setActivePomodoroMinutes(0); }
+    };
+    readLivePomodoro();
+    const timer = window.setInterval(readLivePomodoro, 15000);
+    window.addEventListener('storage', readLivePomodoro);
+    return () => { window.clearInterval(timer); window.removeEventListener('storage', readLivePomodoro); };
+  }, [user?.id]);
 
   const resizeSidebar = useCallback((clientX) => {
     setSidebarWidth(Math.min(340, Math.max(210, clientX)));
@@ -202,6 +223,8 @@ export default function DashboardLayout({ children }) {
   }
 
   const initials = profile?.full_name?.trim()?.charAt(0)?.toLocaleUpperCase('tr-TR') || 'Ö';
+  const liveTodayMinutes = stats.todayMinutes + activePomodoroMinutes;
+  const liveStreak = stats.todayMinutes < 30 && liveTodayMinutes >= 30 ? stats.streak + 1 : stats.streak;
 
   return (
     <UserContext.Provider value={{ user, profile, setProfile, adminRole, error, setError, reloadAccount: loadAccount, stats }}>
@@ -246,9 +269,9 @@ export default function DashboardLayout({ children }) {
               <>
               <div className="study-streak">
                 <Flame size={17} />
-                <span><strong>{stats.streak}</strong> günlük seri <button className="streak-info-button" aria-label="Seri kuralını açıkla" aria-expanded={streakInfoOpen} onClick={() => setStreakInfoOpen((value) => !value)}><Info size={13} /></button></span>
-                <small>Bugün {Math.min(stats.todayMinutes, 30)}/30 dk</small>
-                {streakInfoOpen && <div className="streak-info-popover" role="note"><strong>Seri nasıl ilerler?</strong><p>Her gün calisiyo’da Pomodoro veya çalışma kaydı ile en az 30 dakika ders çalış. 30 dakikaya ulaşan gün serine eklenir.</p></div>}
+                <span><strong>{liveStreak}</strong> günlük seri <button className="streak-info-button" aria-label="Seri kuralını açıkla" aria-expanded={streakInfoOpen} onClick={() => setStreakInfoOpen((value) => !value)}><Info size={13} /></button></span>
+                <small>Bugün {Math.min(liveTodayMinutes, 30)}/30 dk{activePomodoroMinutes > 0 ? ' · sayaç canlı' : ''}</small>
+                {streakInfoOpen && <div className="streak-info-popover" role="note"><strong>Seri nasıl ilerler?</strong><p>Her gün calisiyo’da Pomodoro veya çalışma kaydı ile en az 30 dakika ders çalış. Açık Pomodoro her tam dakikada canlı ilerler; oturum tamamlanınca kalıcı kayda dönüşür.</p></div>}
               </div>
               <Link href="/dashboard/gelisim" className="sidebar-level-card" onClick={() => setSidebarOpen(false)}>
                 <span><Trophy size={15} /><strong>Seviye {stats.level}</strong><small>{stats.levelTitle}</small></span>

@@ -44,12 +44,17 @@ export default function ClassroomScene({
   const playfieldRef = useRef(null);
   const dragRef = useRef(false);
   const movedRef = useRef(false);
+  const movementTimerRef = useRef(null);
   const [focused, setFocused] = useState(false);
+  const [moving, setMoving] = useState(false);
   const [reactionNow, setReactionNow] = useState(() => Date.now());
 
   useEffect(() => {
     const timer = window.setInterval(() => setReactionNow(Date.now()), 1000);
-    return () => window.clearInterval(timer);
+    return () => {
+      window.clearInterval(timer);
+      if (movementTimerRef.current) window.clearTimeout(movementTimerRef.current);
+    };
   }, []);
 
   const latestReactions = useMemo(() => {
@@ -70,10 +75,24 @@ export default function ClassroomScene({
     };
   };
 
+  const facingForDelta = (dx, dy, fallback = 'south') => {
+    const horizontal = Math.abs(dx) > 1.2 ? (dx < 0 ? 'west' : 'east') : '';
+    const vertical = Math.abs(dy) > 1.2 ? (dy < 0 ? 'north' : 'south') : '';
+    if (vertical && horizontal) return `${vertical}_${horizontal}`;
+    return horizontal || vertical || fallback;
+  };
+
+  const markMoving = () => {
+    setMoving(true);
+    if (movementTimerRef.current) window.clearTimeout(movementTimerRef.current);
+    movementTimerRef.current = window.setTimeout(() => setMoving(false), 220);
+  };
+
   const moveFromPointer = (event, immediate = false) => {
     const next = getPosition(event);
     if (!next) return;
-    const facing = next.x < Number(localPosition?.x ?? 50) ? 'left' : 'right';
+    const facing = facingForDelta(next.x - Number(localPosition?.x ?? 50), next.y - Number(localPosition?.y ?? 72), localPosition?.facing);
+    markMoving();
     onMove({ ...next, facing }, { immediate });
   };
 
@@ -115,7 +134,8 @@ export default function ClassroomScene({
     event.preventDefault();
     const x = clamp(Number(localPosition?.x ?? 50) + delta[0], 4, 96);
     const y = clamp(Number(localPosition?.y ?? 72) + delta[1], 8, 92);
-    onMove({ x, y, facing: delta[0] < 0 ? 'left' : delta[0] > 0 ? 'right' : localPosition?.facing || 'right' });
+    markMoving();
+    onMove({ x, y, facing: facingForDelta(delta[0], delta[1], localPosition?.facing) });
   };
 
   return (
@@ -166,14 +186,14 @@ export default function ClassroomScene({
           const position = isMe && localPosition ? localPosition : {
             x: Number(member.positionX ?? 50),
             y: Number(member.positionY ?? 72),
-            facing: member.facing || 'right',
+            facing: member.facing || 'east',
           };
           const reaction = latestReactions.get(member.userId);
           const reactionMeta = reaction ? REACTION_META[reaction.reaction] : null;
           const ReactionIcon = reactionMeta?.icon;
           const avatarContent = (
             <>
-              <ClassroomAvatar avatar={member.avatar} name={member.name} size={76} priority={isMe} />
+              <ClassroomAvatar avatar={{ model: member.avatarModel }} name={member.name} size={104} facing={position.facing} moving={isMe && moving} />
               {member.role === 'owner' && <i className="character-crown"><Crown size={12} /></i>}
               <i className="character-status-dot" />
             </>

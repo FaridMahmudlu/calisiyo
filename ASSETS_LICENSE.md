@@ -12,3 +12,12 @@ All 3D assets and geometry used in the **calisiyo 3D Scroll Landing Page** compl
 - `study-path-focus.webp`: Original calisiyo promotional graphic.
 - `study-path-progress.webp`: Original calisiyo promotional graphic.
 - `calisiyo-mark.svg`: Official calisiyo brand logo.
+
+## Classroom Character Sprite Atlases
+- `public/assets/classroom/sprites/student-navy-v1.webp`
+- `public/assets/classroom/sprites/student-sage-v1.webp`
+- `public/assets/classroom/sprites/student-rust-v1.webp`
+
+These three transparent, eight-direction 2D character atlases are original
+calisiyo product assets generated with OpenAI ImageGen on 2026-08-12. They are
+not third-party stock assets and are intended for use in the calisiyo product.

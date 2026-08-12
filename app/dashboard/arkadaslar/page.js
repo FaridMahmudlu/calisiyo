@@ -4,8 +4,8 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import {
-  ArrowRight, Check, Clipboard, Crown, DoorOpen, Flame, Goal,
-  LockKeyhole, Medal, Plus, Search, Sparkles, UserPlus,
+  ArrowRight, BookOpenCheck, Check, Clipboard, Crown, DoorOpen, Flame, Goal,
+  LockKeyhole, Medal, Plus, Search, ShieldCheck, Sparkles, Timer, UserPlus,
   UsersRound, X,
 } from 'lucide-react';
 import { createClient } from '@/lib/supabase/client';
@@ -13,6 +13,7 @@ import { useUser } from '../layout';
 import PageHeader from '@/components/ui/PageHeader';
 import DataState from '@/components/ui/DataState';
 import Modal from '@/components/ui/Modal';
+import Select from '@/components/ui/Select';
 import './social.css';
 
 const METRIC_OPTIONS = [
@@ -42,7 +43,11 @@ export default function FriendsPage() {
   const [copied, setCopied] = useState(false);
   const [modal, setModal] = useState(null);
   const [groupName, setGroupName] = useState('');
+  const [groupDescription, setGroupDescription] = useState('Her gün düzenli çalışıp birbirimizi motive ettiğimiz YKS sınıfı.');
   const [groupGoal, setGroupGoal] = useState(1200);
+  const [groupCapacity, setGroupCapacity] = useState('8');
+  const [groupExamTrack, setGroupExamTrack] = useState('tyt_ayt');
+  const [groupStyle, setGroupStyle] = useState('balanced');
   const [inviteCode, setInviteCode] = useState('');
 
   const loadHub = useCallback(async ({ quiet = false } = {}) => {
@@ -149,9 +154,13 @@ export default function FriendsPage() {
   const createGroup = async (event) => {
     event.preventDefault();
     setBusy('create-group');
-    const { data, error: createError } = await supabase.rpc('create_study_group', {
+    const { data, error: createError } = await supabase.rpc('create_study_group_v3', {
       p_name: groupName,
+      p_description: groupDescription,
       p_weekly_goal_minutes: Number(groupGoal),
+      p_max_members: Number(groupCapacity),
+      p_exam_track: groupExamTrack,
+      p_study_style: groupStyle,
     });
     setBusy('');
     if (createError) {
@@ -160,6 +169,7 @@ export default function FriendsPage() {
     }
     setModal(null);
     setGroupName('');
+    setGroupDescription('Her gün düzenli çalışıp birbirimizi motive ettiğimiz YKS sınıfı.');
     await loadHub({ quiet: true });
     if (data?.id) router.push(`/dashboard/arkadaslar/${data.id}`);
   };
@@ -206,6 +216,13 @@ export default function FriendsPage() {
       <DataState loading={loading} error={!loading ? error && !hub ? error : '' : ''} empty={!hub}>
         {hub && (
           <>
+            <section className="social-pulse-grid" aria-label="Sosyal çalışma özeti">
+              <article><span><UsersRound size={18} /></span><div><strong>{(hub.friends || []).length}</strong><small>çalışma arkadaşı</small></div></article>
+              <article><span><DoorOpen size={18} /></span><div><strong>{(hub.groups || []).length}</strong><small>aktif sınıf</small></div></article>
+              <article><span><Flame size={18} /></span><div><strong>{Number(hub.metrics?.streak || 0)}</strong><small>günlük seri</small></div></article>
+              <article><span><ShieldCheck size={18} /></span><div><strong>Özel</strong><small>kontrollü paylaşım</small></div></article>
+            </section>
+
             <section className="social-intro-grid">
               <article className="friend-code-card study-panel">
                 <div><span><UserPlus size={17} /> Arkadaş kodun</span><strong>{hub.profile.friendCode}</strong><p>Bu kodu yalnızca tanıdığın kişilerle paylaş. Kod, email adresini göstermez.</p></div>
@@ -303,11 +320,18 @@ export default function FriendsPage() {
         )}
       </DataState>
 
-      <Modal open={modal === 'create'} onClose={() => setModal(null)} title="Yeni çalışma sınıfı" description="Özel davet koduyla en fazla 12 kişilik bir çalışma alanı oluştur.">
-        <form className="social-modal-form" onSubmit={createGroup}>
-          <label><span>Sınıf adı</span><input value={groupName} onChange={(event) => setGroupName(event.target.value)} minLength={2} maxLength={40} placeholder="Örn. Sayısal 2027" required /></label>
-          <label><span>Haftalık ortak hedef (dakika)</span><input type="number" value={groupGoal} onChange={(event) => setGroupGoal(event.target.value)} min="30" max="50000" required /><small>Önerilen başlangıç: 1.200 dakika</small></label>
-          <button className="study-button study-button-primary" disabled={busy === 'create-group'}>{busy === 'create-group' ? 'Oluşturuluyor…' : 'Sınıfı oluştur'}</button>
+      <Modal open={modal === 'create'} onClose={() => setModal(null)} title="Çalışma sınıfını kur" description="Ritmini, kapasiteyi ve iletişim biçimini baştan belirle; tüm ayarları sonra değiştirebilirsin." size="lg">
+        <form className="social-modal-form class-create-form" onSubmit={createGroup}>
+          <section className="class-create-guide"><article><BookOpenCheck size={18} /><strong>Ortak ritim</strong><span>Gerçek çalışma kayıtları hedefe eklenir.</span></article><article><Timer size={18} /><strong>Canlı odak</strong><span>Paylaşılan sayaç ve sessiz durumlar.</span></article><article><ShieldCheck size={18} /><strong>Kurucu kontrolü</strong><span>Yetki, susturma ve üye yönetimi.</span></article></section>
+          <div className="class-create-fields">
+            <label><span>Sınıf adı</span><input value={groupName} onChange={(event) => setGroupName(event.target.value)} minLength={2} maxLength={40} placeholder="Örn. Sayısal 2027 Sabah Grubu" required /><small>Kısa, anlaşılır ve hedefi anlatan bir ad seç.</small></label>
+            <label className="is-wide"><span>Sınıf açıklaması</span><textarea value={groupDescription} onChange={(event) => setGroupDescription(event.target.value)} minLength={8} maxLength={180} required /><small>{groupDescription.length}/180 · Üyeler katılmadan önce ritmi anlayabilsin.</small></label>
+            <label><span>Sınav odağı</span><Select value={groupExamTrack} onChange={setGroupExamTrack} ariaLabel="Sınıf sınav odağı" options={[{ value:'tyt_ayt',label:'TYT + AYT',description:'Birlikte tam YKS hazırlığı'},{ value:'tyt',label:'TYT',description:'Temel yeterlilik odağı'},{ value:'ayt',label:'AYT',description:'Alan yeterlilik odağı'},{ value:'ydt',label:'YDT',description:'Yabancı dil odağı'}]} /></label>
+            <label><span>Çalışma atmosferi</span><Select value={groupStyle} onChange={setGroupStyle} ariaLabel="Çalışma atmosferi" options={[{ value:'balanced',label:'Dengeli',description:'Sohbet ve odak birlikte'},{ value:'quiet',label:'Sessiz odak',description:'Kurucu kontrollü iletişim'},{ value:'social',label:'Sosyal',description:'Motivasyon ve paylaşım yoğun'}]} /></label>
+            <label><span>Üye kapasitesi</span><Select value={groupCapacity} onChange={setGroupCapacity} ariaLabel="Sınıf kapasitesi" options={[{ value:'4',label:'4 kişi',description:'Yakın çalışma ekibi'},{ value:'8',label:'8 kişi',description:'Önerilen dengeli sınıf'},{ value:'12',label:'12 kişi',description:'Kalabalık çalışma topluluğu'}]} /></label>
+            <label><span>Haftalık ortak hedef</span><input type="number" value={groupGoal} onChange={(event) => setGroupGoal(event.target.value)} min="30" max="50000" required /><small>{Math.round(Number(groupGoal || 0) / Math.max(1,Number(groupCapacity)) / 7)} dk / kişi / gün önerisi</small></label>
+          </div>
+          <footer><div><LockKeyhole size={15} /><span>Sınıf yalnızca ROOM davet koduyla açılır.</span></div><button className="study-button study-button-primary" disabled={busy === 'create-group'}>{busy === 'create-group' ? 'Oluşturuluyor…' : 'Sınıfı oluştur ve aç'}</button></footer>
         </form>
       </Modal>
 
