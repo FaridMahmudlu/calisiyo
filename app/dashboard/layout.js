@@ -47,14 +47,6 @@ const NAV_GROUPS = [
   { label: 'Hesap', items: [['/dashboard/ayarlar', 'Ayarlar', Settings]] },
 ];
 
-const MOBILE_NAV = [
-  ['/dashboard', 'Ana Sayfa', Home],
-  ['/dashboard/gunluk-program', 'Program', Calendar],
-  ['/dashboard/konu-takibi', 'Konular', BarChart3],
-  ['/dashboard/deneme-analizi', 'Denemeler', Target],
-  ['/dashboard/pomodoro', 'Pomodoro', Timer],
-];
-
 export default function DashboardLayout({ children }) {
   const router = useRouter();
   const pathname = usePathname();
@@ -283,10 +275,6 @@ export default function DashboardLayout({ children }) {
           {error && <div className="global-error" role="alert">{error}<button onClick={() => setError('')} aria-label="Uyarıyı kapat"><X size={16} /></button></div>}
           <main className={`study-content ${pathname === '/dashboard' ? 'dashboard-home' : ''}`}>{children}</main>
         </div>
-
-        <nav className="study-mobile-nav" aria-label="Mobil menü">
-          {MOBILE_NAV.map(([href, label, Icon]) => <Link key={href} href={href} className={pathname === href ? 'is-active' : ''}><Icon size={20} /><span>{label}</span></Link>)}
-        </nav>
       </div>
     </UserContext.Provider>
   );
