@@ -133,6 +133,8 @@
 .auth-card form > label { display: grid; gap: 7px; color: #344058; font-size: .74rem; font-weight: 700; }
 .auth-card form > label > div { height: 46px; padding: 0 12px; border: 1px solid #d9e1e6; border-radius: 8px; display: flex; align-items: center; gap: 9px; color: #8b98a5; }
 .auth-card input { min-width: 0; flex: 1; border: 0; outline: 0; background: transparent; color: #0d1830; font: inherit; }
+.auth-card form > .auth-checkbox-label { display: flex; align-items: flex-start; gap: 9px; margin-top: 4px; color: #52685f; font-size: .72rem; cursor: pointer; }
+.auth-card .auth-checkbox-label input { width: 16px; height: 16px; min-width: 16px; flex: 0 0 16px; margin-top: 2px; accent-color: #00a870; }
 .auth-card label button { border: 0; background: none; color: #778499; cursor: pointer; }
 .auth-label-row { display: flex; align-items: center; justify-content: space-between; }
 .auth-label-row a { color: #008f61; font-size: .69rem; font-weight: 700; text-decoration: none; }
@@ -300,4 +302,3 @@
 .legal-content a:hover {
   color: #07875f;
 }
-

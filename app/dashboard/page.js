@@ -3,7 +3,7 @@
 import { useState, useEffect, useMemo, useCallback } from 'react';
 import { useUser } from './layout';
 import { createClient } from '@/lib/supabase/client';
-import { daysUntilYKS, yksDateLabel, todayStr, formatDate, formatShortDate, formatDuration, formatTime, GUN_KISA, toLocalDateKey } from '@/lib/utils/date';
+import { daysUntilYKS, yksDateLabel, todayStr, formatDate, formatShortDate, formatDuration, formatTime, GUN_KISA, parseLocalDate, toLocalDateKey } from '@/lib/utils/date';
 import { motion, AnimatePresence } from 'framer-motion';
 import { 
   Calendar as CalendarIcon, Target, BookOpen, Clock, Info, 
@@ -29,7 +29,7 @@ export default function DashboardPage() {
   const [loading, setLoading] = useState(true);
 
   // Month navigation for heatmap
-  const [currentMonthDate, setCurrentMonthDate] = useState(() => new Date());
+  const [currentMonthDate, setCurrentMonthDate] = useState(() => parseLocalDate(todayStr()));
 
   // Real Database States
   const [todayTasks, setTodayTasks] = useState([]);
@@ -235,7 +235,7 @@ export default function DashboardPage() {
   // 5. Calculate Contribution Heatmap Matrix (12 columns x 7 days)
   const heatmapMatrix = useMemo(() => {
     // Generate dates for past 12 weeks ending this Sunday
-    const todayObj = new Date();
+    const todayObj = parseLocalDate(todayStr());
     const dayOfWeek = todayObj.getDay(); // 0 = Sun
     const endDate = new Date(todayObj);
     endDate.setDate(todayObj.getDate() + (dayOfWeek === 0 ? 0 : 7 - dayOfWeek));
@@ -280,7 +280,7 @@ export default function DashboardPage() {
     ]);
 
     let streak = 0;
-    const checkDate = new Date();
+    const checkDate = parseLocalDate(todayStr());
     
     // Check if today is completed or yesterday
     const todayStrVal = todayStr();

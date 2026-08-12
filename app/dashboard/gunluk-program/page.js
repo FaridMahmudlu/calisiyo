@@ -97,11 +97,26 @@ export default function GunlukProgramPage() {
   const saveTask = async (event) => {
     event.preventDefault();
     if (!form.ders_id) return setGlobalError('Görev eklemek için bir ders seçmelisin.');
+    if (form.bitis_saat <= form.baslangic_saat) {
+      return setGlobalError('Bitiş saati başlangıç saatinden sonra olmalıdır.');
+    }
+    const questionCount = form.soru_sayisi === '' ? null : Number(form.soru_sayisi);
+    if (questionCount !== null && (!Number.isInteger(questionCount) || questionCount < 0)) {
+      return setGlobalError('Soru sayısı sıfır veya pozitif bir tam sayı olmalıdır.');
+    }
+    const overlaps = tasks.some((task) => (
+      task.id !== editing?.id
+      && form.baslangic_saat < formatTime(task.bitis_saat)
+      && formatTime(task.baslangic_saat) < form.bitis_saat
+    ));
+    if (overlaps) {
+      return setGlobalError('Bu saat aralığında başka bir görevin var. Saatleri çakışmayacak şekilde düzenle.');
+    }
     setSaving(true);
     const payload = {
       user_id: profile.id, tarih: selectedDate, baslangic_saat: form.baslangic_saat, bitis_saat: form.bitis_saat,
       ders_id: form.ders_id || null, kaynak_id: form.kaynak_id || null, konu: form.konu.trim() || null,
-      soru_sayisi: form.soru_sayisi ? Number(form.soru_sayisi) : null, sayfa_araligi: form.sayfa_araligi.trim() || null,
+      soru_sayisi: questionCount, sayfa_araligi: form.sayfa_araligi.trim() || null,
     };
     const { error: saveError } = editing
       ? await supabase.from('gunluk_gorevler').update(payload).eq('id', editing.id).eq('user_id', profile.id)
@@ -195,7 +210,7 @@ export default function GunlukProgramPage() {
         <form className="study-form" onSubmit={saveTask}>
           <div className="form-grid-2">
             <label>Başlangıç<input type="time" value={form.baslangic_saat} onChange={(event) => setForm({ ...form, baslangic_saat: event.target.value })} required /></label>
-            <label>Bitiş<input type="time" value={form.bitis_saat} min={form.baslangic_saat} onChange={(event) => setForm({ ...form, bitis_saat: event.target.value })} required /></label>
+            <label>Bitiş<input type="time" value={form.bitis_saat} onChange={(event) => setForm({ ...form, bitis_saat: event.target.value })} required /></label>
           </div>
           <label>Ders<Select ariaLabel="Ders" value={form.ders_id} onChange={(value) => setForm({ ...form, ders_id: value })} placeholder="Ders seç" options={dersler.map((course) => ({ value: course.id, label: `${course.ad}${course.sinav_turu ? ` (${course.sinav_turu})` : ''}` }))} /></label>
           <label>Konu<input value={form.konu} onChange={(event) => setForm({ ...form, konu: event.target.value })} placeholder="Örn. Bölme ve bölünebilme" /></label>

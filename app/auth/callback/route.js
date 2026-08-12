@@ -1,17 +1,38 @@
 import { NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
 
-function safeNextPath(value) {
-  if (!value || !value.startsWith('/') || value.startsWith('//')) {
+const ALLOWED_DESTINATIONS = new Set([
+  '/dashboard',
+  '/profilini-tamamla',
+  '/sifre-yenile',
+]);
+
+function safeNextPath(value, origin) {
+  if (!value || /[\\\u0000-\u001f\u007f]/.test(value)) return '/dashboard';
+
+  try {
+    const resolved = new URL(value, origin);
+    if (resolved.origin !== origin || !ALLOWED_DESTINATIONS.has(resolved.pathname)) {
+      return '/dashboard';
+    }
+    return `${resolved.pathname}${resolved.search}${resolved.hash}`;
+  } catch {
     return '/dashboard';
   }
-  return value;
+}
+
+function canonicalOrigin(requestUrl) {
+  const configuredUrl = process.env.NEXT_PUBLIC_SITE_URL
+    || (process.env.VERCEL_PROJECT_PRODUCTION_URL ? `https://${process.env.VERCEL_PROJECT_PRODUCTION_URL}` : '')
+    || requestUrl.origin;
+  return new URL(configuredUrl).origin;
 }
 
 export async function GET(request) {
   const url = new URL(request.url);
   const code = url.searchParams.get('code');
-  const next = safeNextPath(url.searchParams.get('next'));
+  const origin = canonicalOrigin(url);
+  const next = safeNextPath(url.searchParams.get('next'), origin);
 
   if (code) {
     const supabase = await createClient();
@@ -42,14 +63,9 @@ export async function GET(request) {
         if (!metadata.alan_secimi) destination = '/profilini-tamamla';
       }
 
-      const forwardedHost = request.headers.get('x-forwarded-host');
-      const forwardedProto = request.headers.get('x-forwarded-proto') || 'https';
-      const origin = forwardedHost
-        ? `${forwardedProto}://${forwardedHost}`
-        : url.origin;
       return NextResponse.redirect(new URL(destination, origin));
     }
   }
 
-  return NextResponse.redirect(new URL('/auth/hata', url.origin));
+  return NextResponse.redirect(new URL('/auth/hata', origin));
 }

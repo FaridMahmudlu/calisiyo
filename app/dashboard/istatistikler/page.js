@@ -12,7 +12,7 @@ import {
 } from 'recharts';
 import { useUser } from '../layout';
 import { createClient } from '@/lib/supabase/client';
-import { formatDate, formatDuration, toLocalDateKey } from '@/lib/utils/date';
+import { formatDate, formatDuration, parseLocalDate, todayStr, toLocalDateKey } from '@/lib/utils/date';
 import { useRealtimeRefresh } from '@/lib/hooks/useRealtimeRefresh';
 import PageHeader from '@/components/ui/PageHeader';
 import DataState from '@/components/ui/DataState';
@@ -33,7 +33,7 @@ function examNet(exam) {
 
 function currentStreak(dates) {
   const active = new Set(dates);
-  const cursor = new Date();
+  const cursor = parseLocalDate(todayStr());
   if (!active.has(toLocalDateKey(cursor))) cursor.setDate(cursor.getDate() - 1);
   let streak = 0;
   while (active.has(toLocalDateKey(cursor))) {
@@ -66,7 +66,7 @@ export default function IstatistiklerPage() {
     if (!profile?.id) return;
     setLoading(true);
     setError('');
-    const start = new Date();
+    const start = parseLocalDate(todayStr());
     if (range === 'week') start.setDate(start.getDate() - 6);
     if (range === 'month') start.setDate(start.getDate() - 29);
     const startKey = toLocalDateKey(start);
@@ -104,6 +104,9 @@ export default function IstatistiklerPage() {
     const totalMinutes = records.sessions.reduce((sum, item) => sum + (item.sure_dakika || 0), 0);
     const sessionQuestions = records.sessions.reduce((sum, item) => sum + (item.soru_sayisi || 0), 0);
     const taskQuestions = completedTasks.reduce((sum, item) => sum + (item.soru_sayisi || 0), 0);
+    // Study sessions and completed tasks can describe the same work. Until
+    // records carry a shared source id, use the larger total to avoid counting
+    // one solved question set twice.
     const totalQuestions = Math.max(sessionQuestions, taskQuestions);
     const completionRate = records.tasks.length ? Math.round(completedTasks.length / records.tasks.length * 100) : 0;
     const averageMinutes = activeDates.length ? Math.round(totalMinutes / activeDates.length) : 0;
@@ -113,12 +116,17 @@ export default function IstatistiklerPage() {
     records.sessions.forEach((item) => {
       timelineMap[item.tarih] ||= { key: item.tarih, date: new Date(`${item.tarih}T12:00:00`).toLocaleDateString('tr-TR', { day: '2-digit', month: 'short' }), minutes: 0, questions: 0, tasks: 0 };
       timelineMap[item.tarih].minutes += item.sure_dakika || 0;
-      timelineMap[item.tarih].questions += item.soru_sayisi || 0;
+      timelineMap[item.tarih].sessionQuestions = (timelineMap[item.tarih].sessionQuestions || 0) + (item.soru_sayisi || 0);
+      timelineMap[item.tarih].questions = Math.max(timelineMap[item.tarih].questions, timelineMap[item.tarih].sessionQuestions);
     });
     completedTasks.forEach((item) => {
       timelineMap[item.tarih] ||= { key: item.tarih, date: new Date(`${item.tarih}T12:00:00`).toLocaleDateString('tr-TR', { day: '2-digit', month: 'short' }), minutes: 0, questions: 0, tasks: 0 };
       timelineMap[item.tarih].tasks += 1;
-      if (!timelineMap[item.tarih].questions) timelineMap[item.tarih].questions += item.soru_sayisi || 0;
+      timelineMap[item.tarih].taskQuestions = (timelineMap[item.tarih].taskQuestions || 0) + (item.soru_sayisi || 0);
+      timelineMap[item.tarih].questions = Math.max(
+        timelineMap[item.tarih].sessionQuestions || 0,
+        timelineMap[item.tarih].taskQuestions
+      );
     });
     const timeline = Object.values(timelineMap).sort((a, b) => a.key.localeCompare(b.key));
 
@@ -137,17 +145,26 @@ export default function IstatistiklerPage() {
     const solvedQuestions = records.questions.filter((item) => item.cozuldu).length;
     const goalMinutes = Number(profile?.study_goals?.weeklyMinutes || 0);
     const goalQuestions = Number(profile?.study_goals?.weeklyQuestions || 0);
+    const weeklyStart = parseLocalDate(todayStr());
+    weeklyStart.setDate(weeklyStart.getDate() - 6);
+    const weeklyStartKey = toLocalDateKey(weeklyStart);
+    const weeklySessions = records.sessions.filter((item) => item.tarih >= weeklyStartKey);
+    const weeklyTasks = completedTasks.filter((item) => item.tarih >= weeklyStartKey);
+    const weeklyMinutes = weeklySessions.reduce((sum, item) => sum + (item.sure_dakika || 0), 0);
+    const weeklySessionQuestions = weeklySessions.reduce((sum, item) => sum + (item.soru_sayisi || 0), 0);
+    const weeklyTaskQuestions = weeklyTasks.reduce((sum, item) => sum + (item.soru_sayisi || 0), 0);
+    const weeklyQuestions = Math.max(weeklySessionQuestions, weeklyTaskQuestions);
     const bestDay = timeline.reduce((best, item) => item.minutes > (best?.minutes || 0) ? item : best, null);
     return {
       activeDates, averageMinutes, bestDay, completionRate, completedTasks: completedTasks.length, courses, currentStreak: currentStreak(activeDates),
       exams, goalMinutes, goalQuestions, lastNet, netDelta, solvedQuestions, timeline, topicCounts, totalMinutes, totalQuestions,
-      unresolvedQuestions: Math.max(0, records.questions.length - solvedQuestions),
+      unresolvedQuestions: Math.max(0, records.questions.length - solvedQuestions), weeklyMinutes, weeklyQuestions,
     };
   }, [profile?.study_goals, records]);
 
   const hasData = records.sessions.length || records.tasks.length || records.exams.length || records.topics.length;
-  const weeklyMinutesProgress = stats.goalMinutes ? Math.min(100, Math.round(stats.totalMinutes / stats.goalMinutes * 100)) : 0;
-  const weeklyQuestionProgress = stats.goalQuestions ? Math.min(100, Math.round(stats.totalQuestions / stats.goalQuestions * 100)) : 0;
+  const weeklyMinutesProgress = stats.goalMinutes ? Math.min(100, Math.round(stats.weeklyMinutes / stats.goalMinutes * 100)) : 0;
+  const weeklyQuestionProgress = stats.goalQuestions ? Math.min(100, Math.round(stats.weeklyQuestions / stats.goalQuestions * 100)) : 0;
 
   return (
     <motion.div className="page stats-page" initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
@@ -178,9 +195,9 @@ export default function IstatistiklerPage() {
           </article>
 
           <article className="study-panel stats-goal-card">
-            <div className="stats-card-heading"><div><span>Hedef takibi</span><h2>Seçili dönemin ilerlemesi</h2></div><span className="stats-card-icon"><Goal size={18} /></span></div>
-            <div className="goal-meter"><div><span>Soru hedefi</span><strong>{stats.totalQuestions} / {stats.goalQuestions || 'Hedef yok'}</strong></div><div className="goal-meter-track"><i style={{ width: `${weeklyQuestionProgress}%` }} /></div><small>{stats.goalQuestions ? `%${weeklyQuestionProgress} tamamlandı` : 'Hedeflerim sayfasından soru hedefi ekleyebilirsin.'}</small></div>
-            <div className="goal-meter"><div><span>Süre hedefi</span><strong>{formatDuration(stats.totalMinutes)} / {stats.goalMinutes ? formatDuration(stats.goalMinutes) : 'Hedef yok'}</strong></div><div className="goal-meter-track"><i style={{ width: `${weeklyMinutesProgress}%` }} /></div><small>{stats.goalMinutes ? `%${weeklyMinutesProgress} tamamlandı` : 'Hedeflerim sayfasından süre hedefi ekleyebilirsin.'}</small></div>
+            <div className="stats-card-heading"><div><span>Hedef takibi</span><h2>Son 7 günün ilerlemesi</h2></div><span className="stats-card-icon"><Goal size={18} /></span></div>
+            <div className="goal-meter"><div><span>Soru hedefi</span><strong>{stats.weeklyQuestions} / {stats.goalQuestions || 'Hedef yok'}</strong></div><div className="goal-meter-track"><i style={{ width: `${weeklyQuestionProgress}%` }} /></div><small>{stats.goalQuestions ? `%${weeklyQuestionProgress} tamamlandı` : 'Hedeflerim sayfasından soru hedefi ekleyebilirsin.'}</small></div>
+            <div className="goal-meter"><div><span>Süre hedefi</span><strong>{formatDuration(stats.weeklyMinutes)} / {stats.goalMinutes ? formatDuration(stats.goalMinutes) : 'Hedef yok'}</strong></div><div className="goal-meter-track"><i style={{ width: `${weeklyMinutesProgress}%` }} /></div><small>{stats.goalMinutes ? `%${weeklyMinutesProgress} tamamlandı` : 'Hedeflerim sayfasından süre hedefi ekleyebilirsin.'}</small></div>
             <div className="stats-insight"><Sparkles size={17} /><p>{stats.bestDay ? <><strong>En verimli günün {formatDate(stats.bestDay.key)}.</strong> O gün {formatDuration(stats.bestDay.minutes)} odak kaydı oluşturdun.</> : 'İlk odak oturumunla kişisel içgörüler burada görünecek.'}</p></div>
           </article>
         </section>

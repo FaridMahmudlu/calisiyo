@@ -27,7 +27,7 @@ const itemVariants = {
 };
 
 export default function HaftalikProgramPage() {
-  const { profile } = useUser();
+  const { profile, setError } = useUser();
   const supabase = createClient();
   const [weekDates, setWeekDates] = useState(getCurrentWeekDates());
   const [weekTasks, setWeekTasks] = useState({});
@@ -41,13 +41,20 @@ export default function HaftalikProgramPage() {
     const start = toLocalDateKey(weekDates[0]);
     const end = toLocalDateKey(weekDates[6]);
 
-    const { data } = await supabase
+    const { data, error } = await supabase
       .from('gunluk_gorevler')
       .select('*, dersler(ad, renk, ikon, sinav_turu)')
       .eq('user_id', profile.id)
       .gte('tarih', start)
       .lte('tarih', end)
       .order('baslangic_saat');
+
+    if (error) {
+      setError('Haftalık programın yüklenemedi. Lütfen tekrar dene.');
+      setWeekTasks({});
+      setLoading(false);
+      return;
+    }
 
     const grouped = {};
     weekDates.forEach(d => {
@@ -58,7 +65,7 @@ export default function HaftalikProgramPage() {
     });
     setWeekTasks(grouped);
     setLoading(false);
-  }, [profile, supabase, weekDates]);
+  }, [profile, setError, supabase, weekDates]);
 
   useEffect(() => {
     const timer = setTimeout(loadWeekData, 0);
@@ -92,11 +99,11 @@ export default function HaftalikProgramPage() {
       <div className="study-segments content-tabs">{examTabs.map((exam) => <button key={exam} className={activeExam === exam ? 'is-active' : ''} onClick={() => setActiveExam(exam)}>{exam}</button>)}</div>
       {/* Week Nav */}
       <div className="week-nav">
-        <button className="btn btn-ghost btn-icon-lg date-btn" onClick={() => changeWeek(-1)}>
+        <button className="btn btn-ghost btn-icon-lg date-btn" onClick={() => changeWeek(-1)} aria-label="Önceki hafta">
           <ChevronLeft size={24} />
         </button>
         <span className="week-range">{formatShortDate(weekDates[0])} – {formatShortDate(weekDates[6])}</span>
-        <button className="btn btn-ghost btn-icon-lg date-btn" onClick={() => changeWeek(1)}>
+        <button className="btn btn-ghost btn-icon-lg date-btn" onClick={() => changeWeek(1)} aria-label="Sonraki hafta">
           <ChevronRight size={24} />
         </button>
       </div>
@@ -170,6 +177,8 @@ export default function HaftalikProgramPage() {
                           {t.tamamlandi && <CheckCircle2 size={12} color="var(--success)" />}
                         </div>
                         <span className="day-task-ders">{t.dersler?.ikon} {t.dersler?.ad}</span>
+                        <strong className="day-task-topic">{t.konu || 'Konu belirtilmedi'}</strong>
+                        {t.soru_sayisi ? <small className="day-task-questions">{t.soru_sayisi} soru</small> : null}
                       </div>
                     ))
                   )}
@@ -352,9 +361,28 @@ export default function HaftalikProgramPage() {
         }
         
         .day-task-ders { 
+          display: block;
           font-size: 0.8125rem; 
           font-weight: 600; 
           color: var(--text-primary);
+        }
+
+        .day-task-topic {
+          display: block;
+          margin-top: 3px;
+          overflow: hidden;
+          color: var(--text-secondary);
+          font-size: 0.72rem;
+          line-height: 1.35;
+          text-overflow: ellipsis;
+          white-space: nowrap;
+        }
+
+        .day-task-questions {
+          display: block;
+          margin-top: 3px;
+          color: var(--text-tertiary);
+          font-size: 0.64rem;
         }
 
         @media (max-width: 1024px) {

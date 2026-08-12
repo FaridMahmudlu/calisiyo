@@ -43,12 +43,21 @@ export default function KonuTakibiPage() {
     setLoading(true);
     const sinavTuru = activeTab;
 
-    const { data: dersData } = await supabase
+    const { data: dersData, error: courseError } = await supabase
       .from('dersler')
       .select('*')
       .eq('sinav_turu', sinavTuru)
       .contains('alan', [profile.alan_secimi])
       .order('sira');
+
+    if (courseError) {
+      setError('Ders ve konu verileri yüklenemedi. Lütfen tekrar dene.');
+      setDersler([]);
+      setKonular({});
+      setTakip({});
+      setLoading(false);
+      return;
+    }
 
     if (dersData) {
       setDersler(dersData);
@@ -57,11 +66,19 @@ export default function KonuTakibiPage() {
       if (dersData.length > 0) setOpenDersId((current) => current || dersData[0].id);
 
       const dersIds = dersData.map(d => d.id);
-      const { data: konuData } = await supabase
+      const { data: konuData, error: topicError } = await supabase
         .from('konular')
         .select('*')
         .in('ders_id', dersIds)
         .order('sira');
+
+      if (topicError) {
+        setError('Konular yüklenemedi. Lütfen tekrar dene.');
+        setKonular({});
+        setTakip({});
+        setLoading(false);
+        return;
+      }
 
       // Group konular by ders_id
       const grouped = {};
@@ -74,21 +91,30 @@ export default function KonuTakibiPage() {
       // Load tracking data
       const konuIds = (konuData || []).map(k => k.id);
       if (konuIds.length > 0) {
-        const { data: takipData } = await supabase
+        const { data: takipData, error: trackingError } = await supabase
           .from('konu_takibi')
           .select('*')
           .eq('user_id', profile.id)
           .in('konu_id', konuIds);
+
+        if (trackingError) {
+          setError('Konu ilerlemen yüklenemedi. Lütfen tekrar dene.');
+          setTakip({});
+          setLoading(false);
+          return;
+        }
 
         const takipMap = {};
         (takipData || []).forEach(t => {
           takipMap[t.konu_id] = t.durum;
         });
         setTakip(takipMap);
+      } else {
+        setTakip({});
       }
     }
     setLoading(false);
-  }, [activeTab, profile, supabase]);
+  }, [activeTab, profile, setError, supabase]);
 
   useEffect(() => {
     const timer = setTimeout(loadData, 0);
@@ -195,9 +221,12 @@ export default function KonuTakibiPage() {
 
               return (
                 <motion.div variants={itemVariants} key={ders.id} className="card ders-accordion">
-                  <div 
+                  <button
+                    type="button"
                     className="ders-summary" 
                     onClick={() => toggleAccordion(ders.id)}
+                    aria-expanded={isOpen}
+                    aria-controls={`topics-${ders.id}`}
                   >
                     <div className="ders-info">
                       <div className="ders-icon-container" style={{ background: `${ders.renk}15`, color: ders.renk }}>
@@ -217,7 +246,7 @@ export default function KonuTakibiPage() {
                         {isOpen ? <ChevronUp size={20} /> : <ChevronDown size={20} />}
                       </div>
                     </div>
-                  </div>
+                  </button>
                   
                   <AnimatePresence>
                     {isOpen && (
@@ -227,6 +256,7 @@ export default function KonuTakibiPage() {
                         exit={{ height: 0, opacity: 0 }}
                         transition={{ duration: 0.2 }}
                         className="konu-list-container"
+                        id={`topics-${ders.id}`}
                       >
                         <div className="konu-list">
                           {dersKonular.length === 0 ? (
@@ -241,6 +271,7 @@ export default function KonuTakibiPage() {
                                   <span className="konu-name">{konu.ad}</span>
                                   <button
                                     className={`badge ${durumInfo.badge} status-btn`}
+                                    aria-label={`${konu.ad}: ${durumInfo.label}. Sonraki duruma geçir`}
                                     onClick={() => {
                                       const currentIdx = durumCycle.indexOf(currentDurum);
                                       const nextDurum = durumCycle[(currentIdx + 1) % durumCycle.length];
@@ -282,6 +313,12 @@ export default function KonuTakibiPage() {
         }
 
         .ders-summary {
+          width: 100%;
+          border: 0;
+          background: transparent;
+          color: inherit;
+          font: inherit;
+          text-align: left;
           padding: 20px 24px;
           cursor: pointer;
           display: flex;

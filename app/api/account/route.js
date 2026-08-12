@@ -1,4 +1,5 @@
 import { createClient } from '@/lib/supabase/server';
+import { passwordValidationMessage } from '@/lib/utils/password';
 
 const DEFAULT_PREFERENCES = {
   theme: 'light',
@@ -142,6 +143,20 @@ export async function PATCH(request) {
   if (body.action === 'goals') {
     const goals = body.goals;
     if (!goals || typeof goals !== 'object') return invalid('Hedef bilgileri eksik.');
+    const numericValues = [
+      ...Object.values(goals.nets || {}),
+      ...Object.values(goals.topics || {}),
+      goals.weeklyQuestions,
+      goals.weeklyMinutes,
+    ].map(Number);
+    if (numericValues.some((value) => !Number.isFinite(value) || value < 0)) {
+      return invalid('Hedefler sıfır veya pozitif bir sayı olmalıdır.');
+    }
+    if (Object.values(goals.topics || {}).some((value) => !Number.isInteger(Number(value)))
+      || !Number.isInteger(Number(goals.weeklyQuestions))
+      || !Number.isInteger(Number(goals.weeklyMinutes))) {
+      return invalid('Konu, soru ve dakika hedefleri tam sayı olmalıdır.');
+    }
     const updatedAt = new Date().toISOString();
     const { data, error } = await supabase
       .from('profiles')
@@ -161,7 +176,8 @@ export async function PATCH(request) {
 
   if (body.action === 'password') {
     const password = String(body.password || '');
-    if (password.length < 8) return invalid('Yeni şifre en az 8 karakter olmalıdır.');
+    const passwordError = passwordValidationMessage(password);
+    if (passwordError) return invalid(passwordError);
     const { error } = await supabase.auth.updateUser({ password });
     if (error) {
       return Response.json(

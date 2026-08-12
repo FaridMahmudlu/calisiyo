@@ -9,7 +9,7 @@ import {
   PanelLeftOpen, RotateCcw, Settings, Target, Timer, X,
 } from 'lucide-react';
 import { createClient } from '@/lib/supabase/client';
-import { todayStr, toLocalDateKey } from '@/lib/utils/date';
+import { parseLocalDate, todayStr, toLocalDateKey } from '@/lib/utils/date';
 import { useRealtimeRefresh } from '@/lib/hooks/useRealtimeRefresh';
 import JourneyLoader from '@/components/ui/JourneyLoader';
 import BrandLogo from '@/components/brand/BrandLogo';
@@ -101,7 +101,7 @@ export default function DashboardLayout({ children }) {
     }, {});
     const activeDates = new Set(Object.entries(minutesByDate).filter(([, minutes]) => minutes >= 30).map(([date]) => date));
     let streak = 0;
-    const cursor = new Date();
+    const cursor = parseLocalDate(todayStr());
     if (!activeDates.has(todayStr())) cursor.setDate(cursor.getDate() - 1);
     while (activeDates.has(toLocalDateKey(cursor))) {
       streak += 1;
@@ -226,7 +226,7 @@ export default function DashboardLayout({ children }) {
               {!collapsed && <button className="icon-button" onClick={logout} aria-label="Çıkış yap"><LogOut size={17} /></button>}
             </div>
           </div>
-          {!collapsed && <div className="sidebar-resizer" role="separator" aria-label="Panel genişliyini dəyiş" aria-orientation="vertical" aria-valuemin="210" aria-valuemax="340" aria-valuenow={sidebarWidth} tabIndex={0} onKeyDown={resizeWithKeyboard} onPointerDown={startResize}><span /></div>}
+          {!collapsed && <div className="sidebar-resizer" role="separator" aria-label="Panel genişliğini değiştir" aria-orientation="vertical" aria-valuemin="210" aria-valuemax="340" aria-valuenow={sidebarWidth} tabIndex={0} onKeyDown={resizeWithKeyboard} onPointerDown={startResize}><span /></div>}
         </aside>
 
         <div className="study-main">

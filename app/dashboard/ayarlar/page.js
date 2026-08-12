@@ -4,6 +4,7 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 import { Bell, Check, Database, Download, Eye, LockKeyhole, Monitor, Moon, Save, Sun, UserRound } from 'lucide-react';
 import { useUser } from '../layout';
 import { createClient } from '@/lib/supabase/client';
+import { PASSWORD_MIN_LENGTH, passwordValidationMessage } from '@/lib/utils/password';
 import { ALANLAR, getExamTabs } from '@/lib/constants/alanlar';
 import PageHeader from '@/components/ui/PageHeader';
 
@@ -108,7 +109,8 @@ export default function AyarlarPage() {
 
   const updatePassword = async (event) => {
     event.preventDefault();
-    if (password.value.length < 8) return setError('Yeni şifre en az 8 karakter olmalıdır.');
+    const passwordError = passwordValidationMessage(password.value);
+    if (passwordError) return setError(passwordError);
     if (password.value !== password.confirm) return setError('Şifre doğrulaması eşleşmiyor.');
     const response = await fetch('/api/account', {
       method: 'PATCH',
@@ -170,7 +172,7 @@ export default function AyarlarPage() {
 
       <section className="settings-section study-panel"><div className="settings-intro"><Bell size={20} /><div><h2>Bildirimler</h2><p>Uygulama içi ve tarayıcı bildirimlerini tek yerden yönet.</p></div></div><div className="notification-settings-wrap"><div className="toggle-list notification-settings"><label className="notification-master"><span><strong>Bildirim merkezi</strong><small>Önemli plan, çalışma, seri ve deneme gelişmelerini gösterir.</small><em>{permissionLabel}</em></span><input type="checkbox" checked={preferences.notifications} onChange={(event) => toggleNotifications(event.target.checked)} /></label>{[['dailyPlan', 'Günlük plan hatırlatıcısı', 'Her gün planını hatırlatır.'], ['repeats', 'Tekrar hatırlatıcıları', 'Tekrar zamanı geldiğinde bildirir.'], ['pomodoro', 'Pomodoro bitiş bildirimi', 'Odak veya mola süresi bittiğinde bildirir.']].map(([key, label, text]) => <label key={key} className={!preferences.notifications ? 'is-disabled' : ''}><span><strong>{label}</strong><small>{text}</small></span><input type="checkbox" checked={preferences[key]} disabled={!preferences.notifications} onChange={(event) => setPreferences({ ...preferences, [key]: event.target.checked })} /></label>)}</div>{preferences.notifications && browserPermission === 'default' && <button className="browser-notification-button" onClick={requestBrowserPermission}><Bell size={15} /> Tarayıcı bildirimlerini aç</button>}{preferences.notifications && browserPermission === 'denied' && <p className="browser-notification-help">Tarayıcı bildirimi engellenmiş. Adres çubuğundaki site izinlerinden bildirimleri açabilirsin.</p>}</div></section>
 
-      <section className="settings-section study-panel"><div className="settings-intro"><LockKeyhole size={20} /><div><h2>Güvenlik</h2><p>Hesabının şifresini güncelle.</p></div></div><form className="settings-fields password-fields" onSubmit={updatePassword}><label>Yeni şifre<input type="password" minLength="8" value={password.value} onChange={(event) => setPassword({ ...password, value: event.target.value })} /></label><label>Yeni şifre tekrar<input type="password" minLength="8" value={password.confirm} onChange={(event) => setPassword({ ...password, confirm: event.target.value })} /></label><button className="study-button">Şifreyi değiştir</button></form></section>
+      <section className="settings-section study-panel"><div className="settings-intro"><LockKeyhole size={20} /><div><h2>Güvenlik</h2><p>En az 10 karakter; büyük/küçük harf, rakam ve özel karakter içeren bir şifre kullan.</p></div></div><form className="settings-fields password-fields" onSubmit={updatePassword}><label>Yeni şifre<input type="password" minLength={PASSWORD_MIN_LENGTH} value={password.value} onChange={(event) => setPassword({ ...password, value: event.target.value })} /></label><label>Yeni şifre tekrar<input type="password" minLength={PASSWORD_MIN_LENGTH} value={password.confirm} onChange={(event) => setPassword({ ...password, confirm: event.target.value })} /></label><button className="study-button">Şifreyi değiştir</button></form></section>
 
       <section className="settings-section study-panel"><div className="settings-intro"><Database size={20} /><div><h2>Verilerim</h2><p>Tüm çalışma kayıtlarının taşınabilir kopyasını indir.</p></div></div><div className="export-actions"><button className="study-button" onClick={() => exportData('json')} disabled={exporting}><Download size={16} /> JSON olarak indir</button><button className="study-button" onClick={() => exportData('csv')} disabled={exporting}><Download size={16} /> CSV olarak indir</button></div></section>
     </div>

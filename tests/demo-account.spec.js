@@ -2,6 +2,7 @@ const { test, expect } = require('@playwright/test');
 const path = require('path');
 
 const baseURL = process.env.BASE_URL || 'http://localhost:3000';
+const demoName = process.env.DEMO_NAME || 'Mert Kaya';
 const qaDir = path.resolve(__dirname, '..', 'design-references', 'qa');
 
 test('realistic demo account renders live dashboard and statistics', async ({ page }) => {
@@ -12,7 +13,7 @@ test('realistic demo account renders live dashboard and statistics', async ({ pa
   await page.locator('input[autocomplete="current-password"]').fill(process.env.DEMO_PASSWORD);
   await page.getByRole('button', { name: 'Giriş Yap' }).click();
   await expect(page).toHaveURL(/\/dashboard$/);
-  await expect(page.getByText('Mert Kaya').first()).toBeVisible();
+  await expect(page.getByText(demoName).first()).toBeVisible();
   await expect(page.getByText(/Tahmini 19 Ağustos 2027/)).toBeVisible();
   await page.screenshot({ path: path.join(qaDir, 'demo-dashboard-desktop.png'), fullPage: true });
 

@@ -54,6 +54,7 @@ export default function DenemeAnaliziPage() {
   const [dersler, setDersler] = useState([]);
   const [showModal, setShowModal] = useState(false);
   const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
   const [form, setForm] = useState({
     yayin: '',
     tarih: todayStr(),
@@ -108,6 +109,21 @@ export default function DenemeAnaliziPage() {
   async function handleSave(e) {
     e.preventDefault();
 
+    const duration = form.sure_dakika === '' ? null : Number(form.sure_dakika);
+    if (duration !== null && (!Number.isInteger(duration) || duration < 1 || duration > 600)) {
+      return setError('Deneme süresi 1 ile 600 dakika arasında olmalıdır.');
+    }
+    const invalidDetail = Object.values(form.detaylar).some((detail) => (
+      ['dogru', 'yanlis', 'bos'].some((field) => {
+        if (detail[field] === '') return false;
+        const value = Number(detail[field]);
+        return !Number.isInteger(value) || value < 0;
+      })
+    ));
+    if (invalidDetail) return setError('Doğru, yanlış ve boş sayıları sıfır veya pozitif tam sayı olmalıdır.');
+
+    setSaving(true);
+
     const { data: deneme, error: examError } = await supabase
       .from('denemeler')
       .insert({
@@ -115,12 +131,13 @@ export default function DenemeAnaliziPage() {
         sinav_turu: activeTab,
         yayin: form.yayin,
         tarih: form.tarih,
-        sure_dakika: form.sure_dakika ? parseInt(form.sure_dakika) : null,
+        sure_dakika: duration,
       })
       .select()
       .single();
 
     if (examError) {
+      setSaving(false);
       setError(`Deneme kaydedilemedi: ${examError.message}`);
       return;
     }
@@ -140,6 +157,7 @@ export default function DenemeAnaliziPage() {
         const { error: detailError } = await supabase.from('deneme_detaylari').insert(detayRows);
         if (detailError) {
           await supabase.from('denemeler').delete().eq('id', deneme.id).eq('user_id', profile.id);
+          setSaving(false);
           setError(`Deneme ayrıntıları kaydedilemedi: ${detailError.message}`);
           return;
         }
@@ -147,7 +165,8 @@ export default function DenemeAnaliziPage() {
     }
 
     setShowModal(false);
-    loadData();
+    setSaving(false);
+    await loadData();
   }
 
   async function handleDelete(id) {
@@ -295,15 +314,15 @@ export default function DenemeAnaliziPage() {
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '16px', marginBottom: '24px' }}>
                 <div className="input-group">
                   <label className="input-label">Yayın Adı</label>
-                  <input className="input" value={form.yayin} onChange={(e) => setForm({ ...form, yayin: e.target.value })} placeholder="ör. 3D Türkiye Geneli" required />
+                  <input className="input" aria-label="Yayın Adı" value={form.yayin} onChange={(e) => setForm({ ...form, yayin: e.target.value })} placeholder="ör. 3D Türkiye Geneli" required />
                 </div>
                 <div className="input-group">
                   <label className="input-label">Tarih</label>
-                  <input className="input" type="date" value={form.tarih} onChange={(e) => setForm({ ...form, tarih: e.target.value })} required />
+                  <input className="input" aria-label="Tarih" type="date" value={form.tarih} onChange={(e) => setForm({ ...form, tarih: e.target.value })} required />
                 </div>
                 <div className="input-group">
                   <label className="input-label">Süre (dk)</label>
-                  <input className="input" type="number" value={form.sure_dakika} onChange={(e) => setForm({ ...form, sure_dakika: e.target.value })} placeholder="165" />
+                  <input className="input" aria-label="Süre (dk)" type="number" value={form.sure_dakika} onChange={(e) => setForm({ ...form, sure_dakika: e.target.value })} placeholder="165" />
                 </div>
               </div>
 
@@ -317,19 +336,19 @@ export default function DenemeAnaliziPage() {
                   <div key={d.id} className="ders-input-row">
                     <span className="ders-input-name" style={{ color: d.renk }}>{d.ikon} {d.ad}</span>
                     <div className="ders-input-fields">
-                      <input className="input ders-input-mini" type="number" placeholder="D" 
+                      <input className="input ders-input-mini" aria-label={`${d.ad} doğru`} type="number" step="1" placeholder="D"
                         value={form.detaylar[d.id]?.dogru || ''}
                         onChange={(e) => setForm({
                           ...form,
                           detaylar: { ...form.detaylar, [d.id]: { ...form.detaylar[d.id], dogru: e.target.value } }
                         })} />
-                      <input className="input ders-input-mini" type="number" placeholder="Y" 
+                      <input className="input ders-input-mini" aria-label={`${d.ad} yanlış`} type="number" step="1" placeholder="Y"
                         value={form.detaylar[d.id]?.yanlis || ''}
                         onChange={(e) => setForm({
                           ...form,
                           detaylar: { ...form.detaylar, [d.id]: { ...form.detaylar[d.id], yanlis: e.target.value } }
                         })} />
-                      <input className="input ders-input-mini" type="number" placeholder="B" 
+                      <input className="input ders-input-mini" aria-label={`${d.ad} boş`} type="number" step="1" placeholder="B"
                         value={form.detaylar[d.id]?.bos || ''}
                         onChange={(e) => setForm({
                           ...form,
@@ -341,8 +360,8 @@ export default function DenemeAnaliziPage() {
               </div>
 
               <div style={{ display: 'flex', gap: '12px', marginTop: '24px' }}>
-                <button type="button" className="btn btn-secondary" style={{ flex: 1 }} onClick={() => setShowModal(false)}>İptal</button>
-                <button type="submit" className="btn btn-primary" style={{ flex: 1 }}>Kaydet</button>
+                <button type="button" className="btn btn-secondary" style={{ flex: 1 }} onClick={() => setShowModal(false)} disabled={saving}>İptal</button>
+                <button type="submit" className="btn btn-primary" style={{ flex: 1 }} disabled={saving}>{saving ? 'Kaydediliyor…' : 'Kaydet'}</button>
               </div>
             </form>
           </div>

@@ -22,6 +22,7 @@ export default function PomodoroPage() {
   const supabase = useMemo(() => createClient(), []);
   const intervalRef = useRef(null);
   const finishedRef = useRef(false);
+  const hydratedProfileRef = useRef(null);
   const [presetIndex, setPresetIndex] = useState(0);
   const [custom, setCustom] = useState({ work: 25, breakMinutes: 5 });
   const [customActive, setCustomActive] = useState(false);
@@ -33,6 +34,10 @@ export default function PomodoroPage() {
   const [courseId, setCourseId] = useState('');
   const [resourceId, setResourceId] = useState('');
   const [todaySessions, setTodaySessions] = useState([]);
+  const [deadline, setDeadline] = useState(null);
+  const [sessionKey, setSessionKey] = useState('');
+  const [studyDate, setStudyDate] = useState('');
+  const [timerHydrated, setTimerHydrated] = useState(false);
 
   const preset = customActive ? custom : PRESETS[presetIndex];
   const totalSeconds = (breakMode ? preset.breakMinutes : preset.work) * 60;
@@ -59,13 +64,64 @@ export default function PomodoroPage() {
   }, [loadContext]);
   useRealtimeRefresh({ tables: REALTIME_TABLES, userId: profile?.id, onChange: loadContext });
 
+  const timerStorageKey = profile?.id ? `calisiyo-pomodoro-v1:${profile.id}` : '';
+
+  useEffect(() => {
+    if (!timerStorageKey || hydratedProfileRef.current === profile.id) return;
+    hydratedProfileRef.current = profile.id;
+    const hydrate = setTimeout(() => {
+      try {
+        const stored = JSON.parse(window.localStorage.getItem(timerStorageKey) || 'null');
+        if (stored && Number.isInteger(stored.timeLeft) && stored.timeLeft >= 0) {
+          const storedPresetIndex = Number.isInteger(stored.presetIndex) && PRESETS[stored.presetIndex] ? stored.presetIndex : 0;
+          const storedCustom = {
+            work: Math.min(180, Math.max(1, Number(stored.custom?.work) || 25)),
+            breakMinutes: Math.min(60, Math.max(1, Number(stored.custom?.breakMinutes) || 5)),
+          };
+          setPresetIndex(storedPresetIndex);
+          setCustom(storedCustom);
+          setCustomActive(Boolean(stored.customActive));
+          setBreakMode(Boolean(stored.breakMode));
+          setTimeLeft(stored.timeLeft);
+          setDeadline(Number(stored.deadline) || null);
+          setSessionKey(String(stored.sessionKey || ''));
+          setStudyDate(String(stored.studyDate || ''));
+          setCourseId(String(stored.courseId || ''));
+          setResourceId(String(stored.resourceId || ''));
+          setRunning(Boolean(stored.running && stored.deadline));
+        }
+      } catch {
+        window.localStorage.removeItem(timerStorageKey);
+      }
+      setTimerHydrated(true);
+    }, 0);
+    return () => clearTimeout(hydrate);
+  }, [profile?.id, timerStorageKey]);
+
+  useEffect(() => {
+    if (!timerHydrated || !timerStorageKey) return;
+    window.localStorage.setItem(timerStorageKey, JSON.stringify({
+      presetIndex, custom, customActive, breakMode, timeLeft, deadline,
+      sessionKey, studyDate, courseId, resourceId, running,
+    }));
+  }, [breakMode, courseId, custom, customActive, deadline, presetIndex, resourceId, running, sessionKey, studyDate, timeLeft, timerHydrated, timerStorageKey]);
+
   const recordFocusSession = useCallback(async () => {
-    if (!profile?.id) return;
-    const basePayload = { user_id: profile.id, ders_id: courseId || null, tarih: todayStr(), sure_dakika: preset.work, soru_sayisi: 0 };
-    let result = await supabase.from('calisma_suresi').insert({ ...basePayload, kaynak_id: resourceId || null });
-    if (result.error?.message?.toLowerCase().includes('kaynak_id')) result = await supabase.from('calisma_suresi').insert(basePayload);
-    if (result.error) setError(`Oturum istatistiklere kaydedilemedi: ${result.error.message}`);
-  }, [courseId, preset.work, profile, resourceId, setError, supabase]);
+    if (!profile?.id || !sessionKey) return;
+    const { error } = await supabase.rpc('complete_pomodoro_session', {
+      p_session_key: sessionKey,
+      p_work_minutes: preset.work,
+      p_break_minutes: preset.breakMinutes,
+      p_ders_id: courseId || null,
+      p_kaynak_id: resourceId || null,
+      p_study_date: studyDate || todayStr(),
+    });
+    if (error) {
+      setError(`Oturum istatistiklere kaydedilemedi: ${error.message}`);
+      return;
+    }
+    await loadContext();
+  }, [courseId, loadContext, preset.breakMinutes, preset.work, profile, resourceId, sessionKey, setError, studyDate, supabase]);
 
   const notifyPomodoroStage = useCallback(async (completedBreak) => {
     if (profile?.notifications_enabled === false || profile?.study_preferences?.pomodoro === false) return;
@@ -88,19 +144,22 @@ export default function PomodoroPage() {
     }
   }, [preset.work, profile, setError, supabase]);
 
-  const finishStage = useCallback(() => {
+  const finishStage = useCallback(async () => {
     if (finishedRef.current) return;
     finishedRef.current = true;
     setRunning(false);
+    setDeadline(null);
     if (!breakMode) {
-      recordFocusSession();
-      notifyPomodoroStage(false);
+      await recordFocusSession();
+      await notifyPomodoroStage(false);
       setBreakMode(true);
       setTimeLeft(preset.breakMinutes * 60);
     } else {
-      notifyPomodoroStage(true);
+      await notifyPomodoroStage(true);
       setBreakMode(false);
       setTimeLeft(preset.work * 60);
+      setSessionKey('');
+      setStudyDate('');
     }
   }, [breakMode, notifyPomodoroStage, preset.breakMinutes, preset.work, recordFocusSession]);
 
@@ -110,23 +169,24 @@ export default function PomodoroPage() {
       return undefined;
     }
     finishedRef.current = false;
-    intervalRef.current = setInterval(() => {
-      setTimeLeft((current) => {
-        if (current <= 1) {
-          setTimeout(finishStage, 0);
-          return 0;
-        }
-        return current - 1;
-      });
-    }, 1000);
+    const updateFromClock = () => {
+      const remaining = Math.max(0, Math.ceil((deadline - Date.now()) / 1000));
+      setTimeLeft(remaining);
+      if (remaining === 0) setTimeout(finishStage, 0);
+    };
+    updateFromClock();
+    intervalRef.current = setInterval(updateFromClock, 500);
     return () => clearInterval(intervalRef.current);
-  }, [finishStage, running]);
+  }, [deadline, finishStage, running]);
 
   const applyPreset = (index) => {
     setPresetIndex(index);
     setCustomActive(false);
     setBreakMode(false);
     setRunning(false);
+    setDeadline(null);
+    setSessionKey('');
+    setStudyDate('');
     setTimeLeft(PRESETS[index].work * 60);
   };
 
@@ -137,13 +197,36 @@ export default function PomodoroPage() {
     setCustomActive(true);
     setBreakMode(false);
     setRunning(false);
+    setDeadline(null);
+    setSessionKey('');
+    setStudyDate('');
     setTimeLeft(safeWork * 60);
   };
 
   const reset = () => {
     setRunning(false);
+    setDeadline(null);
     setBreakMode(false);
+    setSessionKey('');
+    setStudyDate('');
     setTimeLeft(preset.work * 60);
+  };
+
+  const toggleRunning = () => {
+    if (running) {
+      setTimeLeft(Math.max(0, Math.ceil((deadline - Date.now()) / 1000)));
+      setDeadline(null);
+      setRunning(false);
+      return;
+    }
+
+    if (!breakMode && !sessionKey) {
+      setSessionKey(globalThis.crypto?.randomUUID?.() || `${Date.now()}-${profile?.id || 'session'}`);
+      setStudyDate(todayStr());
+    }
+    finishedRef.current = false;
+    setDeadline(Date.now() + timeLeft * 1000);
+    setRunning(true);
   };
 
   const minutes = Math.floor(timeLeft / 60);
@@ -178,7 +261,7 @@ export default function PomodoroPage() {
           </div>
           <div className="timer-controls">
             <button className="study-button" onClick={reset}><RotateCcw size={18} /> Sıfırla</button>
-            <button className="study-button study-button-primary" onClick={() => setRunning((value) => !value)}>{running ? <><Pause size={18} /> Duraklat</> : <><Play size={18} /> {timeLeft < totalSeconds ? 'Devam et' : 'Başla'}</>}</button>
+            <button className="study-button study-button-primary" onClick={toggleRunning}>{running ? <><Pause size={18} /> Duraklat</> : <><Play size={18} /> {timeLeft < totalSeconds ? 'Devam et' : 'Başla'}</>}</button>
           </div>
           <p className="focus-note"><span /> Odaklanma modundasın. Dikkatini dağıtan bildirimleri kapatmanı öneririz.</p>
         </section>

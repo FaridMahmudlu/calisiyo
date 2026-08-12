@@ -110,7 +110,7 @@ export default function Select({
                 </button>
               );
             })}
-            {!visibleOptions.length && <p className="study-select-empty">Eşleşən seçim yoxdur.</p>}
+            {!visibleOptions.length && <p className="study-select-empty">Eşleşen seçenek yok.</p>}
           </div>
         </div>
       )}

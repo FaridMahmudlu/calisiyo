@@ -82,6 +82,22 @@ export default function HedeflerimPage() {
 
   const saveGoals = async (event) => {
     event.preventDefault();
+    const numericValues = [
+      ...Object.values(form.nets),
+      ...Object.values(form.topics),
+      form.weeklyQuestions,
+      form.weeklyMinutes,
+    ].map(Number);
+    if (numericValues.some((value) => !Number.isFinite(value) || value < 0)) {
+      setError('Hedefler sıfır veya pozitif bir sayı olmalıdır.');
+      return;
+    }
+    if (Object.values(form.topics).some((value) => !Number.isInteger(Number(value)))
+      || !Number.isInteger(Number(form.weeklyQuestions))
+      || !Number.isInteger(Number(form.weeklyMinutes))) {
+      setError('Konu, soru ve dakika hedefleri tam sayı olmalıdır.');
+      return;
+    }
     setSaving(true);
     const normalized = {
       ...form,

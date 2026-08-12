@@ -38,17 +38,25 @@ export default function NotDefteriPage() {
   const loadData = useCallback(async () => {
     if (!profile) return;
     setLoading(true);
-    const { data } = await supabase
+    const { data, error } = await supabase
       .from('notlar')
       .select('*')
       .eq('user_id', profile.id)
       .order('updated_at', { ascending: false });
 
+    if (error) {
+      setError('Notların yüklenemedi. Lütfen tekrar dene.');
+      setNotlar([]);
+      setKlasorler([]);
+      setLoading(false);
+      return;
+    }
+
     setNotlar(data || []);
     const folders = [...new Set((data || []).map(n => n.klasor))];
     setKlasorler(folders);
     setLoading(false);
-  }, [profile, supabase]);
+  }, [profile, setError, supabase]);
 
   useEffect(() => {
     const timer = setTimeout(loadData, 0);
