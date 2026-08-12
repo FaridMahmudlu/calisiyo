@@ -799,3 +799,15 @@ textarea.input {
   background: var(--primary-200);
   color: var(--primary-900);
 }
+/* Suspended accounts remain protected while keeping a clear recovery path. */
+.suspended-account-page { min-height: 100vh; padding: 32px; background: radial-gradient(circle at 50% 0%, #e9f8f2, transparent 42%), #f8fbfa; display: grid; place-items: center; }
+.suspended-account-page > section { width: min(100%, 560px); padding: clamp(28px, 6vw, 52px); border: 1px solid #dfe9e5; border-radius: 24px; background: rgba(255,255,255,.94); box-shadow: 0 28px 80px rgba(13,24,48,.1); display: grid; justify-items: center; text-align: center; }
+.suspended-account-page .calisiyo-logo { margin-bottom: 30px; }
+.suspended-icon { width: 66px; height: 66px; margin-bottom: 18px; border-radius: 20px; background: #fff3e8; color: #b85c18; display: grid; place-items: center; }
+.suspended-account-page h1 { margin: 0; color: #0d1830; font-size: clamp(1.7rem, 5vw, 2.4rem); letter-spacing: -.04em; }
+.suspended-account-page p { max-width: 430px; margin: 12px 0 26px; color: #66738f; line-height: 1.65; }
+.suspended-actions { width: 100%; display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.suspended-actions a, .suspended-actions button { min-height: 46px; padding: 0 14px; border: 1px solid #dfe7e4; border-radius: 11px; background: #fff; color: #18233b; display: inline-flex; align-items: center; justify-content: center; gap: 8px; text-decoration: none; font: inherit; font-size: .82rem; font-weight: 700; cursor: pointer; }
+.suspended-actions button { border-color: #00a870; background: #00a870; color: #fff; }
+.suspended-actions button:disabled { opacity: .6; cursor: wait; }
+@media (max-width: 560px) { .suspended-account-page { padding: 16px; } .suspended-actions { grid-template-columns: 1fr; } }

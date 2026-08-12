@@ -6,7 +6,7 @@ import { usePathname, useRouter } from 'next/navigation';
 import {
   AlertTriangle, BarChart3, BookOpen, Calendar, CalendarDays,
   FileText, Flame, Home, Info, LogOut, Menu, PanelLeftClose,
-  PanelLeftOpen, RotateCcw, Settings, Target, Timer, X,
+  PanelLeftOpen, RotateCcw, Settings, ShieldCheck, Target, Timer, Trophy, UsersRound, X,
 } from 'lucide-react';
 import { createClient } from '@/lib/supabase/client';
 import { parseLocalDate, todayStr, toLocalDateKey } from '@/lib/utils/date';
@@ -40,6 +40,8 @@ const NAV_GROUPS = [
       ['/dashboard/pomodoro', 'Pomodoro', Timer],
       ['/dashboard/not-defteri', 'Not Defterim', FileText],
       ['/dashboard/hedeflerim', 'Hedeflerim', Target],
+      ['/dashboard/gelisim', 'Gelişim ve Seviyem', Trophy],
+      ['/dashboard/arkadaslar', 'Çalışma Arkadaşları', UsersRound],
     ],
   },
   { label: 'Hesap', items: [['/dashboard/ayarlar', 'Ayarlar', Settings]] },
@@ -59,13 +61,23 @@ export default function DashboardLayout({ children }) {
   const supabase = useMemo(() => createClient(), []);
   const [user, setUser] = useState(null);
   const [profile, setProfile] = useState(null);
+  const [adminRole, setAdminRole] = useState(null);
   const [loading, setLoading] = useState(true);
   const [errorState, setErrorState] = useState({ message: '', pathname });
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [collapsed, setCollapsed] = useState(false);
   const [sidebarWidth, setSidebarWidth] = useState(232);
   const resizingRef = useRef(false);
-  const [stats, setStats] = useState({ level: 1, xp: 0, streak: 0, todayMinutes: 0 });
+  const [stats, setStats] = useState({
+    level: 1,
+    xp: 0,
+    totalXp: 0,
+    levelTitle: 'Yeni Başlangıç',
+    progressPercent: 0,
+    xpToNext: 250,
+    streak: 0,
+    todayMinutes: 0,
+  });
   const [streakInfoOpen, setStreakInfoOpen] = useState(false);
   const error = errorState.pathname === pathname ? errorState.message : '';
   const setError = useCallback((message) => {
@@ -79,6 +91,10 @@ export default function DashboardLayout({ children }) {
       router.replace('/giris');
       return;
     }
+    if (response.status === 403 && result.code === 'account_suspended') {
+      router.replace('/hesap-askida');
+      return;
+    }
     if (!response.ok || !result.ok) {
       setError(result.message || 'Çalışma bilgilerin yüklenemedi. Lütfen sayfayı yenileyin.');
       setLoading(false);
@@ -88,6 +104,7 @@ export default function DashboardLayout({ children }) {
     const authUser = result.user;
     setUser(authUser);
     setProfile(result.profile || null);
+    setAdminRole(result.adminRole || null);
 
     const tasks = result.tasks || [];
     const sessions = result.sessions || [];
@@ -107,7 +124,17 @@ export default function DashboardLayout({ children }) {
       streak += 1;
       cursor.setDate(cursor.getDate() - 1);
     }
-    setStats({ level: Math.floor(xpTotal / 250) + 1, xp: xpTotal % 250, streak, todayMinutes: minutesByDate[todayStr()] || 0 });
+    const progress = result.progress;
+    setStats({
+      level: progress?.level || Math.floor(xpTotal / 250) + 1,
+      xp: progress?.currentLevelXp ?? xpTotal % 250,
+      totalXp: progress?.totalXp ?? xpTotal,
+      levelTitle: progress?.title || 'Yeni Başlangıç',
+      progressPercent: progress?.progressPercent ?? ((xpTotal % 250) / 250) * 100,
+      xpToNext: progress?.xpToNext ?? (250 - (xpTotal % 250)),
+      streak,
+      todayMinutes: minutesByDate[todayStr()] || 0,
+    });
     setLoading(false);
   }, [router, setError]);
 
@@ -160,7 +187,10 @@ export default function DashboardLayout({ children }) {
     else setCollapsed((value) => !value);
   };
 
-  const accountRealtimeTables = useMemo(() => ['gunluk_gorevler', 'calisma_suresi'], []);
+  const accountRealtimeTables = useMemo(
+    () => ['gunluk_gorevler', 'calisma_suresi', 'xp_events'],
+    [],
+  );
   const profileRealtimeTables = useMemo(() => ['profiles'], []);
   useRealtimeRefresh({ tables: accountRealtimeTables, userId: user?.id, onChange: loadAccount });
   useRealtimeRefresh({ tables: profileRealtimeTables, userId: user?.id, filterColumn: 'id', onChange: loadAccount });
@@ -182,7 +212,7 @@ export default function DashboardLayout({ children }) {
   const initials = profile?.full_name?.trim()?.charAt(0)?.toLocaleUpperCase('tr-TR') || 'Ö';
 
   return (
-    <UserContext.Provider value={{ user, profile, setProfile, error, setError, reloadAccount: loadAccount, stats }}>
+    <UserContext.Provider value={{ user, profile, setProfile, adminRole, error, setError, reloadAccount: loadAccount, stats }}>
       <div className={`study-layout ${collapsed ? 'is-collapsed' : ''}`} style={{ '--sidebar-width': `${sidebarWidth}px` }}>
         {sidebarOpen && <button className="sidebar-backdrop" aria-label="Menüyü kapat" onClick={() => setSidebarOpen(false)} />}
         <aside className={`study-sidebar ${sidebarOpen ? 'is-open' : ''}`}>
@@ -209,16 +239,31 @@ export default function DashboardLayout({ children }) {
                 })}
               </div>
             ))}
+            {adminRole && (
+              <div className="nav-section admin-nav-section">
+                {!collapsed && <span className="nav-section-label">Yönetim</span>}
+                <Link href="/admin" title={collapsed ? 'Admin Paneli' : undefined} className="nav-link admin-nav-link" onClick={() => setSidebarOpen(false)}>
+                  <ShieldCheck size={19} />{!collapsed && <span>Admin Paneli</span>}
+                </Link>
+              </div>
+            )}
           </nav>
 
           <div className="sidebar-account">
             {!collapsed && (
+              <>
               <div className="study-streak">
                 <Flame size={17} />
                 <span><strong>{stats.streak}</strong> günlük seri <button className="streak-info-button" aria-label="Seri kuralını açıkla" aria-expanded={streakInfoOpen} onClick={() => setStreakInfoOpen((value) => !value)}><Info size={13} /></button></span>
-                <small>Bugün {Math.min(stats.todayMinutes, 30)}/30 dk · Seviye {stats.level}</small>
+                <small>Bugün {Math.min(stats.todayMinutes, 30)}/30 dk</small>
                 {streakInfoOpen && <div className="streak-info-popover" role="note"><strong>Seri nasıl ilerler?</strong><p>Her gün calisiyo’da Pomodoro veya çalışma kaydı ile en az 30 dakika ders çalış. 30 dakikaya ulaşan gün serine eklenir.</p></div>}
               </div>
+              <Link href="/dashboard/gelisim" className="sidebar-level-card" onClick={() => setSidebarOpen(false)}>
+                <span><Trophy size={15} /><strong>Seviye {stats.level}</strong><small>{stats.levelTitle}</small></span>
+                <i><b style={{ width: `${Math.min(100, Math.max(0, stats.progressPercent))}%` }} /></i>
+                <em>{stats.xpToNext} XP sonra yeni seviye</em>
+              </Link>
+              </>
             )}
             <div className="account-row">
               <Link className="avatar" href="/dashboard/ayarlar" aria-label="Profil ayarları">{initials}</Link>
@@ -233,7 +278,7 @@ export default function DashboardLayout({ children }) {
           <header className="study-topbar">
             <button className="icon-button mobile-menu-button" onClick={() => setSidebarOpen(true)} aria-label="Menüyü aç"><Menu size={21} /></button>
             <span className="topbar-context">YKS Çalışma Koçu</span>
-            <HeaderActions user={user} profile={profile} initials={initials} logout={logout} setError={setError} />
+            <HeaderActions user={user} profile={profile} initials={initials} adminRole={adminRole} stats={stats} logout={logout} setError={setError} />
           </header>
           {error && <div className="global-error" role="alert">{error}<button onClick={() => setError('')} aria-label="Uyarıyı kapat"><X size={16} /></button></div>}
           <main className={`study-content ${pathname === '/dashboard' ? 'dashboard-home' : ''}`}>{children}</main>

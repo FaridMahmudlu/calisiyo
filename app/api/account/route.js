@@ -70,15 +70,34 @@ export async function GET() {
     profile = repairedProfile;
   }
 
-  const [{ data: tasks, error: taskError }, { data: sessions, error: sessionError }] = await Promise.all([
+  if (profile.account_status === 'suspended') {
+    return Response.json({
+      ok: false,
+      code: 'account_suspended',
+      message: profile.status_reason
+        ? `Hesabın geçici olarak askıya alındı: ${profile.status_reason}`
+        : 'Hesabın geçici olarak askıya alındı. Destek ekibiyle iletişime geçebilirsin.',
+    }, { status: 403 });
+  }
+
+  const [
+    { data: tasks, error: taskError },
+    { data: sessions, error: sessionError },
+    { data: progress, error: progressError },
+    { data: adminRole, error: roleError },
+  ] = await Promise.all([
     supabase.from('gunluk_gorevler').select('tarih,tamamlandi,soru_sayisi').eq('user_id', user.id),
     supabase.from('calisma_suresi').select('tarih,sure_dakika,soru_sayisi').eq('user_id', user.id),
+    supabase.rpc('get_my_progress'),
+    supabase.rpc('current_admin_role'),
   ]);
 
-  if (taskError || sessionError) {
+  if (taskError || sessionError || progressError || roleError) {
     console.error('Account summary loaded partially', {
       tasks: taskError?.code,
       sessions: sessionError?.code,
+      progress: progressError?.code,
+      role: roleError?.code,
     });
   }
 
@@ -88,7 +107,9 @@ export async function GET() {
     profile,
     tasks: tasks || [],
     sessions: sessions || [],
-    partial: Boolean(taskError || sessionError),
+    progress: progress || null,
+    adminRole: adminRole || null,
+    partial: Boolean(taskError || sessionError || progressError || roleError),
   });
 }
 

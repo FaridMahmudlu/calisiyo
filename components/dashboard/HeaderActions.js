@@ -6,7 +6,7 @@ import { useRouter } from 'next/navigation';
 import { AnimatePresence, motion, useReducedMotion } from 'framer-motion';
 import {
   Bell, BellRing, CheckCheck, ChevronDown, Clock3, LogOut,
-  Sparkles, Target, Timer, UserRound,
+  ShieldCheck, Sparkles, Target, Timer, Trophy, UserRound, UsersRound,
 } from 'lucide-react';
 import { createClient } from '@/lib/supabase/client';
 import { todayStr } from '@/lib/utils/date';
@@ -28,7 +28,7 @@ const formatNotificationTime = (value) => {
   return new Intl.DateTimeFormat('tr-TR', { day: 'numeric', month: 'short' }).format(date);
 };
 
-export default function HeaderActions({ user, profile, initials, logout, setError }) {
+export default function HeaderActions({ user, profile, initials, adminRole, stats, logout, setError }) {
   const router = useRouter();
   const reduceMotion = useReducedMotion();
   const supabase = useMemo(() => createClient(), []);
@@ -144,6 +144,9 @@ export default function HeaderActions({ user, profile, initials, logout, setErro
 
   return (
     <div className="topbar-actions" ref={rootRef}>
+      <Link className="topbar-level-link" href="/dashboard/gelisim" aria-label={`Seviye ${stats?.level || 1}, ${stats?.xpToNext || 0} XP kaldı`}>
+        <Trophy size={16} /><span>Seviye {stats?.level || 1}</span><i>{stats?.xpToNext || 0} XP</i>
+      </Link>
       <div className="topbar-action-wrap">
         <button
           className={`icon-button notification-button ${openMenu === 'notifications' ? 'is-active' : ''}`}
@@ -212,6 +215,9 @@ export default function HeaderActions({ user, profile, initials, logout, setErro
               <div className="profile-popover-links">
                 <Link href="/dashboard/ayarlar" onClick={() => setOpenMenu(null)}><UserRound size={17} /><span><strong>Profil ve ayarlar</strong><small>Hesap, alan ve bildirim tercihleri</small></span></Link>
                 <Link href="/dashboard/hedeflerim" onClick={() => setOpenMenu(null)}><Target size={17} /><span><strong>Hedeflerim</strong><small>YKS hedeflerini düzenle</small></span></Link>
+                <Link href="/dashboard/gelisim" onClick={() => setOpenMenu(null)}><Trophy size={17} /><span><strong>Gelişim ve seviyem</strong><small>XP geçmişi ve yeni seviye hedefi</small></span></Link>
+                <Link href="/dashboard/arkadaslar" onClick={() => setOpenMenu(null)}><UsersRound size={17} /><span><strong>Çalışma arkadaşları</strong><small>Arkadaşlar, sıralama ve sınıflar</small></span></Link>
+                {adminRole && <Link href="/admin" onClick={() => setOpenMenu(null)}><ShieldCheck size={17} /><span><strong>Admin paneli</strong><small>Analiz ve güvenli yönetim araçları</small></span></Link>}
               </div>
               <button className="profile-logout" onClick={logout}><LogOut size={17} />Güvenli çıkış yap</button>
             </motion.section>
