@@ -4,6 +4,9 @@ const url = process.env.SUPABASE_URL;
 const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
 const email = process.env.DEMO_EMAIL || 'mert.kaya.demo@calisiyo.app';
 const password = process.env.DEMO_PASSWORD;
+const fullName = process.env.DEMO_FULL_NAME || 'Mert Kaya';
+const accountType = process.env.DEMO_ACCOUNT_TYPE || 'demo';
+const managedBy = process.env.DEMO_MANAGED_BY || 'manual';
 
 if (!url || !serviceKey || !password) throw new Error('SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY ve DEMO_PASSWORD gerekli.');
 
@@ -27,22 +30,29 @@ if (!user) {
     email,
     password,
     email_confirm: true,
-    user_metadata: { full_name: 'Mert Kaya', alan_secimi: 'sayisal', account_type: 'demo' },
+    user_metadata: { full_name: fullName, alan_secimi: 'sayisal' },
+    app_metadata: { account_type: accountType, managed_by: managedBy },
   });
   if (created.error) throw created.error;
   user = created.data.user;
 } else {
-  const updated = await supabase.auth.admin.updateUserById(user.id, { password, email_confirm: true, user_metadata: { ...user.user_metadata, full_name: 'Mert Kaya', alan_secimi: 'sayisal', account_type: 'demo' } });
+  const updated = await supabase.auth.admin.updateUserById(user.id, {
+    password,
+    email_confirm: true,
+    user_metadata: { ...user.user_metadata, full_name: fullName, alan_secimi: 'sayisal' },
+    app_metadata: { ...user.app_metadata, account_type: accountType, managed_by: managedBy },
+  });
   if (updated.error) throw updated.error;
+  user = updated.data.user;
 }
 
 const userId = user.id;
-const ownerTables = ['pomodoro_kayitlari', 'notlar', 'tekrarlar', 'yapamadiklari', 'calisma_suresi', 'denemeler', 'gunluk_gorevler', 'kaynaklarim', 'konu_takibi'];
+const ownerTables = ['notifications', 'pomodoro_kayitlari', 'notlar', 'tekrarlar', 'yapamadiklari', 'calisma_suresi', 'denemeler', 'gunluk_gorevler', 'kaynaklarim', 'konu_takibi'];
 for (const table of ownerTables) requireData(await supabase.from(table).delete().eq('user_id', userId), `${table} temizleme`);
 
 requireData(await supabase.from('profiles').upsert({
   id: userId,
-  full_name: 'Mert Kaya',
+  full_name: fullName,
   alan_secimi: 'sayisal',
   theme: 'light',
   notifications_enabled: true,
@@ -102,6 +112,15 @@ for (let offset = -34; offset <= 3; offset += 1) {
 requireData(await supabase.from('gunluk_gorevler').insert(taskRows), 'program ekleme');
 requireData(await supabase.from('calisma_suresi').insert(sessionRows), 'çalışma kaydı ekleme');
 
+const pomodoroRows = sessionRows.slice(-18).map((session, index) => ({
+  user_id: userId,
+  calisma_suresi: [25, 30, 40, 50][index % 4],
+  mola_suresi: [5, 5, 10][index % 3],
+  ders_id: session.ders_id,
+  tarih: session.created_at,
+}));
+requireData(await supabase.from('pomodoro_kayitlari').insert(pomodoroRows), 'pomodoro kaydı ekleme');
+
 const examOffsets = [-32, -25, -18, -11, -4];
 for (let examIndex = 0; examIndex < examOffsets.length; examIndex += 1) {
   const offset = examOffsets[examIndex];
@@ -142,4 +161,16 @@ requireData(await supabase.from('notlar').insert([
   { user_id: userId, klasor: 'Deneme', baslik: 'Son TYT değerlendirmesi', icerik: 'Türkçe süre kontrolü iyi. Matematikte son 10 soruya 25 dakika ayır.', created_at: createdAt(-4, 18), updated_at: createdAt(-4, 18) },
 ]), 'not ekleme');
 
-console.log(JSON.stringify({ ok: true, email, userId, tasks: taskRows.length, sessions: sessionRows.length, exams: examOffsets.length, topics: trackedTopics.length }));
+console.log(JSON.stringify({
+  ok: true,
+  email,
+  fullName,
+  accountType,
+  managedBy,
+  userId,
+  tasks: taskRows.length,
+  sessions: sessionRows.length,
+  pomodoros: pomodoroRows.length,
+  exams: examOffsets.length,
+  topics: trackedTopics.length,
+}));
