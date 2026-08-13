@@ -81,17 +81,11 @@ export default function ClassroomPage() {
   const presenceStartedRef = useRef(false);
   const lastPresenceMutationAtRef = useRef(0);
   const focusEditingRef = useRef(false);
-  const realtimeChannelRef = useRef(null);
-  const clientIdRef = useRef(null);
   const latestMoveRef = useRef(null);
   const lastLocalMoveAtRef = useRef(0);
   const moveTimerRef = useRef(null);
   const serverOffsetRef = useRef(0);
   const focusExpiredRef = useRef(null);
-
-  useEffect(() => {
-    clientIdRef.current = window.crypto.randomUUID();
-  }, []);
 
   const showNotice = useCallback((message) => {
     setNotice(message);
@@ -160,11 +154,6 @@ export default function ClassroomPage() {
         ? { ...member, presence: nextStatus, focusSubject: subject || null }
         : member),
     } : current);
-    realtimeChannelRef.current?.send({
-      type: 'broadcast',
-      event: 'status',
-      payload: { userId, clientId: clientIdRef.current, status: nextStatus, focusSubject: subject || null, sentAt: Date.now() },
-    });
     return true;
   }, [focusSubject, groupId, status, supabase, userId]);
 
@@ -186,10 +175,6 @@ export default function ClassroomPage() {
     lastLocalMoveAtRef.current = Date.now();
     setLocalPosition(next);
     latestMoveRef.current = next;
-    realtimeChannelRef.current?.send({
-      type: 'broadcast', event: 'move',
-      payload: { userId, clientId: clientIdRef.current, x: Number(next.x.toFixed(2)), y: Number(next.y.toFixed(2)), facing: next.facing, sentAt: Date.now() },
-    });
     if (moveTimerRef.current) window.clearTimeout(moveTimerRef.current);
     if (immediate) {
       moveTimerRef.current = null;
@@ -200,7 +185,7 @@ export default function ClassroomPage() {
       sendMove(latestMoveRef.current);
       moveTimerRef.current = null;
     }, 260);
-  }, [sendMove, userId]);
+  }, [sendMove]);
 
   useEffect(() => {
     const timer = window.setTimeout(loadRoom, 0);
@@ -225,46 +210,19 @@ export default function ClassroomPage() {
       await supabase.realtime.setAuth();
       if (disposed) return;
       channel = supabase.channel(`classroom:${groupId}`, {
-        config: { private: true, broadcast: { self: false, ack: false }, presence: { key: userId } },
+        config: { private: true },
       })
-        .on('broadcast', { event: 'move' }, ({ payload }) => {
-          if (!payload?.userId || payload.clientId === clientIdRef.current) return;
-          if (payload.userId === userId) {
-            lastLocalMoveAtRef.current = Date.now();
-            setLocalPosition({ x: Number(payload.x), y: Number(payload.y), facing: payload.facing || 'east' });
-          }
-          setData((current) => current ? { ...current, members: current.members.map((member) => member.userId === payload.userId ? { ...member, positionX: payload.x, positionY: payload.y, facing: payload.facing } : member) } : current);
-        })
-        .on('broadcast', { event: 'status' }, ({ payload }) => {
-          if (!payload?.userId || payload.clientId === clientIdRef.current) return;
-          if (payload.userId === userId) {
-            setStatus(payload.status);
-            if (!focusEditingRef.current) setFocusSubject(payload.focusSubject || '');
-          }
-          setData((current) => current ? { ...current, members: current.members.map((member) => member.userId === payload.userId ? { ...member, presence: payload.status, focusSubject: payload.focusSubject } : member) } : current);
-        })
-        .on('broadcast', { event: 'reaction' }, ({ payload }) => {
-          if (!payload?.id) return;
-          setData((current) => current ? { ...current, reactions: [payload, ...(current.reactions || []).filter((item) => item.id !== payload.id)].slice(0, 12) } : current);
-        })
-        .on('broadcast', { event: 'message' }, ({ payload }) => {
-          if (!payload?.id) return;
-          setData((current) => current ? { ...current, messages: [...(current.messages || []).filter((item) => item.id !== payload.id), payload].slice(-60) } : current);
-        })
-        .on('broadcast', { event: 'message-delete' }, ({ payload }) => {
-          if (!payload?.id) return;
-          setData((current) => current ? { ...current, messages: (current.messages || []).filter((item) => item.id !== payload.id) } : current);
-        })
-        .on('presence', { event: 'sync' }, () => {
-          const activeUserIds = new Set(Object.values(channel.presenceState()).flat().map((entry) => entry.userId));
-          setData((current) => current ? { ...current, members: current.members.map((member) => activeUserIds.has(member.userId) ? { ...member, presence: member.presence === 'offline' ? 'online' : member.presence } : member) } : current);
-        })
+        // Never trust member-authored Broadcast/Presence payloads for identity
+        // or UI state. Every live update below is re-read from RLS/RPC-backed
+        // database rows whose user_id is derived from auth.uid().
+        .on('postgres_changes', { event: '*', schema: 'public', table: 'study_presence', filter: `group_id=eq.${groupId}` }, () => loadRoom({ quiet: true }))
+        .on('postgres_changes', { event: '*', schema: 'public', table: 'study_group_reactions', filter: `group_id=eq.${groupId}` }, () => loadRoom({ quiet: true }))
+        .on('postgres_changes', { event: '*', schema: 'public', table: 'study_group_messages', filter: `group_id=eq.${groupId}` }, () => loadRoom({ quiet: true }))
         .on('postgres_changes', { event: '*', schema: 'public', table: 'study_group_members', filter: `group_id=eq.${groupId}` }, () => loadRoom({ quiet: true }))
         .on('postgres_changes', { event: '*', schema: 'public', table: 'study_group_focus_sessions', filter: `group_id=eq.${groupId}` }, () => loadRoom({ quiet: true }))
-        .subscribe(async (connectionStatus) => {
+        .subscribe((connectionStatus) => {
           if (connectionStatus === 'SUBSCRIBED' && !disposed) {
-            realtimeChannelRef.current = channel;
-            await channel.track({ userId, joinedAt: new Date().toISOString() });
+            loadRoom({ quiet: true });
           }
         });
     };
@@ -274,7 +232,6 @@ export default function ClassroomPage() {
       window.clearInterval(heartbeat);
       if (moveTimerRef.current) window.clearTimeout(moveTimerRef.current);
       disposed = true;
-      realtimeChannelRef.current = null;
       if (channel) supabase.removeChannel(channel);
     };
   }, [focusSubject, groupId, loadRoom, status, supabase, updatePresence, userId]);
@@ -355,7 +312,6 @@ export default function ClassroomPage() {
       return;
     }
     setData((current) => current ? { ...current, reactions: [created, ...(current.reactions || [])].slice(0, 12) } : current);
-    realtimeChannelRef.current?.send({ type: 'broadcast', event: 'reaction', payload: created });
   };
 
   const saveAvatar = async (avatar) => {
@@ -455,14 +411,12 @@ export default function ClassroomPage() {
     const enriched = { ...message, name: me?.name || 'Sen' };
     setChatText('');
     setData((current) => current ? { ...current, messages: [...(current.messages || []), enriched].slice(-60) } : current);
-    realtimeChannelRef.current?.send({ type: 'broadcast', event: 'message', payload: enriched });
   };
 
   const deleteMessage = async (messageId) => {
     const { error: deleteError } = await supabase.rpc('delete_classroom_message', { p_message_id: messageId });
     if (deleteError) { setError(deleteError.message || 'Mesaj silinemedi.'); return; }
     setData((current) => current ? { ...current, messages: (current.messages || []).filter((item) => item.id !== messageId) } : current);
-    realtimeChannelRef.current?.send({ type: 'broadcast', event: 'message-delete', payload: { id: messageId } });
   };
 
   const moderateMember = async (action) => {
