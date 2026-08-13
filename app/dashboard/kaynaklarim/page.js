@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 import Image from "next/image";
-import { BookOpen, CalendarDays, CirclePlay, Clock3, ExternalLink, ListVideo, Plus, Sparkles, Trash2 } from "lucide-react";
+import { BookOpen, CalendarDays, CirclePlay, Clock3, Crown, ExternalLink, ListVideo, Plus, Sparkles, Trash2 } from "lucide-react";
 import { useUser } from "../layout";
 import { createClient } from "@/lib/supabase/client";
 import { getExamTabs, KITAP_TURLERI } from "@/lib/constants/alanlar";
@@ -12,6 +12,7 @@ import PageHeader from "@/components/ui/PageHeader";
 import DataState from "@/components/ui/DataState";
 import Modal from "@/components/ui/Modal";
 import Select from "@/components/ui/Select";
+import PremiumFeaturePrompt from "@/components/billing/PremiumFeaturePrompt";
 
 const REALTIME_TABLES = ["kaynaklarim"];
 const EMPTY_FORM = {
@@ -33,7 +34,7 @@ const YOUTUBE_CADENCE_OPTIONS = [
 ];
 
 export default function KaynaklarimPage() {
-  const { profile, setError: setGlobalError } = useUser();
+  const { profile, currentPlan, setError: setGlobalError } = useUser();
   const supabase = useMemo(() => createClient(), []);
   const examTabs = useMemo(
     () => (profile ? getExamTabs(profile.alan_secimi) : ["TYT", "AYT"]),
@@ -59,6 +60,7 @@ export default function KaynaklarimPage() {
   const [youtubeBusy, setYoutubeBusy] = useState("");
   const [youtubeError, setYoutubeError] = useState("");
   const [youtubeNotice, setYoutubeNotice] = useState("");
+  const [premiumPrompt, setPremiumPrompt] = useState(false);
   const [youtubePlan, setYoutubePlan] = useState({
     courseId: "",
     startDate: TODAY_IN_TURKEY,
@@ -303,6 +305,9 @@ export default function KaynaklarimPage() {
           <button className="study-button youtube-plan-button" onClick={openYoutubePlanner}>
             <CirclePlay size={17} /> YouTube’dan planla
           </button>
+          <button className="premium-inline-action" onClick={() => setPremiumPrompt(true)} title="Premium YouTube planı limitlerini gör">
+            <Crown size={13} /> Premium limitleri
+          </button>
           <button className="study-button study-button-primary" onClick={() => setModalOpen(true)}>
             <Plus size={16} /> Kaynak ekle
           </button>
@@ -500,6 +505,7 @@ export default function KaynaklarimPage() {
           </>}
         </div>
       </Modal>
+      <PremiumFeaturePrompt open={premiumPrompt} onClose={() => setPremiumPrompt(false)} feature="YouTube çalışma planı limitleri" requiredPlan="Odak" currentPlan={currentPlan?.name || "Başlangıç"} description="Başlangıç planında ayda 2 YouTube içeriğini görevlere dönüştürebilirsin. Premium planlar bu aylık limiti genişletir." benefits={["Odak ile ayda 5 YouTube planı", "Zirve ile ayda 30 YouTube planı", "Video ve oynatma listelerini günlük görevlere böl"]} />
     </div>
   );
 }

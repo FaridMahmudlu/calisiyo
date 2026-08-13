@@ -4,8 +4,9 @@ import PublicFooter from '@/components/landing/PublicFooter';
 import { getLegalBusinessConfig } from '@/lib/billing/config';
 
 export const metadata = {
-  title: 'Kullanım Şartları – calisiyo',
+  title: 'Kullanım Şartları',
   description: 'calisiyo YKS Çalışma Koçu hizmet kullanım şartları ve kuralları.',
+  alternates: { canonical: '/kullanim-sartlari' },
 };
 
 export default function KullanimSartlariPage() {

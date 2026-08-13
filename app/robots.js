@@ -6,9 +6,10 @@ export default function robots() {
       {
         userAgent: '*',
         allow: '/',
-        disallow: ['/dashboard/', '/api/'],
+        disallow: ['/dashboard/', '/admin/', '/api/', '/auth/', '/hesap-askida', '/profilini-tamamla', '/sifre-yenile'],
       },
     ],
     sitemap: `${baseUrl}/sitemap.xml`,
+    host: baseUrl,
   };
 }

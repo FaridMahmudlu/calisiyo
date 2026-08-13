@@ -10,18 +10,6 @@ export default function sitemap() {
       priority: 1.0,
     },
     {
-      url: `${baseUrl}/giris`,
-      lastModified,
-      changeFrequency: 'monthly',
-      priority: 0.8,
-    },
-    {
-      url: `${baseUrl}/kayit`,
-      lastModified,
-      changeFrequency: 'monthly',
-      priority: 0.9,
-    },
-    {
       url: `${baseUrl}/gizlilik`,
       lastModified,
       changeFrequency: 'yearly',
@@ -48,8 +36,8 @@ export default function sitemap() {
     {
       url: `${baseUrl}/paketler`,
       lastModified,
-      changeFrequency: 'monthly',
-      priority: 0.8,
+      changeFrequency: 'weekly',
+      priority: 0.9,
     },
     ...['on-bilgilendirme', 'mesafeli-satis', 'iptal-iade', 'cerez-politikasi'].map((path) => ({
       url: `${baseUrl}/${path}`,

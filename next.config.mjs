@@ -2,6 +2,7 @@ import { withSentryConfig } from '@sentry/nextjs';
 
 /** @type {import('next').NextConfig} */
 const nextConfig = {
+  poweredByHeader: false,
   images: {
     remotePatterns: [
       { protocol: 'https', hostname: 'i.ytimg.com' },
@@ -13,6 +14,22 @@ const nextConfig = {
   },
   async headers() {
     return [
+      {
+        source: '/dashboard/:path*',
+        headers: [{ key: 'X-Robots-Tag', value: 'noindex, nofollow, noarchive' }],
+      },
+      {
+        source: '/admin/:path*',
+        headers: [{ key: 'X-Robots-Tag', value: 'noindex, nofollow, noarchive' }],
+      },
+      {
+        source: '/api/:path*',
+        headers: [{ key: 'X-Robots-Tag', value: 'noindex, nofollow, noarchive' }],
+      },
+      {
+        source: '/:authPath(giris|kayit|sifremi-unuttum|sifre-yenile|profilini-tamamla|hesap-askida)',
+        headers: [{ key: 'X-Robots-Tag', value: 'noindex, follow, noarchive' }],
+      },
       {
         source: '/:path*',
         headers: [

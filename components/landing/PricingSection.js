@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import Link from 'next/link';
-import { ArrowRight, Check, ShieldCheck, Sparkles } from 'lucide-react';
+import { PiArrowRight, PiCheck, PiCrownSimple, PiShieldCheck, PiSparkle } from 'react-icons/pi';
 import { BILLING_PERIODS, formatTry, PUBLIC_PLANS } from '@/lib/billing/plans';
 
 export default function PricingSection({ standalone = false }) {
@@ -11,9 +11,9 @@ export default function PricingSection({ standalone = false }) {
   return (
     <section className={`pricing-section ${standalone ? 'is-standalone' : 'section-shell'}`} id="paketler">
       <div className="section-heading">
-        <span className="public-kicker"><Sparkles size={14} /> Net ve sürprizsiz paketler</span>
-        <h2>Çalışma ritmine göre büyü.</h2>
-        <p>Otomatik yenileme yok. Ücretli erişim 30 veya 365 gün için ön ödemelidir; süren bitince onayın olmadan yeni ücret alınmaz.</p>
+        <span className="public-kicker"><PiSparkle /> Net ve anlaşılır paketler</span>
+        <h2>Ücretsiz başla, ihtiyacın olduğunda büyü.</h2>
+        <p>Başlangıç planıyla temel düzenini kur. Daha geniş limitlere ihtiyaç duyduğunda Odak veya Zirve planını seç.</p>
       </div>
       <div className="pricing-period" role="group" aria-label="Ödeme dönemi">
         {Object.entries(BILLING_PERIODS).map(([key, item]) => (
@@ -27,10 +27,11 @@ export default function PricingSection({ standalone = false }) {
           const price = period === 'annual' ? plan.annualPrice : plan.monthlyPrice;
           return (
             <article className={`pricing-card is-${plan.accent} ${plan.popular ? 'is-popular' : ''}`} key={plan.code}>
-              {plan.popular && <span className="pricing-popular">En dengeli seçim</span>}
+              {plan.popular && <span className="pricing-popular">En çok tercih edilen</span>}
               <div className="pricing-card-heading">
                 <span>{plan.tagline}</span>
                 <h3>{plan.name}</h3>
+                {plan.code !== 'baslangic' && <span className="pricing-premium"><PiCrownSimple /> Premium</span>}
                 <p>{plan.description}</p>
               </div>
               <div className="pricing-price">
@@ -41,19 +42,19 @@ export default function PricingSection({ standalone = false }) {
                 <p className="pricing-equivalent">Aylık ortalama {formatTry(price / 12)}</p>
               )}
               <ul>
-                {plan.features.map((feature) => <li key={feature}><Check size={16} />{feature}</li>)}
+                {plan.features.map((feature) => <li key={feature}><PiCheck />{feature}</li>)}
               </ul>
               <Link
                 className={`public-button ${plan.code === 'baslangic' ? '' : 'primary'}`}
                 href={plan.code === 'baslangic' ? '/kayit' : `/dashboard/abonelik?plan=${plan.code}&period=${period}`}
               >
-                {plan.code === 'baslangic' ? 'Ücretsiz başla' : `${plan.name} planını seç`} <ArrowRight size={16} />
+                {plan.code === 'baslangic' ? 'Ücretsiz başla' : `${plan.name} planını incele`} <PiArrowRight />
               </Link>
             </article>
           );
         })}
       </div>
-      <div className="pricing-trust"><ShieldCheck size={18} /><span>Ödeme İyzico’nun güvenli sayfasında tamamlanır. Kart bilgileri calisiyo tarafından görülmez veya saklanmaz.</span></div>
+      <div className="pricing-trust"><PiShieldCheck /><span>Başlangıç ücretsizdir. Ücretli paketlerin satın alma özelliği hazırlanıyor; hazır olduğunda hesabından güvenli şekilde etkinleştirebileceksin.</span></div>
     </section>
   );
 }

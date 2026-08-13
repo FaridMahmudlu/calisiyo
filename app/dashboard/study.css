@@ -480,3 +480,23 @@
   .youtube-preview-card > img, .youtube-preview-card > span { width: 100%; }
   .youtube-plan-settings { padding: 14px; }
 }
+
+/* Premium feature discovery */
+.premium-feature-badge, .premium-inline-action { min-height: 30px; padding: 0 9px; border: 1px solid #ead6a6; border-radius: 8px; background: #fff9e9; color: #91610d; display: inline-flex; align-items: center; justify-content: center; gap: 5px; font: inherit; font-size: .55rem; font-weight: 820; cursor: pointer; }
+.premium-feature-badge:hover, .premium-inline-action:hover { border-color: #d8b766; background: #fff4d5; }
+.premium-prompt { display: grid; grid-template-columns: auto 1fr; gap: 14px; }
+.premium-prompt-icon { width: 48px; height: 48px; border-radius: 13px; background: #fff4d7; color: #9a6810; display: grid; place-items: center; }
+.premium-prompt-icon svg { width: 23px; height: 23px; }
+.premium-prompt-copy > span { color: #9a6810; display: inline-flex; align-items: center; gap: 5px; font-size: .59rem; font-weight: 820; text-transform: uppercase; letter-spacing: .055em; }
+.premium-prompt-copy h3 { margin: 5px 0; color: var(--study-ink); font-size: .93rem; }
+.premium-prompt-copy p { margin: 0; color: var(--study-muted); font-size: .65rem; line-height: 1.55; }
+.premium-prompt-plan { grid-column: 1 / -1; padding: 13px; border: 1px solid var(--study-border); border-radius: 11px; background: #f8faf9; display: grid; grid-template-columns: 1fr auto 22px 1fr auto; align-items: center; gap: 8px; }
+.premium-prompt-plan span { color: var(--study-muted); font-size: .56rem; }.premium-prompt-plan strong { color: var(--study-ink); font-size: .64rem; }.premium-prompt-plan i { width: 18px; height: 1px; background: #b9c8c2; }
+.premium-prompt ul { grid-column: 1 / -1; margin: 0; padding: 0; display: grid; gap: 8px; list-style: none; }
+.premium-prompt li { color: #4f645c; display: flex; align-items: center; gap: 7px; font-size: .62rem; }.premium-prompt li svg { color: var(--study-green); }
+.premium-prompt-actions { grid-column: 1 / -1; padding-top: 14px; border-top: 1px solid var(--study-border); display: flex; justify-content: flex-end; gap: 8px; }
+.premium-prompt-actions button, .premium-prompt-actions a { min-height: 39px; padding: 0 12px; border: 1px solid var(--study-border); border-radius: 9px; background: #fff; color: var(--study-muted); display: inline-flex; align-items: center; justify-content: center; gap: 6px; font: inherit; font-size: .61rem; font-weight: 780; text-decoration: none; cursor: pointer; }
+.premium-prompt-actions a { border-color: var(--study-green); background: var(--study-green); color: #fff; }
+.stats-export.is-premium, .stats-range button.is-premium { border-color: #ead6a6 !important; background: #fff9e9 !important; color: #91610d !important; cursor: pointer !important; opacity: 1 !important; }
+.stats-export.is-premium > span, .stats-range button.is-premium > span { margin-left: 3px; padding: 2px 4px; border-radius: 4px; background: #f5dfaa; font-size: .43rem; font-weight: 850; text-transform: uppercase; letter-spacing: .04em; }
+@media (max-width: 620px) { .premium-inline-action { width: 100%; }.premium-prompt-plan { grid-template-columns: 1fr auto; }.premium-prompt-plan i { display: none; }.premium-prompt-actions { display: grid; }.premium-prompt-actions button, .premium-prompt-actions a { width: 100%; } }

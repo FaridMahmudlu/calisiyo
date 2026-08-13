@@ -4,8 +4,9 @@ import PublicFooter from '@/components/landing/PublicFooter';
 import { getLegalBusinessConfig } from '@/lib/billing/config';
 
 export const metadata = {
-  title: 'İletişim – calisiyo',
+  title: 'İletişim',
   description: 'calisiyo YKS Çalışma Koçu platformu iletişim ve operatör bilgileri.',
+  alternates: { canonical: '/iletisim' },
 };
 
 export default function IletisimPage() {

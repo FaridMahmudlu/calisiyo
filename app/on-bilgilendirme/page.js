@@ -1,7 +1,7 @@
 import LegalPageLayout from '@/components/landing/LegalPageLayout';
 import { getLegalBusinessConfig } from '@/lib/billing/config';
 
-export const metadata = { title: 'Ön Bilgilendirme Formu · calisiyo', description: 'calisiyo ücretli dijital hizmet ön bilgilendirme formu.' };
+export const metadata = { title: 'Ön Bilgilendirme Formu', description: 'calisiyo ücretli dijital hizmet ön bilgilendirme formu.', alternates: { canonical: '/on-bilgilendirme' } };
 
 export default function PreInformationPage() {
   const seller = getLegalBusinessConfig();

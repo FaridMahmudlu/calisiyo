@@ -4,8 +4,9 @@ import PublicFooter from '@/components/landing/PublicFooter';
 import { getLegalBusinessConfig } from '@/lib/billing/config';
 
 export const metadata = {
-  title: 'KVKK Aydınlatma Metni – calisiyo',
+  title: 'KVKK Aydınlatma Metni',
   description: '6698 sayılı Kişisel Verilerin Korunması Kanunu uyarınca KVKK Aydınlatma Metni ve Veri Sahibi Hakları.',
+  alternates: { canonical: '/kvkk' },
 };
 
 export default function KvkkPage() {

@@ -28,8 +28,8 @@ test.describe('SaaS pricing, legal and billing safety', () => {
     await expect(page.getByText(/89,90/)).toBeVisible();
     await page.getByRole('button', { name: /365 gün/ }).click();
     await expect(page.getByText(/899/)).toBeVisible();
-    await expect(page.getByText('+90 555 049 73 60')).toBeVisible();
-    await expect(page.getByRole('img', { name: 'iyzico ile Öde, Visa ve Mastercard' })).toBeVisible();
+    await expect(page.getByRole('link', { name: 'calisiyo.destek@gmail.com' })).toBeVisible();
+    await expect(page.getByText(/satın alma özelliği hazırlanıyor/i)).toBeVisible();
     await expect(page.getByRole('dialog', { name: 'Çerez tercihleri' })).toBeVisible();
     expect(analyticsRequests).toHaveLength(0);
     await page.getByRole('button', { name: /Yalnızca zorunlu/ }).click();
@@ -109,5 +109,26 @@ test.describe('SaaS pricing, legal and billing safety', () => {
     expect(createAttempt.status).toBe(503);
     expect(createAttempt.body.code).toBe('checkout_not_ready');
     await page.screenshot({ path: path.join(output, 'billing-disabled-safe.png'), fullPage: true });
+  });
+
+  test('premium markers explain locked limits instead of acting like dead controls', async ({ page }) => {
+    test.skip(!email || !password, 'QA credentials are required.');
+    await login(page);
+    await expect(page).toHaveURL(/\/dashboard$/);
+    await page.goto('/dashboard/istatistikler');
+    await expect(page).toHaveURL(/\/dashboard\/istatistikler/);
+
+    await page.getByRole('button', { name: /Zirve ile indir/ }).click();
+    await expect(page.getByRole('dialog', { name: /CSV ilerleme raporu · Premium/ })).toBeVisible();
+    await page.getByRole('button', { name: 'Pencereyi kapat' }).click();
+
+    await page.getByRole('button', { name: /Tümü/ }).click();
+    await expect(page.getByRole('dialog', { name: /Tüm istatistik geçmişi · Premium/ })).toBeVisible();
+    await page.getByRole('button', { name: 'Pencereyi kapat' }).click();
+
+    await page.goto('/dashboard/kaynaklarim');
+    await page.getByRole('button', { name: /Premium limitleri/ }).click();
+    await expect(page.getByRole('dialog', { name: /YouTube çalışma planı limitleri · Premium/ })).toBeVisible();
+    await expect(page.getByRole('link', { name: /Paketleri karşılaştır/ })).toHaveAttribute('href', '/dashboard/abonelik');
   });
 });

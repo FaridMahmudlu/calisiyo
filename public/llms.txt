@@ -1,0 +1,35 @@
+# calisiyo
+
+> calisiyo, YKS hazırlığı için Türkçe bir çalışma planlama ve takip web uygulamasıdır.
+
+## Temel bilgiler
+
+- Ana sayfa: https://calisiyo-theta.vercel.app/
+- Paketler: https://calisiyo-theta.vercel.app/paketler
+- İletişim: https://calisiyo-theta.vercel.app/iletisim
+- Destek: calisiyo.destek@gmail.com
+- Dil: Türkçe
+- Hedef sınavlar: TYT, AYT ve YDT
+- Tahmini YKS tarihi: 19 Ağustos 2027
+
+## Ürün kapsamı
+
+calisiyo; günlük ve haftalık çalışma planı, Pomodoro ve süre kaydı, konu ve tekrar takibi, deneme analizi, soru kayıtları, kişisel hedefler, çalışma sınıfları ve yalnızca kullanıcının gerçek kayıtlarından hesaplanan istatistikler sunar.
+
+## Paketler
+
+- Başlangıç: Ücretsiz temel plan.
+- Odak: 89,90 TL / 30 gün veya 899 TL / 365 gün.
+- Zirve: 149,90 TL / 30 gün veya 1.499 TL / 365 gün.
+- Ücretli paketlerin satın alma özelliği henüz aktif değildir.
+
+## Doğruluk notu
+
+Başarı oranı veya sınav sonucu garantisi verilmez. İstatistikler kullanıcı tarafından kaydedilen çalışma, soru, konu ve deneme verilerinden hesaplanır.
+
+## Resmi sayfalar
+
+- Gizlilik: https://calisiyo-theta.vercel.app/gizlilik
+- KVKK: https://calisiyo-theta.vercel.app/kvkk
+- Kullanım şartları: https://calisiyo-theta.vercel.app/kullanim-sartlari
+- Çerez politikası: https://calisiyo-theta.vercel.app/cerez-politikasi

@@ -1,14 +1,34 @@
 import './globals.css';
 import './public.css';
-import './landing-3d.css';
+import './landing-editorial.css';
 import AnalyticsConsentProvider from '@/components/analytics/AnalyticsConsentProvider';
+import { JetBrains_Mono, Plus_Jakarta_Sans } from 'next/font/google';
+
+const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || 'https://calisiyo-theta.vercel.app';
+const plusJakarta = Plus_Jakarta_Sans({
+  subsets: ['latin', 'latin-ext'],
+  weight: ['300', '400', '500', '600', '700', '800'],
+  variable: '--font-plus-jakarta',
+  display: 'swap',
+});
+const jetBrainsMono = JetBrains_Mono({
+  subsets: ['latin', 'latin-ext'],
+  weight: ['500', '600', '700', '800'],
+  variable: '--font-jetbrains-mono',
+  display: 'swap',
+});
 
 export const metadata = {
-  metadataBase: new URL(process.env.NEXT_PUBLIC_SITE_URL || 'https://calisiyo-theta.vercel.app'),
-  title: 'calisiyo – YKS Çalışma Koçu',
-  description: 'TYT, AYT ve YDT hazırlık sürecini günlük plan, konu takibi, deneme analizi ve çalışma araçlarıyla yönet.',
-  keywords: 'YKS, TYT, AYT, YDT, çalışma programı, deneme analizi, konu takibi',
+  metadataBase: new URL(SITE_URL),
+  title: { default: 'calisiyo · YKS Çalışma Koçu', template: '%s · calisiyo' },
+  description: 'YKS çalışma planını oluştur, Pomodoro ile odaklan, konu ve deneme takibini gerçek çalışma kayıtlarınla tek yerde yönet.',
+  keywords: ['YKS çalışma programı', 'YKS çalışma koçu', 'TYT çalışma programı', 'AYT çalışma programı', 'Pomodoro', 'deneme analizi', 'konu takibi'],
   applicationName: 'calisiyo',
+  category: 'education',
+  creator: 'calisiyo',
+  publisher: 'calisiyo',
+  referrer: 'origin-when-cross-origin',
+  formatDetection: { email: false, address: false, telephone: false },
   manifest: '/manifest.webmanifest',
   icons: {
     icon: [
@@ -20,63 +40,49 @@ export const metadata = {
     apple: [{ url: '/brand/apple-touch-icon.png', sizes: '180x180', type: 'image/png' }],
   },
   openGraph: {
-    title: 'calisiyo – YKS Çalışma Koçu',
-    description: 'TYT, AYT ve YDT hazırlık sürecini günlük plan, konu takibi, deneme analizi ve çalışma araçlarıyla yönet.',
-    url: 'https://calisiyo-theta.vercel.app',
+    title: 'calisiyo · YKS Çalışma Koçu',
+    description: 'Planını kur, odaklanarak çalış ve YKS ilerlemeni yalnızca kendi gerçek kayıtlarınla takip et.',
+    url: SITE_URL,
     siteName: 'calisiyo',
-    images: [
-      {
-        url: '/brand/og-image.png',
-        width: 1200,
-        height: 630,
-        alt: 'calisiyo – YKS Çalışma Koçu Wordmark Logo',
-      },
-    ],
+    images: [{ url: '/brand/og-image.png', width: 1200, height: 630, alt: 'calisiyo YKS Çalışma Koçu' }],
     locale: 'tr_TR',
     type: 'website',
   },
   twitter: {
     card: 'summary_large_image',
-    title: 'calisiyo – YKS Çalışma Koçu',
-    description: 'TYT, AYT ve YDT hazırlık sürecini günlük plan, konu takibi, deneme analizi ve çalışma araçlarıyla yönet.',
+    title: 'calisiyo · YKS Çalışma Koçu',
+    description: 'Planını kur, odaklanarak çalış ve YKS ilerlemeni yalnızca kendi gerçek kayıtlarınla takip et.',
     images: ['/brand/og-image.png'],
+  },
+  verification: {
+    google: process.env.GOOGLE_SITE_VERIFICATION || undefined,
+    other: process.env.BING_SITE_VERIFICATION
+      ? { 'msvalidate.01': process.env.BING_SITE_VERIFICATION }
+      : undefined,
   },
 };
 
 export default function RootLayout({ children }) {
   const gaId = process.env.NEXT_PUBLIC_GA_MEASUREMENT_ID;
-  const baseUrl = process.env.NEXT_PUBLIC_SITE_URL || 'https://calisiyo-theta.vercel.app';
-
   const jsonLd = {
     '@context': 'https://schema.org',
     '@graph': [
       {
         '@type': 'WebSite',
-        '@id': `${baseUrl}/#website`,
-        'url': baseUrl,
-        'name': 'calisiyo',
-        'description': 'YKS hazırlığını net bir çalışma yoluna dönüştür.',
-        'inLanguage': 'tr-TR',
+        '@id': `${SITE_URL}/#website`,
+        url: SITE_URL,
+        name: 'calisiyo',
+        description: 'YKS çalışma planı, Pomodoro, konu takibi, deneme analizi ve gerçek çalışma istatistikleri.',
+        inLanguage: 'tr-TR',
+        publisher: { '@id': `${SITE_URL}/#organization` },
       },
       {
         '@type': 'Organization',
-        '@id': `${baseUrl}/#organization`,
-        'name': 'calisiyo',
-        'url': baseUrl,
-        'logo': `${baseUrl}/brand/calisiyo-logo.svg`,
-        'sameAs': [],
-      },
-      {
-        '@type': 'SoftwareApplication',
-        '@id': `${baseUrl}/#application`,
-        'name': 'calisiyo – YKS Çalışma Koçu',
-        'operatingSystem': 'Web',
-        'applicationCategory': 'EducationalApplication',
-        'offers': [
-          { '@type': 'Offer', 'name': 'Başlangıç', 'price': '0', 'priceCurrency': 'TRY' },
-          { '@type': 'Offer', 'name': 'Odak 30 gün', 'price': '89.90', 'priceCurrency': 'TRY' },
-          { '@type': 'Offer', 'name': 'Zirve 30 gün', 'price': '149.90', 'priceCurrency': 'TRY' },
-        ],
+        '@id': `${SITE_URL}/#organization`,
+        name: 'calisiyo',
+        url: SITE_URL,
+        logo: { '@type': 'ImageObject', url: `${SITE_URL}/brand/calisiyo-mark-512.png`, width: 512, height: 512 },
+        email: 'calisiyo.destek@gmail.com',
       },
     ],
   };
@@ -85,19 +91,10 @@ export default function RootLayout({ children }) {
     <html lang="tr">
       <head>
         <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=5" />
-        <link rel="preconnect" href="https://fonts.googleapis.com" />
-        <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
         <meta name="theme-color" content="#00a870" />
-        <script
-          type="application/ld+json"
-          dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
-        />
+        <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd).replace(/</g, '\\u003c') }} />
       </head>
-      <body>
-        <AnalyticsConsentProvider gaId={gaId}>
-          {children}
-        </AnalyticsConsentProvider>
-      </body>
+      <body className={`${plusJakarta.variable} ${jetBrainsMono.variable}`}><AnalyticsConsentProvider gaId={gaId}>{children}</AnalyticsConsentProvider></body>
     </html>
   );
 }

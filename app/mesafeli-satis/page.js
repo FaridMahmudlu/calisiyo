@@ -1,7 +1,7 @@
 import LegalPageLayout from '@/components/landing/LegalPageLayout';
 import { getLegalBusinessConfig } from '@/lib/billing/config';
 
-export const metadata = { title: 'Mesafeli Satış Sözleşmesi · calisiyo', description: 'calisiyo dijital hizmet mesafeli satış sözleşmesi.' };
+export const metadata = { title: 'Mesafeli Satış Sözleşmesi', description: 'calisiyo dijital hizmet mesafeli satış sözleşmesi.', alternates: { canonical: '/mesafeli-satis' } };
 
 export default function DistanceSalesPage() {
   const seller = getLegalBusinessConfig();

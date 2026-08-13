@@ -4,7 +4,6 @@ import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { GoogleAnalytics } from '@next/third-parties/google';
 import { Cookie, ShieldCheck } from 'lucide-react';
-import PostHogProvider from './PostHogProvider';
 
 const STORAGE_KEY = 'calisiyo-cookie-consent-v1';
 
@@ -34,8 +33,36 @@ export default function AnalyticsConsentProvider({ children, gaId }) {
   };
 
   const analyticsEnabled = consent === 'accepted';
+
+  useEffect(() => {
+    const posthogKey = process.env.NEXT_PUBLIC_POSTHOG_KEY;
+    if (!posthogKey || typeof window === 'undefined') return undefined;
+
+    if (!analyticsEnabled) {
+      window.__calisiyoPosthog?.opt_out_capturing?.();
+      return undefined;
+    }
+
+    let cancelled = false;
+    import('posthog-js').then(({ default: posthog }) => {
+      if (cancelled) return;
+      if (!posthog.__loaded) {
+        posthog.init(posthogKey, {
+          api_host: process.env.NEXT_PUBLIC_POSTHOG_HOST || 'https://eu.i.posthog.com',
+          person_profiles: 'identified_only',
+          capture_pageview: true,
+          capture_pageleave: true,
+        });
+      }
+      posthog.opt_in_capturing();
+      window.__calisiyoPosthog = posthog;
+    });
+
+    return () => { cancelled = true; };
+  }, [analyticsEnabled]);
+
   return (
-    <PostHogProvider enabled={analyticsEnabled}>
+    <>
       {children}
       {analyticsEnabled && gaId && <GoogleAnalytics gaId={gaId} />}
       {consent === 'unset' && (
@@ -51,6 +78,6 @@ export default function AnalyticsConsentProvider({ children, gaId }) {
           </div>
         </aside>
       )}
-    </PostHogProvider>
+    </>
   );
 }

@@ -16,6 +16,7 @@ import { formatDate, formatDuration, parseLocalDate, todayStr, toLocalDateKey } 
 import { useRealtimeRefresh } from '@/lib/hooks/useRealtimeRefresh';
 import PageHeader from '@/components/ui/PageHeader';
 import DataState from '@/components/ui/DataState';
+import PremiumFeaturePrompt from '@/components/billing/PremiumFeaturePrompt';
 
 const REALTIME_TABLES = ['calisma_suresi', 'gunluk_gorevler', 'denemeler', 'konu_takibi', 'yapamadiklari'];
 const COLORS = ['#00a870', '#3b82f6', '#8b5cf6', '#f59e0b', '#ef6c57', '#14b8a6'];
@@ -61,6 +62,7 @@ export default function IstatistiklerPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [records, setRecords] = useState({ sessions: [], tasks: [], exams: [], topics: [], questions: [] });
+  const [premiumPrompt, setPremiumPrompt] = useState(null);
 
   const loadStats = useCallback(async () => {
     if (!profile?.id) return;
@@ -170,7 +172,10 @@ export default function IstatistiklerPage() {
   const canExport = currentPlan?.entitlements?.progress_export === true;
 
   const exportProgress = () => {
-    if (!canExport) return;
+    if (!canExport) {
+      setPremiumPrompt({ feature: 'CSV ilerleme raporu', requiredPlan: 'Zirve', description: 'Çalışma süresi, soru ve tamamlanan görev verilerini CSV olarak indirip kendi arşivinde kullanabilirsin.', benefits: ['İlerleme verilerini dışa aktar', 'Kendi analiz dosyanı oluştur', 'Sınırsız istatistik geçmişini koru'] });
+      return;
+    }
     const rows = [
       ['Tarih', 'Çalışma süresi (dk)', 'Soru', 'Tamamlanan görev'],
       ...stats.timeline.map((item) => [item.key, item.minutes, item.questions, item.tasks]),
@@ -186,12 +191,12 @@ export default function IstatistiklerPage() {
 
   return (
     <motion.div className="page stats-page" initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
-      <PageHeader title="İstatistikler" description="Çalışma, program, deneme ve konu kayıtlarından anlık olarak hesaplanan ilerleme görünümün." actions={<div className="stats-head-actions"><button className="stats-export" disabled={!canExport} onClick={exportProgress} title={!canExport ? 'CSV dışa aktarma Zirve planında' : 'İlerleme verilerini indir'}><Download size={14} /> {canExport ? 'CSV indir' : 'Zirve ile indir'}</button><span className="stats-live"><Activity size={14} /> Canlı veri</span></div>} />
+      <PageHeader title="İstatistikler" description="Çalışma, program, deneme ve konu kayıtlarından anlık olarak hesaplanan ilerleme görünümün." actions={<div className="stats-head-actions"><button className={`stats-export ${!canExport ? 'is-premium' : ''}`} onClick={exportProgress} title={!canExport ? 'CSV dışa aktarma Zirve planında' : 'İlerleme verilerini indir'}><Download size={14} /> {canExport ? 'CSV indir' : 'Zirve ile indir'}{!canExport && <span>Premium</span>}</button><span className="stats-live"><Activity size={14} /> Canlı veri</span></div>} />
       <div className="stats-toolbar">
         <div className="study-segments stats-range" aria-label="Tarih aralığı">
           <button className={range === 'week' ? 'is-active' : ''} onClick={() => setRange('week')}>7 Gün</button>
           <button className={range === 'month' ? 'is-active' : ''} onClick={() => setRange('month')}>30 Gün</button>
-          <button className={range === 'all' ? 'is-active' : ''} onClick={() => setRange('all')} disabled={Number(currentPlan?.entitlements?.stats_history_days || 30) <= 30} title={Number(currentPlan?.entitlements?.stats_history_days || 30) <= 30 ? 'Tüm geçmiş Odak ve Zirve planlarında' : undefined}>Tümü</button>
+          <button className={`${range === 'all' ? 'is-active' : ''} ${Number(currentPlan?.entitlements?.stats_history_days || 30) <= 30 ? 'is-premium' : ''}`} onClick={() => Number(currentPlan?.entitlements?.stats_history_days || 30) <= 30 ? setPremiumPrompt({ feature: 'Tüm istatistik geçmişi', requiredPlan: 'Odak', description: 'Başlangıç planında son 30 günü görürsün. Odak ve Zirve ile geçmiş kayıtlarının tamamını tek görünümde inceleyebilirsin.', benefits: ['30 günden eski kayıtları karşılaştır', 'Uzun dönem çalışma ritmini gör', 'Deneme ve süre trendlerini birlikte izle'] }) : setRange('all')} title={Number(currentPlan?.entitlements?.stats_history_days || 30) <= 30 ? 'Tüm geçmiş Odak ve Zirve planlarında' : undefined}>Tümü{Number(currentPlan?.entitlements?.stats_history_days || 30) <= 30 && <span>Premium</span>}</button>
         </div>
         <span>{stats.activeDates.length} aktif gün · {Number(currentPlan?.entitlements?.stats_history_days || 30) <= 30 ? 'Başlangıç planında son 30 gün' : `${currentPlan?.name} geçmişi`} · Son kayıtlar otomatik yenilenir</span>
       </div>
@@ -242,6 +247,8 @@ export default function IstatistiklerPage() {
 
         {stats.exams.length > 0 && <section className="study-panel recent-exams"><div className="stats-card-heading"><div><span>Son sonuçlar</span><h2>Deneme geçmişi</h2></div></div><div className="recent-exam-list">{stats.exams.slice(-4).reverse().map((exam) => <div key={exam.id}><span className="exam-type">{exam.sinav_turu}</span><div><strong>{exam.yayin}</strong><small>{formatDate(exam.tarih)} · {exam.deneme_detaylari?.length || 0} ders</small></div><em>{exam.net.toFixed(1)} net</em></div>)}</div></section>}
       </DataState>
+
+      <PremiumFeaturePrompt open={Boolean(premiumPrompt)} onClose={() => setPremiumPrompt(null)} currentPlan={currentPlan?.name || 'Başlangıç'} {...premiumPrompt} />
 
       <style jsx>{`
         .stats-page { padding-bottom: 20px; }

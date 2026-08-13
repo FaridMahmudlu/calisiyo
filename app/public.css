@@ -210,7 +210,7 @@
 .cookie-consent p a { color: #07875f; font-weight: 700; }
 .cookie-actions { display: flex; gap: 7px; }
 .cookie-actions button { min-height: 38px; padding: 0 11px; border: 1px solid #cbdad4; border-radius: 9px; background: #fff; color: #38524a; display: inline-flex; align-items: center; gap: 5px; font: inherit; font-size: .58rem; font-weight: 750; cursor: pointer; }
-.cookie-actions button.is-primary { border-color: #00a870; background: #00a870; color: #fff; }
+.cookie-actions button.is-primary { border-color: #087552; background: #087552; color: #fff; }
 .cookie-actions svg { width: 14px; }
 
 @media (max-width: 1060px) {

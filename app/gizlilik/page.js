@@ -4,8 +4,9 @@ import PublicFooter from '@/components/landing/PublicFooter';
 import { getLegalBusinessConfig } from '@/lib/billing/config';
 
 export const metadata = {
-  title: 'Gizlilik Politikası – calisiyo',
+  title: 'Gizlilik Politikası',
   description: 'calisiyo YKS Çalışma Koçu platformunun gizlilik politikası ve kişisel veri işleme esasları.',
+  alternates: { canonical: '/gizlilik' },
 };
 
 export default function GizlilikPage() {
