@@ -29,6 +29,7 @@ test.describe('SaaS pricing, legal and billing safety', () => {
     await page.getByRole('button', { name: /365 gün/ }).click();
     await expect(page.getByText(/899/)).toBeVisible();
     await expect(page.getByText('+90 555 049 73 60')).toBeVisible();
+    await expect(page.getByRole('img', { name: 'iyzico ile Öde, Visa ve Mastercard' })).toBeVisible();
     await expect(page.getByRole('dialog', { name: 'Çerez tercihleri' })).toBeVisible();
     expect(analyticsRequests).toHaveLength(0);
     await page.getByRole('button', { name: /Yalnızca zorunlu/ }).click();
