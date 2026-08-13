@@ -1,5 +1,7 @@
 import Link from 'next/link';
 import BrandLogo from '@/components/brand/BrandLogo';
+import PublicFooter from '@/components/landing/PublicFooter';
+import { getLegalBusinessConfig } from '@/lib/billing/config';
 
 export const metadata = {
   title: 'KVKK Aydınlatma Metni – calisiyo',
@@ -7,6 +9,7 @@ export const metadata = {
 };
 
 export default function KvkkPage() {
+  const contact = getLegalBusinessConfig();
   return (
     <main className="story-landing">
       <nav className="story-nav" aria-label="Ana navigasyon">
@@ -29,7 +32,7 @@ export default function KvkkPage() {
         <section className="legal-content">
           <h2>1. Veri Sorumlusunun Kimliği</h2>
           <p>
-            6698 sayılı Kişisel Verilerin Korunması Kanunu (“KVKK”) uyarınca, <strong>calisiyo</strong> platformu kapsamında işlenen kişisel verileriniz bakımından veri sorumlusu sıfatıyla <strong>calisiyo Ekibi</strong> (“calisiyo”) olarak hareket edilmektedir.
+            6698 sayılı Kişisel Verilerin Korunması Kanunu (“KVKK”) uyarınca, <strong>calisiyo</strong> platformu kapsamında işlenen kişisel verileriniz bakımından veri sorumlusu sıfatıyla <strong>{contact.legalName || 'calisiyo platform işletmecisi'}</strong> olarak hareket edilmektedir. İletişim adresi: {contact.address}; telefon: {contact.phoneDisplay}.
           </p>
 
           <h2>2. İşlenen Kişisel Verileriniz ve Toplama Yöntemi</h2>
@@ -74,35 +77,12 @@ export default function KvkkPage() {
 
           <h2>6. Başvuru Usulü</h2>
           <p>
-            Yukarıda belirtilen haklarınızı kullanmak için talebinizi, sistemlerimizde kayıtlı e-posta adresinizden <a href="mailto:destek@calisiyo.com">destek@calisiyo.com</a> e-posta adresine iletebilirsiniz. Başvurularınız en geç 30 (otuz) gün içinde ücretsiz olarak sonuçlandırılacaktır.
+            Yukarıda belirtilen haklarınızı kullanmak için talebinizi sistemlerimizde kayıtlı e-posta adresinizi belirterek <a href={`tel:${contact.phoneHref}`}>{contact.phoneDisplay}</a> üzerinden{contact.supportEmail ? <> veya <a href={`mailto:${contact.supportEmail}`}>{contact.supportEmail}</a> adresine</> : ''} iletebilirsiniz. Başvurular mevzuattaki süreler içinde sonuçlandırılır.
           </p>
         </section>
       </div>
 
-      <footer className="story-footer">
-        <div className="section-shell footer-grid">
-          <div>
-            <Link href="/" className="public-brand" aria-label="calisiyo ana sayfa">
-              <BrandLogo />
-            </Link>
-            <p>YKS hazırlığını net bir çalışma yoluna dönüştür.</p>
-          </div>
-          <div>
-            <strong>Ürün</strong>
-            <Link href="/#yolculuk">Çalışma yolu</Link>
-            <Link href="/#araclar">Araçlar</Link>
-            <Link href="/#rehber">Başlangıç rehberi</Link>
-          </div>
-          <div>
-            <strong>Yasal & İletişim</strong>
-            <Link href="/gizlilik">Gizlilik Politikası</Link>
-            <Link href="/kvkk">KVKK Aydınlatma Metni</Link>
-            <Link href="/kullanim-sartlari">Kullanım Şartları</Link>
-            <Link href="/iletisim">İletişim</Link>
-          </div>
-          <small>© 2026 calisiyo · YKS Çalışma Koçu</small>
-        </div>
-      </footer>
+      <PublicFooter />
     </main>
   );
 }

@@ -1,5 +1,7 @@
 import Link from 'next/link';
 import BrandLogo from '@/components/brand/BrandLogo';
+import PublicFooter from '@/components/landing/PublicFooter';
+import { getLegalBusinessConfig } from '@/lib/billing/config';
 
 export const metadata = {
   title: 'Gizlilik Politikası – calisiyo',
@@ -7,6 +9,7 @@ export const metadata = {
 };
 
 export default function GizlilikPage() {
+  const contact = getLegalBusinessConfig();
   return (
     <main className="story-landing">
       <nav className="story-nav" aria-label="Ana navigasyon">
@@ -46,7 +49,7 @@ export default function GizlilikPage() {
           <ul>
             <li>Kullanıcı hesabının oluşturulması, kimlik doğrulamasının yapılması ve güvenliğinin sağlanması.</li>
             <li>Kullanıcıya özel günlük/haftalık çalışma programı, deneme analizi ve grafiksel istatistiklerin üretilmesi.</li>
-            <li>Platformun performansının artırılması, teknik hataların (Sentry) tespiti ve kullanıcı deneyiminin iyileştirilmesi (PostHog & Google Analytics).</li>
+            <li>Platformun performansının artırılması, kişisel içerik gönderilmeyen teknik hata kayıtlarıyla (Sentry) sorunların tespiti ve yalnızca açık çerez izni verildiğinde PostHog ile Google Analytics üzerinden kullanıcı deneyiminin iyileştirilmesi.</li>
           </ul>
 
           <h2>4. 18 Yaş Altı Kullanıcılar ve Veli Bildirimi</h2>
@@ -59,48 +62,25 @@ export default function GizlilikPage() {
             Kullanıcı verileri hiçbir şart altında üçüncü taraflara satılmaz veya pazarlama amacıyla kiralanmaz. Verileriniz yalnızca hizmetin yürütülebilmesi için zorunlu olan altyapı sağlayıcıları ile paylaşılır:
           </p>
           <ul>
-            <li><strong>Supabase Inc.</strong> – Kimlik doğrulama ve veritabanı altyapısı (AB/ABD sunucuları, uçtan uca şifrelenmiş).</li>
+            <li><strong>Supabase Inc.</strong> – Kimlik doğrulama ve veritabanı altyapısı; aktarım sırasında TLS ve sunucu tarafı erişim kontrolleri kullanılır.</li>
             <li><strong>Vercel Inc.</strong> – Web barındırma (hosting) ve kenar sunucu hizmetleri.</li>
-            <li><strong>PostHog Inc. & Google Analytics</strong> – Anonimleştirilmiş kullanım analitiği.</li>
-            <li><strong>Sentry (Functional Software Inc.)</strong> – Anonimleştirilmiş hata ve çökme raporlama.</li>
+            <li><strong>PostHog Inc. & Google Analytics</strong> – Yalnızca isteğe bağlı analitik izni verildiğinde ürün ve trafik ölçümü.</li>
+            <li><strong>Sentry (Functional Software Inc.)</strong> – Oturum tekrarı kapalı, kimlik ve istek içeriği ayıklanmış teknik hata ve çökme raporlama.</li>
           </ul>
 
           <h2>6. Veri Güvenliği ve Saklama Süresi</h2>
           <p>
-            Verileriniz Supabase veritabanında endüstri standardı TLS/SSL şifreleme protokolleri ve Row Level Security (RLS) erişim denetimleri ile korunmaktadır. Hesabınız aktif olduğu sürece verileriniz saklanır. Hesabınızı sildiğinizde veya silme talebinde bulunduğunuzda tüm kişisel verileriniz ve çalışma kayıtlarınız sistemlerimizden kalıcı olarak silinir.
+            Verileriniz aktarım sırasında TLS/SSL ve veritabanında Row Level Security (RLS) erişim denetimleriyle korunur. Hesabınız aktif olduğu sürece çalışma verileriniz saklanır. Geçerli bir silme talebi sonrasında çalışma ve profil kayıtları silinir; ödeme, sözleşme kabulü, dolandırıcılık önleme ve mali kayıtlar ise yalnızca ilgili mevzuatın zorunlu tuttuğu süre boyunca kullanıcı hesabından ayrıştırılarak saklanır ve süre sonunda silinir veya anonimleştirilir.
           </p>
 
           <h2>7. İletişim ve Veri Sahibi Hakları</h2>
           <p>
-            Kişisel verilerinizle ilgili erişim, düzeltme veya silme taleplerinizi <a href="mailto:destek@calisiyo.com">destek@calisiyo.com</a> e-posta adresimiz üzerinden bize iletebilirsiniz. Talepleriniz en geç 30 gün içerisinde yanıtlanacaktır.
+            Kişisel verilerinizle ilgili erişim, düzeltme veya silme taleplerinizi <a href={`tel:${contact.phoneHref}`}>{contact.phoneDisplay}</a> üzerinden{contact.supportEmail ? <> veya <a href={`mailto:${contact.supportEmail}`}>{contact.supportEmail}</a> adresine</> : ''} iletebilirsiniz. Talepleriniz mevzuattaki süreler içinde yanıtlanır.
           </p>
         </section>
       </div>
 
-      <footer className="story-footer">
-        <div className="section-shell footer-grid">
-          <div>
-            <Link href="/" className="public-brand" aria-label="calisiyo ana sayfa">
-              <BrandLogo />
-            </Link>
-            <p>YKS hazırlığını net bir çalışma yoluna dönüştür.</p>
-          </div>
-          <div>
-            <strong>Ürün</strong>
-            <Link href="/#yolculuk">Çalışma yolu</Link>
-            <Link href="/#araclar">Araçlar</Link>
-            <Link href="/#rehber">Başlangıç rehberi</Link>
-          </div>
-          <div>
-            <strong>Yasal & İletişim</strong>
-            <Link href="/gizlilik">Gizlilik Politikası</Link>
-            <Link href="/kvkk">KVKK Aydınlatma Metni</Link>
-            <Link href="/kullanim-sartlari">Kullanım Şartları</Link>
-            <Link href="/iletisim">İletişim</Link>
-          </div>
-          <small>© 2026 calisiyo · YKS Çalışma Koçu</small>
-        </div>
-      </footer>
+      <PublicFooter />
     </main>
   );
 }

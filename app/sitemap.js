@@ -45,5 +45,17 @@ export default function sitemap() {
       changeFrequency: 'yearly',
       priority: 0.4,
     },
+    {
+      url: `${baseUrl}/paketler`,
+      lastModified,
+      changeFrequency: 'monthly',
+      priority: 0.8,
+    },
+    ...['on-bilgilendirme', 'mesafeli-satis', 'iptal-iade', 'cerez-politikasi'].map((path) => ({
+      url: `${baseUrl}/${path}`,
+      lastModified,
+      changeFrequency: 'yearly',
+      priority: 0.3,
+    })),
   ];
 }

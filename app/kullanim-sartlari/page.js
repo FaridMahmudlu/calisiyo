@@ -1,5 +1,7 @@
 import Link from 'next/link';
 import BrandLogo from '@/components/brand/BrandLogo';
+import PublicFooter from '@/components/landing/PublicFooter';
+import { getLegalBusinessConfig } from '@/lib/billing/config';
 
 export const metadata = {
   title: 'Kullanım Şartları – calisiyo',
@@ -7,6 +9,7 @@ export const metadata = {
 };
 
 export default function KullanimSartlariPage() {
+  const contact = getLegalBusinessConfig();
   return (
     <main className="story-landing">
       <nav className="story-nav" aria-label="Ana navigasyon">
@@ -49,7 +52,7 @@ export default function KullanimSartlariPage() {
 
           <h2>4. Hizmetin Niteliği ve Sorumluluk Sınırı</h2>
           <p>
-            calisiyo, öğrencilerin YKS hazırlık süreçlerini desteklemek amacıyla sunulan ücretsiz bir dijital ajanda ve analiz aracıdır. Platformda sunulan istatistikler ve tahminler kullanıcı tarafından girilen verilere dayanır. calisiyo, sınav başarısı veya resmi sınav sonuçları konusunda herhangi bir hukuki taahhüt veya garanti vermez.
+            calisiyo, öğrencilerin YKS hazırlık süreçlerini destekleyen ücretsiz Başlangıç planı ile ön ödemeli Odak ve Zirve planları bulunan dijital planlama ve analiz hizmetidir. Ücretli paketler otomatik yenilenmez. Platformda sunulan istatistikler ve tahminler kullanıcı tarafından girilen gerçek verilere dayanır. calisiyo, sınav başarısı veya resmi sınav sonuçları konusunda herhangi bir hukuki taahhüt veya garanti vermez.
           </p>
 
           <h2>5. Fikri Mülkiyet Hakları</h2>
@@ -64,35 +67,12 @@ export default function KullanimSartlariPage() {
 
           <h2>7. İletişim</h2>
           <p>
-            Kullanım şartları ile ilgili her türlü soru ve görüşleriniz için <a href="mailto:destek@calisiyo.com">destek@calisiyo.com</a> e-posta adresi üzerinden bizimle iletişime geçebilirsiniz.
+            Kullanım şartları ile ilgili her türlü soru ve görüşleriniz için <a href={`tel:${contact.phoneHref}`}>{contact.phoneDisplay}</a> üzerinden{contact.supportEmail ? <> veya <a href={`mailto:${contact.supportEmail}`}>{contact.supportEmail}</a> adresine</> : ''} ulaşabilirsiniz.
           </p>
         </section>
       </div>
 
-      <footer className="story-footer">
-        <div className="section-shell footer-grid">
-          <div>
-            <Link href="/" className="public-brand" aria-label="calisiyo ana sayfa">
-              <BrandLogo />
-            </Link>
-            <p>YKS hazırlığını net bir çalışma yoluna dönüştür.</p>
-          </div>
-          <div>
-            <strong>Ürün</strong>
-            <Link href="/#yolculuk">Çalışma yolu</Link>
-            <Link href="/#araclar">Araçlar</Link>
-            <Link href="/#rehber">Başlangıç rehberi</Link>
-          </div>
-          <div>
-            <strong>Yasal & İletişim</strong>
-            <Link href="/gizlilik">Gizlilik Politikası</Link>
-            <Link href="/kvkk">KVKK Aydınlatma Metni</Link>
-            <Link href="/kullanim-sartlari">Kullanım Şartları</Link>
-            <Link href="/iletisim">İletişim</Link>
-          </div>
-          <small>© 2026 calisiyo · YKS Çalışma Koçu</small>
-        </div>
-      </footer>
+      <PublicFooter />
     </main>
   );
 }

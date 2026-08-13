@@ -1,8 +1,7 @@
 import './globals.css';
 import './public.css';
 import './landing-3d.css';
-import { GoogleAnalytics } from '@next/third-parties/google';
-import PostHogProvider from '@/components/analytics/PostHogProvider';
+import AnalyticsConsentProvider from '@/components/analytics/AnalyticsConsentProvider';
 
 export const metadata = {
   metadataBase: new URL(process.env.NEXT_PUBLIC_SITE_URL || 'https://calisiyo-theta.vercel.app'),
@@ -73,11 +72,11 @@ export default function RootLayout({ children }) {
         'name': 'calisiyo – YKS Çalışma Koçu',
         'operatingSystem': 'Web',
         'applicationCategory': 'EducationalApplication',
-        'offers': {
-          '@type': 'Offer',
-          'price': '0',
-          'priceCurrency': 'TRY',
-        },
+        'offers': [
+          { '@type': 'Offer', 'name': 'Başlangıç', 'price': '0', 'priceCurrency': 'TRY' },
+          { '@type': 'Offer', 'name': 'Odak 30 gün', 'price': '89.90', 'priceCurrency': 'TRY' },
+          { '@type': 'Offer', 'name': 'Zirve 30 gün', 'price': '149.90', 'priceCurrency': 'TRY' },
+        ],
       },
     ],
   };
@@ -95,10 +94,9 @@ export default function RootLayout({ children }) {
         />
       </head>
       <body>
-        <PostHogProvider>
+        <AnalyticsConsentProvider gaId={gaId}>
           {children}
-          {gaId && <GoogleAnalytics gaId={gaId} />}
-        </PostHogProvider>
+        </AnalyticsConsentProvider>
       </body>
     </html>
   );

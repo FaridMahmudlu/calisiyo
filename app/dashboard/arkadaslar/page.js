@@ -30,7 +30,7 @@ const friendlyError = (error, fallback) => error?.message?.replace(/^.*?:\s*/, '
 
 export default function FriendsPage() {
   const router = useRouter();
-  const { user } = useUser();
+  const { user, currentPlan } = useUser();
   const supabase = useMemo(() => createClient(), []);
   const [hub, setHub] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -196,6 +196,14 @@ export default function FriendsPage() {
   };
 
   const activeMetric = METRIC_OPTIONS.find(([key]) => key === metric) || METRIC_OPTIONS[0];
+  const classroomMemberLimit = Math.max(2, Number(currentPlan?.entitlements?.classroom_member_limit || 8));
+  const capacityOptions = [4, 8, 12, 20, 30, 50]
+    .filter((value) => value <= classroomMemberLimit)
+    .map((value) => ({
+      value: String(value),
+      label: `${value} kişi`,
+      description: value <= 4 ? 'Yakın çalışma ekibi' : value <= 8 ? 'Dengeli sınıf' : 'Geniş çalışma topluluğu',
+    }));
 
   return (
     <div className="social-page">
@@ -301,7 +309,7 @@ export default function FriendsPage() {
             </section>
 
             <section className="group-section">
-              <header><div><span>Çalışma sınıfları</span><h2>Ortak ritmin canlı alanı</h2><p>En fazla 12 kişilik özel sınıflarda haftalık hedefi ve canlı çalışma durumunu takip et.</p></div><div><button onClick={() => setModal('join')}><DoorOpen size={16} /> Katıl</button><button onClick={() => setModal('create')}><Plus size={16} /> Oluştur</button></div></header>
+              <header><div><span>Çalışma sınıfları · {currentPlan?.name || 'Başlangıç'}</span><h2>Ortak ritmin canlı alanı</h2><p>Planına göre {classroomMemberLimit} kişiye kadar özel sınıflarda haftalık hedefi ve canlı çalışma durumunu takip et.</p></div><div><button onClick={() => setModal('join')}><DoorOpen size={16} /> Katıl</button><button onClick={() => setModal('create')}><Plus size={16} /> Oluştur</button></div></header>
               {(hub.groups || []).length === 0 ? (
                 <div className="group-empty study-panel"><div className="mini-classroom"><i /><i /><i /><i /></div><strong>İlk çalışma sınıfını kur</strong><span>Arkadaşlarını davet et, sınıftaki masalarda kimin çalıştığını canlı gör.</span><button onClick={() => setModal('create')}>Sınıf oluştur <ArrowRight size={16} /></button></div>
               ) : (
@@ -328,7 +336,7 @@ export default function FriendsPage() {
             <label className="is-wide"><span>Sınıf açıklaması</span><textarea value={groupDescription} onChange={(event) => setGroupDescription(event.target.value)} minLength={8} maxLength={180} required /><small>{groupDescription.length}/180 · Üyeler katılmadan önce ritmi anlayabilsin.</small></label>
             <label><span>Sınav odağı</span><Select value={groupExamTrack} onChange={setGroupExamTrack} ariaLabel="Sınıf sınav odağı" options={[{ value:'tyt_ayt',label:'TYT + AYT',description:'Birlikte tam YKS hazırlığı'},{ value:'tyt',label:'TYT',description:'Temel yeterlilik odağı'},{ value:'ayt',label:'AYT',description:'Alan yeterlilik odağı'},{ value:'ydt',label:'YDT',description:'Yabancı dil odağı'}]} /></label>
             <label><span>Çalışma atmosferi</span><Select value={groupStyle} onChange={setGroupStyle} ariaLabel="Çalışma atmosferi" options={[{ value:'balanced',label:'Dengeli',description:'Sohbet ve odak birlikte'},{ value:'quiet',label:'Sessiz odak',description:'Kurucu kontrollü iletişim'},{ value:'social',label:'Sosyal',description:'Motivasyon ve paylaşım yoğun'}]} /></label>
-            <label><span>Üye kapasitesi</span><Select value={groupCapacity} onChange={setGroupCapacity} ariaLabel="Sınıf kapasitesi" options={[{ value:'4',label:'4 kişi',description:'Yakın çalışma ekibi'},{ value:'8',label:'8 kişi',description:'Önerilen dengeli sınıf'},{ value:'12',label:'12 kişi',description:'Kalabalık çalışma topluluğu'}]} /></label>
+            <label><span>Üye kapasitesi</span><Select value={groupCapacity} onChange={setGroupCapacity} ariaLabel="Sınıf kapasitesi" options={capacityOptions} /></label>
             <label><span>Haftalık ortak hedef</span><input type="number" value={groupGoal} onChange={(event) => setGroupGoal(event.target.value)} min="30" max="50000" required /><small>{Math.round(Number(groupGoal || 0) / Math.max(1,Number(groupCapacity)) / 7)} dk / kişi / gün önerisi</small></label>
           </div>
           <footer><div><LockKeyhole size={15} /><span>Sınıf yalnızca ROOM davet koduyla açılır.</span></div><button className="study-button study-button-primary" disabled={busy === 'create-group'}>{busy === 'create-group' ? 'Oluşturuluyor…' : 'Sınıfı oluştur ve aç'}</button></footer>

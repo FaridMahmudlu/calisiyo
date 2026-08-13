@@ -3,6 +3,7 @@ import { createClient } from '@/lib/supabase/server';
 
 const ALLOWED_DESTINATIONS = new Set([
   '/dashboard',
+  '/dashboard/abonelik',
   '/profilini-tamamla',
   '/sifre-yenile',
 ]);

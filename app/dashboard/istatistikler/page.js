@@ -4,7 +4,7 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 import { motion } from 'framer-motion';
 import {
   Activity, ArrowDownRight, ArrowUpRight, BarChart3, BookOpenCheck, CalendarCheck2,
-  CheckCircle2, Clock3, Flame, Goal, Minus, Sparkles, Target, TrendingUp,
+  CheckCircle2, Clock3, Download, Flame, Goal, Minus, Sparkles, Target, TrendingUp,
 } from 'lucide-react';
 import {
   Bar, BarChart, CartesianGrid, Cell, ComposedChart, Line, LineChart,
@@ -55,7 +55,7 @@ function ChartTooltip({ active, payload, label }) {
 }
 
 export default function IstatistiklerPage() {
-  const { profile } = useUser();
+  const { profile, currentPlan } = useUser();
   const supabase = useMemo(() => createClient(), []);
   const [range, setRange] = useState('month');
   const [loading, setLoading] = useState(true);
@@ -67,14 +67,16 @@ export default function IstatistiklerPage() {
     setLoading(true);
     setError('');
     const start = parseLocalDate(todayStr());
+    const historyDays = Math.max(7, Number(currentPlan?.entitlements?.stats_history_days || 30));
     if (range === 'week') start.setDate(start.getDate() - 6);
     if (range === 'month') start.setDate(start.getDate() - 29);
+    if (range === 'all') start.setDate(start.getDate() - (historyDays - 1));
     const startKey = toLocalDateKey(start);
 
     let sessionQuery = supabase.from('calisma_suresi').select('id,tarih,sure_dakika,soru_sayisi,created_at,dersler(ad,renk,sinav_turu)').eq('user_id', profile.id).order('tarih');
     let taskQuery = supabase.from('gunluk_gorevler').select('id,tarih,baslangic_saat,bitis_saat,tamamlandi,soru_sayisi,dersler(ad,renk,sinav_turu)').eq('user_id', profile.id).order('tarih');
     let examQuery = supabase.from('denemeler').select('id,tarih,yayin,sinav_turu,sure_dakika,deneme_detaylari(net,dogru,yanlis,bos,dersler(ad))').eq('user_id', profile.id).order('tarih');
-    if (range !== 'all') {
+    if (range !== 'all' || historyDays < 36500) {
       sessionQuery = sessionQuery.gte('tarih', startKey);
       taskQuery = taskQuery.gte('tarih', startKey);
       examQuery = examQuery.gte('tarih', startKey);
@@ -83,14 +85,14 @@ export default function IstatistiklerPage() {
       sessionQuery,
       taskQuery,
       examQuery,
-      supabase.from('konu_takibi').select('durum,updated_at,konular(ad,dersler(ad,renk,sinav_turu))').eq('user_id', profile.id),
-      supabase.from('yapamadiklari').select('cozuldu,created_at').eq('user_id', profile.id),
+      supabase.from('konu_takibi').select('durum,updated_at,konular(ad,dersler(ad,renk,sinav_turu))').eq('user_id', profile.id).gte('updated_at', `${startKey}T00:00:00`),
+      supabase.from('yapamadiklari').select('cozuldu,created_at').eq('user_id', profile.id).gte('created_at', `${startKey}T00:00:00`),
     ]);
     const firstError = sessions.error || tasks.error || exams.error || topics.error || questions.error;
     if (firstError) setError('İstatistiklerin yüklenemedi. Lütfen sayfayı yenileyip tekrar dene.');
     setRecords({ sessions: sessions.data || [], tasks: tasks.data || [], exams: exams.data || [], topics: topics.data || [], questions: questions.data || [] });
     setLoading(false);
-  }, [profile, range, supabase]);
+  }, [currentPlan?.entitlements?.stats_history_days, profile, range, supabase]);
 
   useEffect(() => {
     const timer = setTimeout(loadStats, 0);
@@ -165,17 +167,33 @@ export default function IstatistiklerPage() {
   const hasData = records.sessions.length || records.tasks.length || records.exams.length || records.topics.length;
   const weeklyMinutesProgress = stats.goalMinutes ? Math.min(100, Math.round(stats.weeklyMinutes / stats.goalMinutes * 100)) : 0;
   const weeklyQuestionProgress = stats.goalQuestions ? Math.min(100, Math.round(stats.weeklyQuestions / stats.goalQuestions * 100)) : 0;
+  const canExport = currentPlan?.entitlements?.progress_export === true;
+
+  const exportProgress = () => {
+    if (!canExport) return;
+    const rows = [
+      ['Tarih', 'Çalışma süresi (dk)', 'Soru', 'Tamamlanan görev'],
+      ...stats.timeline.map((item) => [item.key, item.minutes, item.questions, item.tasks]),
+    ];
+    const csv = `\uFEFF${rows.map((row) => row.map((cell) => `"${String(cell ?? '').replaceAll('"', '""')}"`).join(';')).join('\n')}`;
+    const url = URL.createObjectURL(new Blob([csv], { type: 'text/csv;charset=utf-8' }));
+    const anchor = document.createElement('a');
+    anchor.href = url;
+    anchor.download = `calisiyo-ilerleme-${todayStr()}.csv`;
+    anchor.click();
+    URL.revokeObjectURL(url);
+  };
 
   return (
     <motion.div className="page stats-page" initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
-      <PageHeader title="İstatistikler" description="Çalışma, program, deneme ve konu kayıtlarından anlık olarak hesaplanan ilerleme görünümün." actions={<span className="stats-live"><Activity size={14} /> Canlı veri</span>} />
+      <PageHeader title="İstatistikler" description="Çalışma, program, deneme ve konu kayıtlarından anlık olarak hesaplanan ilerleme görünümün." actions={<div className="stats-head-actions"><button className="stats-export" disabled={!canExport} onClick={exportProgress} title={!canExport ? 'CSV dışa aktarma Zirve planında' : 'İlerleme verilerini indir'}><Download size={14} /> {canExport ? 'CSV indir' : 'Zirve ile indir'}</button><span className="stats-live"><Activity size={14} /> Canlı veri</span></div>} />
       <div className="stats-toolbar">
         <div className="study-segments stats-range" aria-label="Tarih aralığı">
           <button className={range === 'week' ? 'is-active' : ''} onClick={() => setRange('week')}>7 Gün</button>
           <button className={range === 'month' ? 'is-active' : ''} onClick={() => setRange('month')}>30 Gün</button>
-          <button className={range === 'all' ? 'is-active' : ''} onClick={() => setRange('all')}>Tümü</button>
+          <button className={range === 'all' ? 'is-active' : ''} onClick={() => setRange('all')} disabled={Number(currentPlan?.entitlements?.stats_history_days || 30) <= 30} title={Number(currentPlan?.entitlements?.stats_history_days || 30) <= 30 ? 'Tüm geçmiş Odak ve Zirve planlarında' : undefined}>Tümü</button>
         </div>
-        <span>{stats.activeDates.length} aktif gün · Son kayıtlar otomatik yenilenir</span>
+        <span>{stats.activeDates.length} aktif gün · {Number(currentPlan?.entitlements?.stats_history_days || 30) <= 30 ? 'Başlangıç planında son 30 gün' : `${currentPlan?.name} geçmişi`} · Son kayıtlar otomatik yenilenir</span>
       </div>
 
       <DataState loading={loading} error={error} empty={!hasData} emptyTitle="Henüz analiz edilecek kayıt yok" emptyText="Programını tamamladıkça, Pomodoro kullandıkça ve deneme ekledikçe bu sayfa gerçek verilerinle dolacak.">
@@ -228,6 +246,9 @@ export default function IstatistiklerPage() {
       <style jsx>{`
         .stats-page { padding-bottom: 20px; }
         .stats-live { height: 34px; padding: 0 11px; border: 1px solid #b8e2d3; border-radius: 999px; background: #effaf6; color: #07875f; display: inline-flex; align-items: center; gap: 6px; font-size: .7rem; font-weight: 750; }
+        .stats-head-actions { display: flex; align-items: center; gap: 7px; }
+        .stats-export { height: 34px; padding: 0 10px; border: 1px solid var(--study-border); border-radius: 9px; background: #fff; color: var(--study-green-dark); display: inline-flex; align-items: center; gap: 6px; font: inherit; font-size: .65rem; font-weight: 750; cursor: pointer; }
+        .stats-export:disabled { color: var(--study-muted); background: #f5f7f6; cursor: not-allowed; }
         .stats-live svg { animation: live-pulse 1.8s ease-in-out infinite; }
         @keyframes live-pulse { 50% { opacity: .42; } }
         .stats-toolbar { margin: -6px 0 20px; display: flex; align-items: center; justify-content: space-between; gap: 16px; }

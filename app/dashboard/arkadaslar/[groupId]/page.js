@@ -79,12 +79,19 @@ export default function ClassroomPage() {
   const [moderationBusy, setModerationBusy] = useState(false);
   const [ownershipConfirm, setOwnershipConfirm] = useState(false);
   const presenceStartedRef = useRef(false);
+  const lastPresenceMutationAtRef = useRef(0);
+  const focusEditingRef = useRef(false);
   const realtimeChannelRef = useRef(null);
+  const clientIdRef = useRef(null);
   const latestMoveRef = useRef(null);
   const lastLocalMoveAtRef = useRef(0);
   const moveTimerRef = useRef(null);
   const serverOffsetRef = useRef(0);
   const focusExpiredRef = useRef(null);
+
+  useEffect(() => {
+    clientIdRef.current = window.crypto.randomUUID();
+  }, []);
 
   const showNotice = useCallback((message) => {
     setNotice(message);
@@ -93,6 +100,7 @@ export default function ClassroomPage() {
 
   const loadRoom = useCallback(async ({ quiet = false } = {}) => {
     if (!groupId || !userId) return;
+    const requestedAt = Date.now();
     if (!quiet) setLoading(true);
     const { data: roomData, error: roomError } = await supabase.rpc('get_group_room_v3', { p_group_id: groupId });
     if (roomError) {
@@ -104,8 +112,9 @@ export default function ClassroomPage() {
         ? Date.parse(roomData.room.serverTime) - Date.now()
         : 0;
       const me = roomData?.members?.find((member) => member.userId === userId);
-      if (me?.presence && me.presence !== 'offline') setStatus(me.presence);
-      if (me?.focusSubject) setFocusSubject(me.focusSubject);
+      const isFreshPresenceRead = requestedAt >= lastPresenceMutationAtRef.current;
+      if (isFreshPresenceRead && me?.presence && me.presence !== 'offline') setStatus(me.presence);
+      if (isFreshPresenceRead && !focusEditingRef.current) setFocusSubject(me?.focusSubject || '');
       setLocalPosition((current) => {
         if (!me) return current;
         if (current && Date.now() - lastLocalMoveAtRef.current < 1000) return current;
@@ -132,6 +141,7 @@ export default function ClassroomPage() {
 
   const updatePresence = useCallback(async (nextStatus = status, subject = focusSubject, { quiet = false } = {}) => {
     if (!groupId || !userId) return false;
+    lastPresenceMutationAtRef.current = Date.now();
     if (!quiet) setPresenceBusy(true);
     const { error: presenceError } = await supabase.rpc('set_classroom_presence', {
       p_group_id: groupId,
@@ -143,6 +153,7 @@ export default function ClassroomPage() {
       if (!quiet) setError(presenceError.message || 'Sınıf durumun güncellenemedi.');
       return false;
     }
+    focusEditingRef.current = false;
     setData((current) => current ? {
       ...current,
       members: current.members.map((member) => member.userId === userId
@@ -152,7 +163,7 @@ export default function ClassroomPage() {
     realtimeChannelRef.current?.send({
       type: 'broadcast',
       event: 'status',
-      payload: { userId, status: nextStatus, focusSubject: subject || null, sentAt: Date.now() },
+      payload: { userId, clientId: clientIdRef.current, status: nextStatus, focusSubject: subject || null, sentAt: Date.now() },
     });
     return true;
   }, [focusSubject, groupId, status, supabase, userId]);
@@ -177,7 +188,7 @@ export default function ClassroomPage() {
     latestMoveRef.current = next;
     realtimeChannelRef.current?.send({
       type: 'broadcast', event: 'move',
-      payload: { userId, x: Number(next.x.toFixed(2)), y: Number(next.y.toFixed(2)), facing: next.facing, sentAt: Date.now() },
+      payload: { userId, clientId: clientIdRef.current, x: Number(next.x.toFixed(2)), y: Number(next.y.toFixed(2)), facing: next.facing, sentAt: Date.now() },
     });
     if (moveTimerRef.current) window.clearTimeout(moveTimerRef.current);
     if (immediate) {
@@ -217,11 +228,19 @@ export default function ClassroomPage() {
         config: { private: true, broadcast: { self: false, ack: false }, presence: { key: userId } },
       })
         .on('broadcast', { event: 'move' }, ({ payload }) => {
-          if (!payload?.userId || payload.userId === userId) return;
+          if (!payload?.userId || payload.clientId === clientIdRef.current) return;
+          if (payload.userId === userId) {
+            lastLocalMoveAtRef.current = Date.now();
+            setLocalPosition({ x: Number(payload.x), y: Number(payload.y), facing: payload.facing || 'east' });
+          }
           setData((current) => current ? { ...current, members: current.members.map((member) => member.userId === payload.userId ? { ...member, positionX: payload.x, positionY: payload.y, facing: payload.facing } : member) } : current);
         })
         .on('broadcast', { event: 'status' }, ({ payload }) => {
-          if (!payload?.userId || payload.userId === userId) return;
+          if (!payload?.userId || payload.clientId === clientIdRef.current) return;
+          if (payload.userId === userId) {
+            setStatus(payload.status);
+            if (!focusEditingRef.current) setFocusSubject(payload.focusSubject || '');
+          }
           setData((current) => current ? { ...current, members: current.members.map((member) => member.userId === payload.userId ? { ...member, presence: payload.status, focusSubject: payload.focusSubject } : member) } : current);
         })
         .on('broadcast', { event: 'reaction' }, ({ payload }) => {
@@ -526,7 +545,7 @@ export default function ClassroomPage() {
                     })}
                   </div>
                   <form onSubmit={submitFocus}>
-                    <label><span>Şu an ne çalışıyorsun?</span><input value={focusSubject} onChange={(event) => setFocusSubject(event.target.value)} maxLength={60} placeholder="Örn. TYT Matematik · Problemler" /></label>
+                    <label><span>Şu an ne çalışıyorsun?</span><input value={focusSubject} onChange={(event) => { focusEditingRef.current = true; setFocusSubject(event.target.value); }} maxLength={60} placeholder="Örn. TYT Matematik · Problemler" /></label>
                     <button disabled={presenceBusy}>{presenceBusy ? 'Güncelleniyor…' : 'Durumumu güncelle'}</button>
                   </form>
                   <button className="customize-avatar-button" onClick={() => setAvatarOpen(true)}><Palette size={17} /><span><b>Karakterimi özelleştir</b><small>8 yönlü profesyonel görünümünü seç</small></span>{me && <ClassroomAvatar avatar={{ model: me.avatarModel }} name={me.name} size={52} facing="south_east" />}</button>

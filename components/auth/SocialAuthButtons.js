@@ -95,9 +95,11 @@ export default function SocialAuthButtons({ intent = 'login', onError }) {
 
     try {
       const callback = new URL('/auth/callback', window.location.origin);
-      callback.searchParams.set(
-        'next',
-        intent === 'signup' ? '/profilini-tamamla' : '/dashboard'
+      const requested = new URLSearchParams(window.location.search).get('next');
+      callback.searchParams.set('next',
+        intent === 'signup'
+          ? '/profilini-tamamla'
+          : requested?.startsWith('/dashboard/abonelik') ? requested : '/dashboard'
       );
 
       const { error } = await supabase.auth.signInWithOAuth({

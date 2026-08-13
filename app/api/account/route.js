@@ -88,21 +88,24 @@ export async function GET() {
     { data: progress, error: progressError },
     { data: adminRole, error: roleError },
     { data: liveStreak, error: streakError },
+    { data: currentPlan, error: planError },
   ] = await Promise.all([
     supabase.from('gunluk_gorevler').select('tarih,tamamlandi,soru_sayisi').eq('user_id', user.id),
     supabase.from('calisma_suresi').select('tarih,sure_dakika,soru_sayisi').eq('user_id', user.id),
     supabase.rpc('get_my_progress'),
     supabase.rpc('current_admin_role'),
     supabase.rpc('get_live_streak'),
+    supabase.rpc('current_plan_details'),
   ]);
 
-  if (taskError || sessionError || progressError || roleError || streakError) {
+  if (taskError || sessionError || progressError || roleError || streakError || planError) {
     console.error('Account summary loaded partially', {
       tasks: taskError?.code,
       sessions: sessionError?.code,
       progress: progressError?.code,
       role: roleError?.code,
       streak: streakError?.code,
+      plan: planError?.code,
     });
   }
 
@@ -115,7 +118,8 @@ export async function GET() {
     progress: progress || null,
     adminRole: adminRole || null,
     liveStreak: liveStreak || null,
-    partial: Boolean(taskError || sessionError || progressError || roleError || streakError),
+    currentPlan: currentPlan || { code: 'baslangic', name: 'Başlangıç', status: 'free', entitlements: {} },
+    partial: Boolean(taskError || sessionError || progressError || roleError || streakError || planError),
   });
 }
 

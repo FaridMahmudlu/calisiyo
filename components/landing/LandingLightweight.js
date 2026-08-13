@@ -5,12 +5,13 @@ import Image from 'next/image';
 import Link from 'next/link';
 import { motion, useReducedMotion, useScroll, useTransform } from 'framer-motion';
 import BrandLogo from '@/components/brand/BrandLogo';
+import PricingSection from './PricingSection';
+import PublicFooter from './PublicFooter';
 import { daysUntilYKS, yksDateLabel } from '@/lib/utils/date';
 import {
   CAPABILITIES,
   CAPABILITIES_SECTION,
   FINAL_CTA,
-  FOOTER,
   GUIDE,
   HERO,
   NAV_LINKS,
@@ -244,6 +245,8 @@ export default function LandingLightweight() {
         ))}
       </section>
 
+      <PricingSection />
+
       {/* Final CTA */}
       <section className="landing-final-cta section-shell">
         <Reveal>
@@ -257,35 +260,7 @@ export default function LandingLightweight() {
       </section>
 
       {/* Footer */}
-      <footer className="story-footer">
-        <div className="section-shell footer-grid">
-          <div>
-            <Link href="/" className="public-brand" aria-label="calisiyo ana sayfa">
-              <BrandLogo />
-            </Link>
-            <p>{FOOTER.tagline}</p>
-          </div>
-          <div>
-            <strong>Ürün</strong>
-            {FOOTER.productLinks.map((link) => (
-              <a key={link.href} href={link.href}>{link.label}</a>
-            ))}
-          </div>
-          <div>
-            <strong>Hesap</strong>
-            {FOOTER.accountLinks.map((link) => (
-              <Link key={link.href} href={link.href}>{link.label}</Link>
-            ))}
-          </div>
-          <div>
-            <strong>Yasal & İletişim</strong>
-            {FOOTER.legalLinks.map((link) => (
-              <Link key={link.href} href={link.href}>{link.label}</Link>
-            ))}
-          </div>
-          <small>{FOOTER.copyright}</small>
-        </div>
-      </footer>
+      <PublicFooter />
     </main>
   );
 }

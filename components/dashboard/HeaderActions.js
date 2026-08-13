@@ -5,7 +5,7 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { AnimatePresence, motion, useReducedMotion } from 'framer-motion';
 import {
-  Bell, BellRing, CheckCheck, ChevronDown, Clock3, LogOut,
+  Bell, BellRing, CheckCheck, ChevronDown, Clock3, CreditCard, LogOut,
   ShieldCheck, Sparkles, Target, Timer, Trophy, UserRound, UsersRound,
 } from 'lucide-react';
 import { createClient } from '@/lib/supabase/client';
@@ -28,7 +28,7 @@ const formatNotificationTime = (value) => {
   return new Intl.DateTimeFormat('tr-TR', { day: 'numeric', month: 'short' }).format(date);
 };
 
-export default function HeaderActions({ user, profile, initials, adminRole, stats, logout, setError }) {
+export default function HeaderActions({ user, profile, initials, adminRole, currentPlan, stats, logout, setError }) {
   const router = useRouter();
   const reduceMotion = useReducedMotion();
   const supabase = useMemo(() => createClient(), []);
@@ -216,6 +216,7 @@ export default function HeaderActions({ user, profile, initials, adminRole, stat
                 <Link href="/dashboard/ayarlar" onClick={() => setOpenMenu(null)}><UserRound size={17} /><span><strong>Profil ve ayarlar</strong><small>Hesap, alan ve bildirim tercihleri</small></span></Link>
                 <Link href="/dashboard/hedeflerim" onClick={() => setOpenMenu(null)}><Target size={17} /><span><strong>Hedeflerim</strong><small>YKS hedeflerini düzenle</small></span></Link>
                 <Link href="/dashboard/gelisim" onClick={() => setOpenMenu(null)}><Trophy size={17} /><span><strong>Gelişim ve seviyem</strong><small>XP geçmişi ve yeni seviye hedefi</small></span></Link>
+                <Link href="/dashboard/abonelik" onClick={() => setOpenMenu(null)}><CreditCard size={17} /><span><strong>{currentPlan?.name || 'Başlangıç'} planı</strong><small>Paketini ve ödeme geçmişini yönet</small></span></Link>
                 <Link href="/dashboard/arkadaslar" onClick={() => setOpenMenu(null)}><UsersRound size={17} /><span><strong>Çalışma arkadaşları</strong><small>Arkadaşlar, sıralama ve sınıflar</small></span></Link>
                 {adminRole && <Link href="/admin" onClick={() => setOpenMenu(null)}><ShieldCheck size={17} /><span><strong>Admin paneli</strong><small>Analiz ve güvenli yönetim araçları</small></span></Link>}
               </div>

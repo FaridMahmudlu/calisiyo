@@ -15,6 +15,7 @@ async function capture(page, name) {
 }
 
 async function login(page) {
+  await page.addInitScript(() => window.localStorage.setItem('calisiyo-cookie-consent-v1', 'rejected'));
   await page.goto('/giris');
   await page.waitForTimeout(400);
   await page.getByLabel('E-posta').fill(email);
@@ -48,12 +49,22 @@ test.describe('XP, social classroom and admin platform features', () => {
     await expect(page.getByText('Deneme netleri hiçbir zaman sosyal profiline eklenmez.')).toBeVisible();
     await capture(page, 'social-hub-desktop');
 
+    // Keep the dedicated QA account repeatable after an interrupted run.
+    for (;;) {
+      const previousRoom = page.locator('.group-card').filter({ hasText: 'Playwright Sınıfı' }).first();
+      if (await previousRoom.count() === 0) break;
+      await previousRoom.click();
+      await page.getByRole('button', { name: 'Sınıfı kapat' }).click();
+      await page.getByRole('dialog').getByRole('button', { name: 'Sınıfı kapat' }).click();
+      await expect(page).toHaveURL(/\/dashboard\/arkadaslar$/);
+    }
+
     const roomName = `Playwright Sınıfı ${Date.now()}`;
     await page.getByRole('button', { name: 'Sınıf oluştur', exact: true }).first().click();
     const dialog = page.getByRole('dialog');
     await dialog.getByLabel('Sınıf adı').fill(roomName);
-    await dialog.getByLabel('Haftalık ortak hedef (dakika)').fill('300');
-    await dialog.getByRole('button', { name: 'Sınıfı oluştur' }).click();
+    await dialog.getByLabel('Haftalık ortak hedef').fill('300');
+    await dialog.getByRole('button', { name: 'Sınıfı oluştur ve aç' }).click();
     await expect(page).toHaveURL(/\/dashboard\/arkadaslar\/[0-9a-f-]+$/);
     await expect(page.getByRole('heading', { name: roomName })).toBeVisible();
     await expect(page.locator('.classroom-world')).toBeVisible();
@@ -88,7 +99,7 @@ test.describe('XP, social classroom and admin platform features', () => {
 
     await page.getByRole('button', { name: /Karakterimi özelleştir/ }).last().click();
     const avatarDialog = page.getByRole('dialog');
-    await expect(avatarDialog.getByRole('heading', { name: 'Karakterini tasarla' })).toBeVisible();
+    await expect(avatarDialog.getByRole('heading', { name: 'Sınıf karakterini seç' })).toBeVisible();
     await avatarDialog.getByRole('button', { name: 'Karakterimi kaydet' }).click();
     await expect(avatarDialog).toHaveCount(0);
 

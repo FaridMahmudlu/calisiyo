@@ -5,7 +5,7 @@ import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import {
   AlertTriangle, BarChart3, BookOpen, Calendar, CalendarDays,
-  FileText, Flame, Home, Info, LogOut, Menu, PanelLeftClose,
+  CreditCard, FileText, Flame, Home, Info, LogOut, Menu, PanelLeftClose,
   PanelLeftOpen, RotateCcw, Settings, ShieldCheck, Target, Timer, Trophy, UsersRound, X,
 } from 'lucide-react';
 import { createClient } from '@/lib/supabase/client';
@@ -44,7 +44,10 @@ const NAV_GROUPS = [
       ['/dashboard/arkadaslar', 'Çalışma Arkadaşları', UsersRound],
     ],
   },
-  { label: 'Hesap', items: [['/dashboard/ayarlar', 'Ayarlar', Settings]] },
+  { label: 'Hesap', items: [
+    ['/dashboard/abonelik', 'Paket ve Ödemeler', CreditCard],
+    ['/dashboard/ayarlar', 'Ayarlar', Settings],
+  ] },
 ];
 
 export default function DashboardLayout({ children }) {
@@ -54,6 +57,7 @@ export default function DashboardLayout({ children }) {
   const [user, setUser] = useState(null);
   const [profile, setProfile] = useState(null);
   const [adminRole, setAdminRole] = useState(null);
+  const [currentPlan, setCurrentPlan] = useState({ code: 'baslangic', name: 'Başlangıç', status: 'free', entitlements: {} });
   const [loading, setLoading] = useState(true);
   const [errorState, setErrorState] = useState({ message: '', pathname });
   const [sidebarOpen, setSidebarOpen] = useState(false);
@@ -98,6 +102,7 @@ export default function DashboardLayout({ children }) {
     setUser(authUser);
     setProfile(result.profile || null);
     setAdminRole(result.adminRole || null);
+    setCurrentPlan(result.currentPlan || { code: 'baslangic', name: 'Başlangıç', status: 'free', entitlements: {} });
 
     const tasks = result.tasks || [];
     const sessions = result.sessions || [];
@@ -227,7 +232,7 @@ export default function DashboardLayout({ children }) {
   const liveStreak = stats.todayMinutes < 30 && liveTodayMinutes >= 30 ? stats.streak + 1 : stats.streak;
 
   return (
-    <UserContext.Provider value={{ user, profile, setProfile, adminRole, error, setError, reloadAccount: loadAccount, stats }}>
+    <UserContext.Provider value={{ user, profile, setProfile, adminRole, currentPlan, error, setError, reloadAccount: loadAccount, stats }}>
       <div className={`study-layout ${collapsed ? 'is-collapsed' : ''}`} style={{ '--sidebar-width': `${sidebarWidth}px` }}>
         {sidebarOpen && <button className="sidebar-backdrop" aria-label="Menüyü kapat" onClick={() => setSidebarOpen(false)} />}
         <aside className={`study-sidebar ${sidebarOpen ? 'is-open' : ''}`}>
@@ -282,7 +287,7 @@ export default function DashboardLayout({ children }) {
             )}
             <div className="account-row">
               <Link className="avatar" href="/dashboard/ayarlar" aria-label="Profil ayarları">{initials}</Link>
-              {!collapsed && <div className="account-copy"><strong>{profile?.full_name || 'Öğrenci'}</strong><span>{profile?.alan_secimi?.replace('_', ' ') || 'Alan seçilmedi'}</span></div>}
+              {!collapsed && <div className="account-copy"><strong>{profile?.full_name || 'Öğrenci'}</strong><span>{profile?.alan_secimi?.replace('_', ' ') || 'Alan seçilmedi'} · {currentPlan.name}</span></div>}
               {!collapsed && <button className="icon-button" onClick={logout} aria-label="Çıkış yap"><LogOut size={17} /></button>}
             </div>
           </div>
@@ -293,7 +298,7 @@ export default function DashboardLayout({ children }) {
           <header className="study-topbar">
             <button className="icon-button mobile-menu-button" onClick={() => setSidebarOpen(true)} aria-label="Menüyü aç"><Menu size={21} /></button>
             <span className="topbar-context">YKS Çalışma Koçu</span>
-            <HeaderActions user={user} profile={profile} initials={initials} adminRole={adminRole} stats={stats} logout={logout} setError={setError} />
+            <HeaderActions user={user} profile={profile} initials={initials} adminRole={adminRole} currentPlan={currentPlan} stats={stats} logout={logout} setError={setError} />
           </header>
           {error && <div className="global-error" role="alert">{error}<button onClick={() => setError('')} aria-label="Uyarıyı kapat"><X size={16} /></button></div>}
           <main className={`study-content ${pathname === '/dashboard' ? 'dashboard-home' : ''}`}>{children}</main>

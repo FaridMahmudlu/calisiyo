@@ -32,7 +32,8 @@ export default function GirisPage() {
       return;
     }
 
-    router.replace('/dashboard');
+    const requested = new URLSearchParams(window.location.search).get('next');
+    router.replace(requested?.startsWith('/dashboard/abonelik') ? requested : '/dashboard');
   };
 
   return (

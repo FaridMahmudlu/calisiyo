@@ -14,6 +14,7 @@ export const NAV_LINKS = [
   { label: 'Çalışma yolu', href: '#yolculuk' },
   { label: 'Araçlar', href: '#araclar' },
   { label: 'Nasıl çalışır?', href: '#rehber' },
+  { label: 'Paketler', href: '#paketler' },
 ];
 
 export const HERO = {
@@ -141,6 +142,7 @@ export const FOOTER = {
     { label: 'Çalışma yolu', href: '#yolculuk' },
     { label: 'Araçlar', href: '#araclar' },
     { label: 'Başlangıç rehberi', href: '#rehber' },
+    { label: 'Paketler ve fiyatlar', href: '/paketler' },
   ],
   accountLinks: [
     { label: 'Giriş yap', href: '/giris', internal: true },
@@ -150,6 +152,10 @@ export const FOOTER = {
     { label: 'Gizlilik Politikası', href: '/gizlilik', internal: true },
     { label: 'KVKK Aydınlatma Metni', href: '/kvkk', internal: true },
     { label: 'Kullanım Şartları', href: '/kullanim-sartlari', internal: true },
+    { label: 'Ön Bilgilendirme', href: '/on-bilgilendirme', internal: true },
+    { label: 'Mesafeli Satış Sözleşmesi', href: '/mesafeli-satis', internal: true },
+    { label: 'İptal ve İade', href: '/iptal-iade', internal: true },
+    { label: 'Çerez Politikası', href: '/cerez-politikasi', internal: true },
     { label: 'İletişim', href: '/iletisim', internal: true },
   ],
   copyright: '© 2026 calisiyo · YKS Çalışma Koçu',

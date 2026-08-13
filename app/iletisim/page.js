@@ -1,5 +1,7 @@
 import Link from 'next/link';
 import BrandLogo from '@/components/brand/BrandLogo';
+import PublicFooter from '@/components/landing/PublicFooter';
+import { getLegalBusinessConfig } from '@/lib/billing/config';
 
 export const metadata = {
   title: 'İletişim – calisiyo',
@@ -7,6 +9,7 @@ export const metadata = {
 };
 
 export default function IletisimPage() {
+  const contact = getLegalBusinessConfig();
   return (
     <main className="story-landing">
       <nav className="story-nav" aria-label="Ana navigasyon">
@@ -29,18 +32,20 @@ export default function IletisimPage() {
         <section className="legal-content">
           <h2>1. Operatör Bilgileri</h2>
           <p>
-            <strong>calisiyo</strong>, YKS hazırlık sürecindeki öğrencilere destek olmak amacıyla geliştirilmiş bireysel bir ed-tech projesidir.
+            <strong>calisiyo</strong>, YKS hazırlık sürecindeki öğrencilere planlama, odaklanma ve ilerleme takibi sunan dijital eğitim hizmetidir.
           </p>
           <ul>
-            <li><strong>Hizmet Sağlayıcı & Veri Sorumlusu:</strong> calisiyo Ekibi</li>
+            <li><strong>Hizmet Sağlayıcı & Veri Sorumlusu:</strong> {contact.legalName || 'Ücretli satış açılmadan önce resmi unvan ilan edilecektir.'}</li>
             <li><strong>Proje Adı:</strong> calisiyo – YKS Çalışma Koçu</li>
-            <li><strong>Resmi İletişim E-posta:</strong> <a href="mailto:destek@calisiyo.com">destek@calisiyo.com</a></li>
+            <li><strong>Telefon:</strong> <a href={`tel:${contact.phoneHref}`}>{contact.phoneDisplay}</a></li>
+            <li><strong>Adres:</strong> {contact.address}</li>
+            {contact.supportEmail && <li><strong>Resmi İletişim E-posta:</strong> <a href={`mailto:${contact.supportEmail}`}>{contact.supportEmail}</a></li>}
             <li><strong>Web Sitesi:</strong> <a href="https://calisiyo-theta.vercel.app" target="_blank" rel="noopener noreferrer">https://calisiyo-theta.vercel.app</a></li>
           </ul>
 
           <h2>2. Destek ve Geri Bildirim</h2>
           <p>
-            Platform kullanımıyla ilgili teknik sorunlar, hesap işlemleri, veri silme talepleri veya önerileriniz için e-posta adreslerimiz üzerinden bizimle günün her saati iletişime geçebilirsiniz. Gönderdiğiniz iletiler en kısa sürede incelenerek tarafınıza dönüş yapılacaktır.
+            Platform kullanımıyla ilgili teknik sorunlar, hesap işlemleri, veri silme talepleri veya önerileriniz için telefon ve ilan edilen destek e-postası üzerinden bizimle iletişime geçebilirsiniz. Başvurular en kısa sürede incelenir.
           </p>
 
           <h2>3. KVKK ve Veri Talepleri</h2>
@@ -50,30 +55,7 @@ export default function IletisimPage() {
         </section>
       </div>
 
-      <footer className="story-footer">
-        <div className="section-shell footer-grid">
-          <div>
-            <Link href="/" className="public-brand" aria-label="calisiyo ana sayfa">
-              <BrandLogo />
-            </Link>
-            <p>YKS hazırlığını net bir çalışma yoluna dönüştür.</p>
-          </div>
-          <div>
-            <strong>Ürün</strong>
-            <Link href="/#yolculuk">Çalışma yolu</Link>
-            <Link href="/#araclar">Araçlar</Link>
-            <Link href="/#rehber">Başlangıç rehberi</Link>
-          </div>
-          <div>
-            <strong>Yasal & İletişim</strong>
-            <Link href="/gizlilik">Gizlilik Politikası</Link>
-            <Link href="/kvkk">KVKK Aydınlatma Metni</Link>
-            <Link href="/kullanim-sartlari">Kullanım Şartları</Link>
-            <Link href="/iletisim">İletişim</Link>
-          </div>
-          <small>© 2026 calisiyo · YKS Çalışma Koçu</small>
-        </div>
-      </footer>
+      <PublicFooter />
     </main>
   );
 }
