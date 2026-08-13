@@ -1,5 +1,6 @@
 'use client';
 
+import Image from 'next/image';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import {
   ArrowUpRight, Check, CheckCircle2, Clock3, CreditCard,
@@ -155,7 +156,10 @@ export default function BillingPage() {
         <label><input type="checkbox" checked={confirmGuardian} onChange={(event) => setConfirmGuardian(event.target.checked)} /><span>18 yaşındayım veya veli/kanuni temsilci onayıyla işlem yapıyorum; ön bilgilendirme ve sözleşmeleri okudum.</span></label>
         <label><input type="checkbox" checked={acceptImmediate} onChange={(event) => setAcceptImmediate(event.target.checked)} /><span>Ödeme doğrulandığında dijital hizmetin hemen başlamasını istiyorum; ifasına başlanan dijital hizmet için cayma hakkı istisnası uygulanabileceğini biliyorum.</span></label>
         <button className="checkout-pay" disabled={!billing?.checkoutEnabled || busy === 'checkout' || !acceptImmediate || !confirmGuardian} onClick={startCheckout}>{busy === 'checkout' ? <LoaderCircle className="is-spinning" /> : <ShieldCheck />} Ödeme yükümlülüğü doğuran siparişi onayla</button>
-        <p className="checkout-security"><ShieldCheck /> İyzico’ya yönlendirilirsin; kart bilgilerin calisiyo sunucularına girmez.</p>
+        <div className="checkout-payment-methods">
+          <Image src="/brand/iyzico-payment-methods.svg" alt="iyzico ile Öde, Visa ve Mastercard" width={429} height={32} />
+          <p className="checkout-security"><ShieldCheck /> İyzico’ya yönlendirilirsin; kart bilgilerin calisiyo sunucularına girmez.</p>
+        </div>
       </section></div>}
     </div>
   );

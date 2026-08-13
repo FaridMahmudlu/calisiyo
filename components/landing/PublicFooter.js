@@ -1,5 +1,6 @@
 'use client';
 
+import Image from 'next/image';
 import Link from 'next/link';
 import { MapPin, Phone } from 'lucide-react';
 import BrandLogo from '@/components/brand/BrandLogo';
@@ -17,6 +18,15 @@ export default function PublicFooter() {
           <p>{FOOTER.tagline}</p>
           <a className="footer-contact" href="tel:+905550497360"><Phone size={14} /> +90 555 049 73 60</a>
           <span className="footer-address"><MapPin size={14} /> ATATÜRK MAH. 01117 NOLU SK. ZİRVE SİTESİ A BLOK NO:2 İÇ KAPI NO:11 ŞEHİTKAMİL / GAZİANTEP</span>
+          <div className="footer-payment-methods" aria-label="Desteklenen güvenli ödeme yöntemleri">
+            <span>Güvenli ödeme altyapısı</span>
+            <Image
+              src="/brand/iyzico-payment-methods.svg"
+              alt="iyzico ile Öde, Visa ve Mastercard"
+              width={429}
+              height={32}
+            />
+          </div>
         </div>
         <div>
           <strong>Ürün</strong>

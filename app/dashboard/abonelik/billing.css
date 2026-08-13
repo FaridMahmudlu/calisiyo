@@ -73,6 +73,9 @@
 .checkout-pay svg { width: 17px; }
 .checkout-security { margin: 10px 0 0; color: #788983; display: flex; align-items: center; justify-content: center; gap: 6px; font-size: .57rem; }
 .checkout-security svg { width: 14px; }
+.checkout-payment-methods { margin-top: 12px; padding-top: 16px; border-top: 1px solid var(--study-border, #e0ebe7); display: grid; justify-items: center; gap: 9px; }
+.checkout-payment-methods > img { width: min(100%, 310px); height: auto; display: block; }
+.checkout-payment-methods .checkout-security { margin-top: 0; }
 @keyframes billing-spin { to { transform: rotate(360deg); } }
 @media (max-width: 1000px) { .billing-plan-grid { grid-template-columns: 1fr; } .billing-plan-card { min-height: 0; } .billing-order-list article { grid-template-columns: 1fr auto; } .order-actions { grid-column: 1 / -1; } }
 @media (max-width: 680px) { .billing-current, .billing-plans-panel, .billing-orders { padding: 16px; } .billing-current { grid-template-columns: auto 1fr; } .billing-plan-badge { grid-column: 2; } .billing-section-head { align-items: flex-start; flex-direction: column; } .billing-period { width: 100%; } .billing-period button { flex: 1; } .billing-order-list article { grid-template-columns: 1fr; } .billing-checkout { padding: 18px; } }
