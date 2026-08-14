@@ -19,6 +19,7 @@ function profileDefaults(user) {
     id: user.id,
     full_name: String(metadata.full_name || metadata.name || emailName || 'Öğrenci').trim(),
     alan_secimi: field,
+    yks_year: [2027, 2028].includes(Number(metadata.yks_year)) ? Number(metadata.yks_year) : 2027,
   };
 }
 
@@ -118,7 +119,7 @@ export async function GET() {
     progress: progress || null,
     adminRole: adminRole || null,
     liveStreak: liveStreak || null,
-    currentPlan: currentPlan || { code: 'baslangic', name: 'Başlangıç', status: 'free', entitlements: {} },
+    currentPlan: currentPlan || { code: 'baslangic', name: 'calisiyo ücretsiz', status: 'free', entitlements: {} },
     partial: Boolean(taskError || sessionError || progressError || roleError || streakError || planError),
   });
 }
@@ -139,10 +140,12 @@ export async function PATCH(request) {
   if (body.action === 'settings') {
     const fullName = String(body.fullName || '').trim();
     const field = String(body.field || '');
+    const yksYear = Number(body.yksYear || 2027);
     if (fullName.length < 2) return invalid('Ad soyad en az 2 karakter olmalıdır.');
     if (!['sayisal', 'esit_agirlik', 'sozel', 'dil'].includes(field)) {
       return invalid('Geçerli bir alan seçmelisin.');
     }
+    if (![2027, 2028].includes(yksYear)) return invalid('Geçerli bir YKS yılı seçmelisin.');
 
     const notificationsEnabled = body.notificationsEnabled !== false;
     const preferences = { ...DEFAULT_PREFERENCES, ...(body.preferences || {}), notifications: notificationsEnabled };
@@ -155,6 +158,7 @@ export async function PATCH(request) {
       .update({
         full_name: fullName,
         alan_secimi: field,
+        yks_year: yksYear,
         notifications_enabled: notificationsEnabled,
         study_preferences: preferences,
       })

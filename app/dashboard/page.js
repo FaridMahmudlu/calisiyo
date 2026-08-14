@@ -24,7 +24,7 @@ const MOTIVATION_QUOTES = [
 ];
 
 export default function DashboardPage() {
-  const { profile } = useUser();
+  const { profile, stats: accountStats } = useUser();
   const supabase = useMemo(() => createClient(), []);
   const [loading, setLoading] = useState(true);
 
@@ -62,6 +62,7 @@ export default function DashboardPage() {
     const { data: dersData } = await supabase
       .from('dersler')
       .select('*')
+      .eq('curriculum_year', Number(profile.yks_year || 2027))
       .contains('alan', [profile.alan_secimi || 'sayisal'])
       .order('sira');
 
@@ -272,33 +273,10 @@ export default function DashboardPage() {
     return cols;
   }, [allTasks, calismaSuresiList]);
 
-  // 6. Streak calculation
-  const currentStreak = useMemo(() => {
-    const completedDates = new Set([
-      ...allTasks.filter(t => t.tamamlandi).map(t => t.tarih),
-      ...calismaSuresiList.map(c => c.tarih)
-    ]);
-
-    let streak = 0;
-    const checkDate = parseLocalDate(todayStr());
-    
-    // Check if today is completed or yesterday
-    const todayStrVal = todayStr();
-    if (!completedDates.has(todayStrVal)) {
-      checkDate.setDate(checkDate.getDate() - 1);
-    }
-
-    while (true) {
-      const key = toLocalDateKey(checkDate);
-      if (completedDates.has(key)) {
-        streak++;
-        checkDate.setDate(checkDate.getDate() - 1);
-      } else {
-        break;
-      }
-    }
-    return streak;
-  }, [allTasks, calismaSuresiList]);
+  // Streak and today's minutes are calculated once by the account RPC/layout.
+  // Every surface consumes that same live value so a Pomodoro minute cannot
+  // disagree with the sidebar or statistics page.
+  const currentStreak = Number(accountStats?.streak || 0);
 
   // 7. Overall Summary Stats
   const totalQuestionsAllTime = useMemo(() => {
@@ -307,20 +285,16 @@ export default function DashboardPage() {
     return Math.max(q1, q2);
   }, [allTasks, calismaSuresiList]);
 
-  const totalMinutesAllTime = useMemo(() => {
-    const m1 = allTasks.filter(t => t.tamamlandi).reduce((s, t) => s + getTaskMinutes(t), 0);
-    const m2 = calismaSuresiList.reduce((s, c) => s + (c.sure_dakika || 0), 0);
-    return Math.max(m1, m2);
-  }, [allTasks, calismaSuresiList]);
+  const totalMinutesAllTime = useMemo(
+    () => calismaSuresiList.reduce((sum, item) => sum + Number(item.sure_dakika || 0), 0),
+    [calismaSuresiList],
+  );
 
   // Max study time in a single day
   const maxStudyDay = useMemo(() => {
     const dayMap = {};
-    allTasks.filter(t => t.tamamlandi).forEach(t => {
-      dayMap[t.tarih] = (dayMap[t.tarih] || 0) + getTaskMinutes(t);
-    });
     calismaSuresiList.forEach(c => {
-      dayMap[c.tarih] = Math.max(dayMap[c.tarih] || 0, c.sure_dakika || 0);
+      dayMap[c.tarih] = (dayMap[c.tarih] || 0) + Number(c.sure_dakika || 0);
     });
 
     let maxMins = 0;
@@ -336,7 +310,7 @@ export default function DashboardPage() {
       duration: maxMins > 0 ? formatDuration(maxMins) : '0sa',
       date: maxDate ? formatDate(maxDate) : 'Henüz veri yok'
     };
-  }, [allTasks, calismaSuresiList]);
+  }, [calismaSuresiList]);
 
   // Average Net Calculation
   const averageNet = useMemo(() => {
@@ -613,10 +587,10 @@ export default function DashboardPage() {
             {/* Streak Description */}
             <div className="streak-info-box">
               <p className="streak-p1">
-                Bugün çalışırsan <strong style={{ color: '#0f172a' }}>{currentStreak + 1} gün olacak! 🔥</strong>
+                {accountStats?.streakQualified ? <><strong style={{ color: '#0f172a' }}>Bugünkü seri hedefin tamamlandı! 🔥</strong></> : <>Bugün <strong style={{ color: '#0f172a' }}>{Math.max(0, 30 - Number(accountStats?.todayMinutes || 0))} dakika daha odaklan</strong></>}
               </p>
               <p className="streak-p2">
-                Düzenli çalışma alışkanlığı derece getirir.
+                {Number(accountStats?.todayMinutes || 0)} / 30 dakika · Seri yalnızca gerçek çalışma kayıtlarından hesaplanır.
               </p>
 
               <Link href="/dashboard/istatistikler" className="btn btn-soft-green" style={{ marginTop: '20px', width: 'auto' }}>

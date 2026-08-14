@@ -47,6 +47,7 @@ export default function KonuTakibiPage() {
       .from('dersler')
       .select('*')
       .eq('sinav_turu', sinavTuru)
+      .eq('curriculum_year', Number(profile.yks_year || 2027))
       .contains('alan', [profile.alan_secimi])
       .order('sira');
 

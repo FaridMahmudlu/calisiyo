@@ -53,7 +53,7 @@ export default function KullanimSartlariPage() {
 
           <h2>4. Hizmetin Niteliği ve Sorumluluk Sınırı</h2>
           <p>
-            calisiyo, öğrencilerin YKS hazırlık süreçlerini destekleyen ücretsiz Başlangıç planı ile ön ödemeli Odak ve Zirve planları bulunan dijital planlama ve analiz hizmetidir. Ücretli paketler otomatik yenilenmez. Platformda sunulan istatistikler ve tahminler kullanıcı tarafından girilen gerçek verilere dayanır. calisiyo, sınav başarısı veya resmi sınav sonuçları konusunda herhangi bir hukuki taahhüt veya garanti vermez.
+            calisiyo, öğrencilerin YKS hazırlık süreçlerini destekleyen “calisiyo ücretsiz” ve sınav yılına göre sunulan “calisiyo plus” planlarından oluşan dijital planlama ve analiz hizmetidir. Plus 7 gün ücretsiz denenebilir; kullanıcı açıkça satın alma işlemi yapmadıkça otomatik ücret alınmaz. Platformda sunulan istatistikler ve tahminler kullanıcı tarafından girilen gerçek verilere dayanır. calisiyo, sınav başarısı veya resmi sınav sonuçları konusunda herhangi bir hukuki taahhüt veya garanti vermez.
           </p>
 
           <h2>5. Fikri Mülkiyet Hakları</h2>

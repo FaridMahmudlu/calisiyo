@@ -76,7 +76,7 @@ export default function LandingLightweight() {
           <h1>YKS hazırlığını tek bir <em>net düzende</em> yönet.</h1>
           <p>Planını kur, odaklanarak çalış ve ilerlemeni yalnızca kendi gerçek kayıtlarınla gör. Gereksiz karmaşa olmadan, her gün ne yapacağını bil.</p>
           <div className="hero-actions"><Link className="public-button primary" href="/kayit">Ücretsiz başla <PiArrowRight /></Link><a className="public-button" href="#paketler">Paketleri gör</a></div>
-          <div className="hero-proof"><span><PiCheck /> Kredi kartı gerekmez</span><span><PiCheck /> Başlangıç planı ücretsiz</span><span><PiCheck /> Tüm cihazlarda uyumlu</span></div>
+          <div className="hero-proof"><span><PiCheck /> Kredi kartı gerekmez</span><span><PiCheck /> calisiyo ücretsiz</span><span><PiCheck /> Tüm cihazlarda uyumlu</span></div>
         </div>
         <ProductWorkspace />
       </section>

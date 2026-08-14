@@ -47,7 +47,7 @@ export default function PomodoroPage() {
   const loadContext = useCallback(async () => {
     if (!profile?.id) return;
     const [courseResult, resourceResult, sessionResult] = await Promise.all([
-      supabase.from('dersler').select('*').contains('alan', [profile.alan_secimi]).order('sira'),
+      supabase.from('dersler').select('*').eq('curriculum_year', Number(profile.yks_year || 2027)).contains('alan', [profile.alan_secimi]).order('sira'),
       supabase.from('kaynaklarim').select('*, kaynaklar_sistem(ad)').eq('user_id', profile.id),
       supabase.from('calisma_suresi').select('*, dersler(ad)').eq('user_id', profile.id).eq('tarih', todayStr()).order('created_at', { ascending: false }),
     ]);

@@ -1,6 +1,6 @@
 import LandingPageNew from '@/components/landing/LandingPageNew';
 import { FAQS } from '@/components/landing/SharedLandingContent';
-import { PUBLIC_PLANS } from '@/lib/billing/plans';
+import { PLUS_VARIANTS, PUBLIC_PLANS } from '@/lib/billing/plans';
 
 const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || 'https://calisiyo-theta.vercel.app';
 
@@ -42,13 +42,13 @@ export default function HomePage() {
           'Gerçek çalışma kayıtlarından istatistikler',
           'Çalışma sınıfları',
         ],
-        offers: PUBLIC_PLANS.map((plan) => ({
+        offers: [PUBLIC_PLANS[0], ...PLUS_VARIANTS].map((plan) => ({
           '@type': 'Offer',
-          name: `${plan.name} planı`,
-          price: String(plan.monthlyPrice),
+          name: `${plan.name || `calisiyo plus · ${plan.label}`} planı`,
+          price: String(plan.price || 0),
           priceCurrency: 'TRY',
           url: `${SITE_URL}/paketler`,
-          availability: plan.code === 'baslangic' ? 'https://schema.org/InStock' : 'https://schema.org/PreOrder',
+          availability: 'https://schema.org/InStock',
         })),
         publisher: { '@id': `${SITE_URL}/#organization` },
       },

@@ -26,13 +26,13 @@ test.describe('Editorial landing page', () => {
     await page.setViewportSize({ width: 1440, height: 1000 });
     await page.goto('/');
     await expect(page.getByRole('heading', { level: 1 })).toContainText('YKS hazırlığını');
-    await expect(page.getByRole('heading', { name: /Ücretsiz başla, ihtiyacın olduğunda büyü/ })).toBeVisible();
+    await expect(page.getByRole('heading', { name: /Ücretsiz başla.*plus/ })).toBeVisible();
     await expect(page.locator('canvas')).toHaveCount(0);
-    await expect(page.locator('.pricing-premium')).toHaveCount(2);
+    await expect(page.locator('.pricing-premium')).toHaveCount(1);
     await expect(page.getByRole('link', { name: 'calisiyo.destek@gmail.com' })).toBeVisible();
 
-    await page.getByRole('button', { name: /365 gün/ }).click();
-    await expect(page.getByText(/899/)).toBeVisible();
+    await page.getByRole('button', { name: /YKS 2028/ }).click();
+    await expect(page.getByText(/1\.000/)).toBeVisible();
 
     const secondFaq = page.locator('.faq-list details').nth(1);
     await secondFaq.locator('summary').click();

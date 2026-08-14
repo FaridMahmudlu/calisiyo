@@ -98,7 +98,7 @@
 .pricing-period button { min-height: 42px; padding: 0 17px; border: 0; border-radius: 9px; background: transparent; color: #6a7c75; font: inherit; font-size: .69rem; font-weight: 760; cursor: pointer; }
 .pricing-period button.is-active { background: #fff; color: #087552; box-shadow: 0 4px 13px rgba(16,37,31,.08); }
 .pricing-period small { margin-left: 7px; padding: 3px 5px; border-radius: 5px; background: #dff6ec; color: #087552; font-size: .52rem; }
-.pricing-grid { display: grid; grid-template-columns: repeat(3, 1fr); align-items: stretch; gap: 14px; }
+.pricing-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); align-items: stretch; gap: 14px; }
 .pricing-card { position: relative; min-height: 520px; padding: 26px; border: 1px solid #dce8e3; border-radius: 20px; background: #fff; display: flex; flex-direction: column; overflow: hidden; }
 .pricing-card::before { position: absolute; inset: 0 0 auto; height: 4px; background: #00a870; content: ''; }
 .pricing-card.is-blue::before { background: #3b82f6; }
@@ -118,6 +118,9 @@
 .pricing-card > .public-button { width: 100%; margin-top: auto; }
 .pricing-trust { max-width: 740px; margin: 25px auto 0; color: #687d75; display: flex; align-items: center; justify-content: center; gap: 8px; font-size: .64rem; text-align: center; }
 .pricing-trust svg { flex: 0 0 auto; color: #07875f; }
+.pricing-trust a { color: #087552; font-weight: 780; text-underline-offset: 3px; }
+.pricing-year-picker { width: 100%; margin: 22px 0 0; }
+.pricing-year-picker button { flex: 1; }
 .package-page-hero { padding: 175px 0 70px; text-align: center; }
 .package-page-hero .public-kicker { margin-inline: auto; }
 .package-page-hero h1 { margin: 17px auto 13px; font-size: clamp(3rem, 6vw, 5.8rem); line-height: .98; letter-spacing: -.065em; }
@@ -184,6 +187,7 @@
 .step-indicator span.is-active { border-color: #00a870; background: #00a870; color: #fff; }
 .step-indicator i { width: 58px; height: 1px; background: #dce3e8; }
 .signup-fields { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.signup-year-choice { grid-column: 1 / -1; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
 .signup-fields button { min-height: 76px; padding: 13px; border: 1px solid #d9e1e6; border-radius: 9px; background: #fff; color: #0d1830; display: grid; grid-template-columns: 1fr auto; text-align: left; cursor: pointer; }
 .signup-fields button.is-selected { border-color: #00a870; background: #f8fdfb; }
 .signup-fields span { font-weight: 750; }
@@ -287,7 +291,7 @@
   .footer-grid { grid-template-columns: 1fr 1fr; }
   .footer-grid > div:first-child { grid-column: 1 / -1; }
   .auth-form-panel { padding: 32px 18px; align-items: flex-start; }
-  .signup-fields, .social-auth { grid-template-columns: 1fr; }
+  .signup-fields, .signup-year-choice, .social-auth { grid-template-columns: 1fr; }
   .cookie-consent { right: 10px; bottom: 10px; width: calc(100% - 20px); grid-template-columns: auto 1fr; }
   .cookie-actions { grid-column: 1 / -1; }
   .cookie-actions button { flex: 1; justify-content: center; }

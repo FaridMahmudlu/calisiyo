@@ -10,7 +10,7 @@ import { ALANLAR, getExamTabs } from '@/lib/constants/alanlar';
 export default function ProfiliniTamamlaPage() {
   const router = useRouter();
   const supabase = useMemo(() => createClient(), []);
-  const [form, setForm] = useState({ fullName: '', alanSecimi: '' });
+  const [form, setForm] = useState({ fullName: '', alanSecimi: '', yksYear: 2027 });
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
 
@@ -25,6 +25,7 @@ export default function ProfiliniTamamlaPage() {
       setForm({
         fullName: user.user_metadata?.full_name || user.user_metadata?.name || '',
         alanSecimi: user.user_metadata?.alan_secimi || '',
+        yksYear: Number(user.user_metadata?.yks_year || 2027),
       });
       setLoading(false);
     });
@@ -45,7 +46,7 @@ export default function ProfiliniTamamlaPage() {
       return;
     }
 
-    const profile = { full_name: form.fullName.trim(), alan_secimi: form.alanSecimi };
+    const profile = { full_name: form.fullName.trim(), alan_secimi: form.alanSecimi, yks_year: form.yksYear };
     const [{ error: profileError }, { error: metadataError }] = await Promise.all([
       supabase.from('profiles').upsert({ id: user.id, ...profile }, { onConflict: 'id' }),
       supabase.auth.updateUser({ data: profile }),
@@ -70,6 +71,7 @@ export default function ProfiliniTamamlaPage() {
         <form onSubmit={submit}>
           <label>Ad Soyad<div><UserRound size={17} /><input value={form.fullName} onChange={(event) => setForm({ ...form, fullName: event.target.value })} autoComplete="name" required /></div></label>
           <div className="signup-fields profile-fields">
+            {[2027, 2028].map((year) => <button type="button" key={year} className={form.yksYear === year ? 'is-selected' : ''} onClick={() => setForm({ ...form, yksYear: year })}><span>YKS {year}</span><small>{year === 2028 ? 'Yeni MEB müfredatı' : 'Mevcut müfredat'}</small>{form.yksYear === year && <Check size={17} />}</button>)}
             {Object.entries(ALANLAR).map(([key, details]) => (
               <button type="button" key={key} className={form.alanSecimi === key ? 'is-selected' : ''} onClick={() => setForm({ ...form, alanSecimi: key })}>
                 <span>{details.label}</span><small>{getExamTabs(key).join(' + ')}</small>{form.alanSecimi === key && <Check size={17} />}

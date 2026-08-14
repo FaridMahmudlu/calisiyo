@@ -216,7 +216,7 @@ export default function HeaderActions({ user, profile, initials, adminRole, curr
                 <Link href="/dashboard/ayarlar" onClick={() => setOpenMenu(null)}><UserRound size={17} /><span><strong>Profil ve ayarlar</strong><small>Hesap, alan ve bildirim tercihleri</small></span></Link>
                 <Link href="/dashboard/hedeflerim" onClick={() => setOpenMenu(null)}><Target size={17} /><span><strong>Hedeflerim</strong><small>YKS hedeflerini düzenle</small></span></Link>
                 <Link href="/dashboard/gelisim" onClick={() => setOpenMenu(null)}><Trophy size={17} /><span><strong>Gelişim ve seviyem</strong><small>XP geçmişi ve yeni seviye hedefi</small></span></Link>
-                <Link href="/dashboard/abonelik" onClick={() => setOpenMenu(null)}><CreditCard size={17} /><span><strong>{currentPlan?.name || 'Başlangıç'} planı</strong><small>Paketini ve ödeme geçmişini yönet</small></span></Link>
+                <Link href="/dashboard/abonelik" onClick={() => setOpenMenu(null)}><CreditCard size={17} /><span><strong>{currentPlan?.name || 'calisiyo ücretsiz'} planı</strong><small>Paketini ve ödeme geçmişini yönet</small></span></Link>
                 <Link href="/dashboard/arkadaslar" onClick={() => setOpenMenu(null)}><UsersRound size={17} /><span><strong>Çalışma arkadaşları</strong><small>Arkadaşlar, sıralama ve sınıflar</small></span></Link>
                 {adminRole && <Link href="/admin" onClick={() => setOpenMenu(null)}><ShieldCheck size={17} /><span><strong>Admin paneli</strong><small>Analiz ve güvenli yönetim araçları</small></span></Link>}
               </div>

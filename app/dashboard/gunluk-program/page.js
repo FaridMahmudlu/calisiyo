@@ -44,7 +44,7 @@ export default function GunlukProgramPage() {
     setError('');
     const [taskResult, courseResult, resourceResult] = await Promise.all([
       supabase.from('gunluk_gorevler').select('*, dersler(ad, renk, ikon, sinav_turu)').eq('user_id', profile.id).eq('tarih', selectedDate).order('baslangic_saat'),
-      supabase.from('dersler').select('*').contains('alan', [profile.alan_secimi]).order('sira'),
+      supabase.from('dersler').select('*').eq('curriculum_year', Number(profile.yks_year || 2027)).contains('alan', [profile.alan_secimi]).order('sira'),
       supabase.from('kaynaklarim').select('*, kaynaklar_sistem(ad, yayin)').eq('user_id', profile.id),
     ]);
     const firstError = taskResult.error || courseResult.error || resourceResult.error;

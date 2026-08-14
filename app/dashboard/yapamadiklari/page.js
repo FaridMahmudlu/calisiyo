@@ -58,6 +58,7 @@ export default function YapamadiklariPage() {
         .from("dersler")
         .select("*")
         .eq("sinav_turu", activeExam)
+        .eq("curriculum_year", Number(profile.yks_year || 2027))
         .contains("alan", [profile.alan_secimi])
         .order("sira"),
     ]);

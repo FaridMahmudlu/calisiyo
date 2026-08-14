@@ -21,15 +21,14 @@ test.describe('SaaS pricing, legal and billing safety', () => {
     });
     await page.setViewportSize({ width: 1440, height: 1000 });
     await page.goto('/paketler');
-    await expect(page.getByRole('heading', { name: /Önce düzenini kur/ })).toBeVisible();
-    await expect(page.getByRole('heading', { name: 'Başlangıç' })).toBeVisible();
-    await expect(page.getByRole('heading', { name: 'Odak' })).toBeVisible();
-    await expect(page.getByRole('heading', { name: 'Zirve' })).toBeVisible();
-    await expect(page.getByText(/89,90/)).toBeVisible();
-    await page.getByRole('button', { name: /365 gün/ }).click();
-    await expect(page.getByText(/899/)).toBeVisible();
+    await expect(page.getByRole('heading', { name: /İki plan/ })).toBeVisible();
+    await expect(page.getByRole('heading', { name: 'calisiyo ücretsiz' })).toBeVisible();
+    await expect(page.getByRole('heading', { name: 'calisiyo plus' })).toBeVisible();
+    await expect(page.getByText(/₺2\.000/)).toBeVisible();
+    await page.getByRole('button', { name: /YKS 2028/ }).click();
+    await expect(page.getByText(/₺1\.000/)).toBeVisible();
     await expect(page.getByRole('link', { name: 'calisiyo.destek@gmail.com' })).toBeVisible();
-    await expect(page.getByText(/satın alma özelliği hazırlanıyor/i)).toBeVisible();
+    await expect(page.getByText(/Şehit ve gazi yakınlarından/)).toBeVisible();
     await expect(page.getByRole('dialog', { name: 'Çerez tercihleri' })).toBeVisible();
     expect(analyticsRequests).toHaveLength(0);
     await page.getByRole('button', { name: /Yalnızca zorunlu/ }).click();
@@ -82,19 +81,20 @@ test.describe('SaaS pricing, legal and billing safety', () => {
     const body = await response.json();
     expect(body.authenticated).toBe(false);
     expect(body.checkoutEnabled).toBe(false);
-    expect(body.plans.map((plan) => plan.code)).toEqual(['baslangic', 'odak', 'zirve']);
+    expect(body.plans.map((plan) => plan.code)).toEqual(['baslangic', 'plus']);
     expect(JSON.stringify(body)).not.toMatch(/secret|service_role|apiKey/i);
   });
 
   test('protected plan choice survives login and checkout fails closed', async ({ page }) => {
     test.skip(!email || !password, 'QA credentials are required.');
-    await page.goto('/dashboard/abonelik?plan=odak&period=annual');
+    await page.goto('/dashboard/abonelik?plan=plus_2027');
     await expect(page).toHaveURL(/\/giris\?next=/);
-    await login(page, '/dashboard/abonelik?plan=odak&period=annual');
-    await expect(page).toHaveURL(/\/dashboard\/abonelik\?plan=odak&period=annual/);
-    await expect(page.getByRole('heading', { name: 'Çalışma alanını ihtiyacına göre büyüt' })).toBeVisible();
-    await expect(page.getByRole('dialog', { name: 'Odak · 365 gün' })).toBeVisible();
-    await expect(page.getByRole('button', { name: /Ödeme yükümlülüğü/ })).toBeDisabled();
+    await login(page, '/dashboard/abonelik?plan=plus_2027');
+    await expect(page).toHaveURL(/\/dashboard\/abonelik\?plan=plus_2027/);
+    await expect(page.getByRole('heading', { name: 'İki plan, tek net seçim' })).toBeVisible();
+    await page.getByRole('button', { name: /Satın al/ }).click();
+    await expect(page.getByRole('dialog', { name: /calisiyo plus · YKS 2027/ })).toBeVisible();
+    await expect(page.getByRole('button', { name: /Siparişi onayla/ })).toBeDisabled();
     await expect(page.getByText('Satışa hazırlık tamamlanıyor')).toBeVisible();
     const billing = await page.evaluate(async () => (await fetch('/api/billing')).json());
     expect(billing.currentPlan.code).toBe('baslangic');
@@ -102,7 +102,7 @@ test.describe('SaaS pricing, legal and billing safety', () => {
     const createAttempt = await page.evaluate(async () => {
       const response = await fetch('/api/billing/orders', {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ planCode: 'odak', billingPeriod: 'monthly', acceptImmediateService: true, confirmAdultOrGuardian: true }),
+        body: JSON.stringify({ planCode: 'plus_2027', billingPeriod: 'yks_2027', acceptImmediateService: true, confirmAdultOrGuardian: true }),
       });
       return { status: response.status, body: await response.json() };
     });
@@ -118,7 +118,7 @@ test.describe('SaaS pricing, legal and billing safety', () => {
     await page.goto('/dashboard/istatistikler');
     await expect(page).toHaveURL(/\/dashboard\/istatistikler/);
 
-    await page.getByRole('button', { name: /Zirve ile indir/ }).click();
+    await page.getByRole('button', { name: /Plus ile indir/ }).click();
     await expect(page.getByRole('dialog', { name: /CSV ilerleme raporu · Premium/ })).toBeVisible();
     await page.getByRole('button', { name: 'Pencereyi kapat' }).click();
 
@@ -129,6 +129,6 @@ test.describe('SaaS pricing, legal and billing safety', () => {
     await page.goto('/dashboard/kaynaklarim');
     await page.getByRole('button', { name: /Premium limitleri/ }).click();
     await expect(page.getByRole('dialog', { name: /YouTube çalışma planı limitleri · Premium/ })).toBeVisible();
-    await expect(page.getByRole('link', { name: /Paketleri karşılaştır/ })).toHaveAttribute('href', '/dashboard/abonelik');
+    await expect(page.getByRole('link', { name: /Plus’ı incele/ })).toHaveAttribute('href', '/dashboard/abonelik');
   });
 });

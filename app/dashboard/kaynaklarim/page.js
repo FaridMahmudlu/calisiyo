@@ -66,6 +66,8 @@ export default function KaynaklarimPage() {
     startDate: TODAY_IN_TURKEY,
     cadence: "daily",
     dailyMinutes: "45",
+    startItem: "1",
+    startOffsetMinutes: "0",
   });
 
   const loadData = useCallback(async () => {
@@ -85,6 +87,7 @@ export default function KaynaklarimPage() {
       supabase
         .from("dersler")
         .select("*")
+        .eq("curriculum_year", Number(profile.yks_year || 2027))
         .contains("alan", [profile.alan_secimi])
         .order("sira"),
     ]);
@@ -226,6 +229,7 @@ export default function KaynaklarimPage() {
       const payload = await response.json();
       if (!response.ok || !payload.ok) throw new Error(payload.message || "İçerik okunamadı.");
       setYoutubePreview(payload);
+      setYoutubePlan((current) => ({ ...current, startItem: "1", startOffsetMinutes: "0" }));
     } catch (requestError) {
       setYoutubePreview(null);
       setYoutubeError(requestError.message || "YouTube içeriği okunamadı.");
@@ -498,6 +502,8 @@ export default function KaynaklarimPage() {
                 <label>Başlangıç tarihi<input type="date" min={TODAY_IN_TURKEY} value={youtubePlan.startDate} onChange={(event) => setYoutubePlan({ ...youtubePlan, startDate: event.target.value })} /></label>
                 <label>Çalışma ritmi<Select ariaLabel="YouTube çalışma ritmi" value={youtubePlan.cadence} onChange={(value) => setYoutubePlan({ ...youtubePlan, cadence: value })} options={YOUTUBE_CADENCE_OPTIONS} /></label>
                 <label>Günlük video süresi<input type="number" min="15" max="360" step="5" value={youtubePlan.dailyMinutes} onChange={(event) => setYoutubePlan({ ...youtubePlan, dailyMinutes: event.target.value })} /><small>15–360 dakika</small></label>
+                <label>Devam edilecek video<input type="number" min="1" max={youtubePreview.resource.itemCount} step="1" value={youtubePlan.startItem} onChange={(event) => setYoutubePlan({ ...youtubePlan, startItem: event.target.value })} /><small>1–{youtubePreview.resource.itemCount}. video</small></label>
+                <label>Videodaki dakika<input type="number" min="0" max="1440" step="1" value={youtubePlan.startOffsetMinutes} onChange={(event) => setYoutubePlan({ ...youtubePlan, startOffsetMinutes: event.target.value })} /><small>Baştan başlamak için 0</small></label>
               </div>
               <div className="youtube-plan-summary"><CalendarDays size={17} /><span><strong>Yaklaşık {Math.max(1, Math.ceil(youtubePreview.resource.durationMinutes / Math.max(15, Number(youtubePlan.dailyMinutes) || 15)))} çalışma oturumu</strong><small>Kaynak ve bütün görevler tek işlemde, kendi hesabına kaydedilir.</small></span></div>
               <button className="study-button study-button-primary youtube-import-button" onClick={importYoutubePlan} disabled={youtubeBusy === "import" || !youtubePlan.startDate}>{youtubeBusy === "import" ? "Plan hazırlanıyor…" : <><Sparkles size={16} /> Planı oluştur ve görevlerime ekle</>}</button>
@@ -505,7 +511,7 @@ export default function KaynaklarimPage() {
           </>}
         </div>
       </Modal>
-      <PremiumFeaturePrompt open={premiumPrompt} onClose={() => setPremiumPrompt(false)} feature="YouTube çalışma planı limitleri" requiredPlan="Odak" currentPlan={currentPlan?.name || "Başlangıç"} description="Başlangıç planında ayda 2 YouTube içeriğini görevlere dönüştürebilirsin. Premium planlar bu aylık limiti genişletir." benefits={["Odak ile ayda 5 YouTube planı", "Zirve ile ayda 30 YouTube planı", "Video ve oynatma listelerini günlük görevlere böl"]} />
+      <PremiumFeaturePrompt open={premiumPrompt} onClose={() => setPremiumPrompt(false)} feature="YouTube çalışma planı limitleri" requiredPlan="calisiyo plus" currentPlan={currentPlan?.name || "calisiyo ücretsiz"} description="calisiyo ücretsiz planında ayda 2 YouTube içeriğini görevlere dönüştürebilirsin. Plus bu aylık limiti genişletir." benefits={["Plus ile ayda 30 YouTube planı", "Kaldığın video ve dakikadan devam et", "Video ve oynatma listelerini günlük görevlere böl"]} />
     </div>
   );
 }

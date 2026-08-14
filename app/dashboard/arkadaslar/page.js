@@ -309,7 +309,7 @@ export default function FriendsPage() {
             </section>
 
             <section className="group-section">
-              <header><div><span>Çalışma sınıfları · {currentPlan?.name || 'Başlangıç'}</span><h2>Ortak ritmin canlı alanı</h2><p>Planına göre {classroomMemberLimit} kişiye kadar özel sınıflarda haftalık hedefi ve canlı çalışma durumunu takip et.</p></div><div><button onClick={() => setModal('join')}><DoorOpen size={16} /> Katıl</button><button onClick={() => setModal('create')}><Plus size={16} /> Oluştur</button></div></header>
+              <header><div><span>Çalışma sınıfları · {currentPlan?.name || 'calisiyo ücretsiz'}</span><h2>Ortak ritmin canlı alanı</h2><p>Planına göre {classroomMemberLimit} kişiye kadar özel sınıflarda haftalık hedefi ve canlı çalışma durumunu takip et.</p></div><div><button onClick={() => setModal('join')}><DoorOpen size={16} /> Katıl</button><button onClick={() => setModal('create')}><Plus size={16} /> Oluştur</button></div></header>
               {(hub.groups || []).length === 0 ? (
                 <div className="group-empty study-panel"><div className="mini-classroom"><i /><i /><i /><i /></div><strong>İlk çalışma sınıfını kur</strong><span>Arkadaşlarını davet et, sınıftaki masalarda kimin çalıştığını canlı gör.</span><button onClick={() => setModal('create')}>Sınıf oluştur <ArrowRight size={16} /></button></div>
               ) : (

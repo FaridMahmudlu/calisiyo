@@ -10,12 +10,19 @@ import PageHeader from '@/components/ui/PageHeader';
 
 const DATA_TABLES = ['profiles', 'gunluk_gorevler', 'kaynaklarim', 'yapamadiklari', 'tekrarlar', 'denemeler', 'deneme_detaylari', 'calisma_suresi', 'notlar', 'konu_takibi', 'notifications'];
 
+function decodeVapidKey(value) {
+  const padding = '='.repeat((4 - value.length % 4) % 4);
+  const binary = atob((value + padding).replaceAll('-', '+').replaceAll('_', '/'));
+  return Uint8Array.from(binary, (char) => char.charCodeAt(0));
+}
+
 export default function AyarlarPage() {
   const { user, profile, setProfile, setError } = useUser();
   const supabase = useMemo(() => createClient(), []);
-  const [form, setForm] = useState({ full_name: '', alan_secimi: 'sayisal' });
+  const [form, setForm] = useState({ full_name: '', alan_secimi: 'sayisal', yks_year: 2027 });
   const [preferences, setPreferences] = useState({ theme: 'light', notifications: true, dailyPlan: true, repeats: true, pomodoro: true });
   const [browserPermission, setBrowserPermission] = useState('default');
+  const [pushStatus, setPushStatus] = useState('idle');
   const [password, setPassword] = useState({ value: '', confirm: '' });
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
@@ -23,7 +30,7 @@ export default function AyarlarPage() {
 
   const hydrate = useCallback(() => {
     if (!profile) return;
-    setForm({ full_name: profile.full_name || '', alan_secimi: profile.alan_secimi || 'sayisal' });
+    setForm({ full_name: profile.full_name || '', alan_secimi: profile.alan_secimi || 'sayisal', yks_year: Number(profile.yks_year || 2027) });
     const metadata = profile.study_preferences || user?.user_metadata?.study_preferences || {};
     const storedTheme = typeof window !== 'undefined' ? localStorage.getItem('calisiyo-theme') : null;
     setPreferences({
@@ -59,15 +66,43 @@ export default function AyarlarPage() {
   };
 
   const requestBrowserPermission = async () => {
-    if (typeof Notification !== 'undefined' && Notification.permission === 'default') {
-      const permission = await Notification.requestPermission();
-      setBrowserPermission(permission);
-    }
+    if (typeof Notification === 'undefined' || !('serviceWorker' in navigator) || !('PushManager' in window)) throw new Error('Bu tarayıcı cihaz bildirimini desteklemiyor.');
+    const keyResponse = await fetch('/api/push/public-key', { cache: 'no-store' });
+    const keyPayload = await keyResponse.json().catch(() => ({}));
+    if (!keyResponse.ok || !keyPayload.publicKey) throw new Error(keyPayload.message || 'Cihaz bildirimleri henüz hazır değil.');
+    const permission = Notification.permission === 'default' ? await Notification.requestPermission() : Notification.permission;
+    setBrowserPermission(permission);
+    if (permission !== 'granted') throw new Error('Bildirim izni verilmedi. Tarayıcı site ayarlarından izin verebilirsin.');
+    setPushStatus('saving');
+    const registration = await navigator.serviceWorker.register('/sw.js');
+    const subscription = await registration.pushManager.getSubscription() || await registration.pushManager.subscribe({
+      userVisibleOnly: true, applicationServerKey: decodeVapidKey(keyPayload.publicKey),
+    });
+    const response = await fetch('/api/push/subscriptions', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ subscription: subscription.toJSON(), userAgent: navigator.userAgent }),
+    });
+    if (!response.ok) throw new Error('Cihaz bildirimi hesabına bağlanamadı.');
+    setPushStatus('active');
+  };
+
+  const disableDevicePush = async () => {
+    if (!('serviceWorker' in navigator)) return;
+    const registration = await navigator.serviceWorker.getRegistration('/sw.js');
+    const subscription = await registration?.pushManager.getSubscription();
+    await fetch('/api/push/subscriptions', { method: 'DELETE', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ endpoint: subscription?.endpoint }) });
+    await subscription?.unsubscribe();
+    setPushStatus('idle');
   };
 
   const toggleNotifications = async (enabled) => {
     setPreferences((current) => ({ ...current, notifications: enabled }));
-    if (enabled) await requestBrowserPermission();
+    try {
+      if (enabled) await requestBrowserPermission(); else await disableDevicePush();
+    } catch (notificationError) {
+      setPreferences((current) => ({ ...current, notifications: false }));
+      setError(notificationError.message);
+    }
   };
 
   const permissionLabel = {
@@ -75,7 +110,7 @@ export default function AyarlarPage() {
     denied: 'Tarayıcı izni engellendi',
     default: 'Tarayıcı izni bekliyor',
     unsupported: 'Bu tarayıcı masaüstü bildirimi desteklemiyor',
-  }[browserPermission];
+  }[browserPermission] + (pushStatus === 'active' ? ' · cihaz bağlı' : pushStatus === 'saving' ? ' · bağlanıyor' : '');
 
   const saveSettings = async () => {
     if (!profile?.id) return;
@@ -92,6 +127,7 @@ export default function AyarlarPage() {
         action: 'settings',
         fullName: form.full_name,
         field: form.alan_secimi,
+        yksYear: form.yks_year,
         preferences,
         notificationsEnabled: preferences.notifications,
       }),
@@ -168,9 +204,11 @@ export default function AyarlarPage() {
 
       <section className="settings-section study-panel"><div className="settings-intro"><Eye size={20} /><div><h2>Alan seçimi</h2><p>Alanına göre ders, konu ve analiz görünürlüğü özelleşir.</p></div></div><div className="field-options">{Object.entries(ALANLAR).map(([value, details]) => <button key={value} className={form.alan_secimi === value ? 'is-selected' : ''} onClick={() => setForm({ ...form, alan_secimi: value })}><span>{details.label}</span><small>{getExamTabs(value).join(' + ')}</small></button>)}</div><p className="settings-warning">Alan seçimini değiştirdiğinde konu görünürlüğü ve sınav sekmeleri güncellenir; mevcut kayıtların silinmez.</p></section>
 
+      <section className="settings-section study-panel"><div className="settings-intro"><Database size={20} /><div><h2>YKS yılı ve müfredat</h2><p>2027 ve 2028 dersleri birbirinden tamamen ayrı tutulur.</p></div></div><div className="field-options">{[2027, 2028].map((year) => <button key={year} className={form.yks_year === year ? 'is-selected' : ''} onClick={() => setForm({ ...form, yks_year: year })}><span>YKS {year}</span><small>{year === 2028 ? 'Türkiye Yüzyılı Maarif Modeli' : 'Mevcut YKS müfredatı'}</small></button>)}</div><p className="settings-warning">2028 içerikleri MEB’in resmî öğretim programlarından alınır. Yıl değişikliği önceki çalışma kayıtlarını silmez.</p>{form.yks_year === 2028 && <a className="resource-source-link" href="https://tymm.meb.gov.tr/ogretim-programlari/" target="_blank" rel="noreferrer">Resmî MEB programını aç</a>}</section>
+
       <section className="settings-section study-panel"><div className="settings-intro"><Monitor size={20} /><div><h2>Görünüm</h2><p>Uygulamanın görünüm temasını seç.</p></div></div><div className="theme-options">{[['light', 'Açık tema', Sun], ['dark', 'Koyu tema', Moon], ['system', 'Sistem ayarı', Monitor]].map(([value, label, Icon]) => <button key={value} className={preferences.theme === value ? 'is-selected' : ''} onClick={() => applyTheme(value)}><Icon size={18} />{label}</button>)}</div></section>
 
-      <section className="settings-section study-panel"><div className="settings-intro"><Bell size={20} /><div><h2>Bildirimler</h2><p>Uygulama içi ve tarayıcı bildirimlerini tek yerden yönet.</p></div></div><div className="notification-settings-wrap"><div className="toggle-list notification-settings"><label className="notification-master"><span><strong>Bildirim merkezi</strong><small>Önemli plan, çalışma, seri ve deneme gelişmelerini gösterir.</small><em>{permissionLabel}</em></span><input type="checkbox" checked={preferences.notifications} onChange={(event) => toggleNotifications(event.target.checked)} /></label>{[['dailyPlan', 'Günlük plan hatırlatıcısı', 'Her gün planını hatırlatır.'], ['repeats', 'Tekrar hatırlatıcıları', 'Tekrar zamanı geldiğinde bildirir.'], ['pomodoro', 'Pomodoro bitiş bildirimi', 'Odak veya mola süresi bittiğinde bildirir.']].map(([key, label, text]) => <label key={key} className={!preferences.notifications ? 'is-disabled' : ''}><span><strong>{label}</strong><small>{text}</small></span><input type="checkbox" checked={preferences[key]} disabled={!preferences.notifications} onChange={(event) => setPreferences({ ...preferences, [key]: event.target.checked })} /></label>)}</div>{preferences.notifications && browserPermission === 'default' && <button className="browser-notification-button" onClick={requestBrowserPermission}><Bell size={15} /> Tarayıcı bildirimlerini aç</button>}{preferences.notifications && browserPermission === 'denied' && <p className="browser-notification-help">Tarayıcı bildirimi engellenmiş. Adres çubuğundaki site izinlerinden bildirimleri açabilirsin.</p>}</div></section>
+      <section className="settings-section study-panel"><div className="settings-intro"><Bell size={20} /><div><h2>Bildirimler</h2><p>Uygulama içi ve cihaz bildirimlerini tek yerden yönet.</p></div></div><div className="notification-settings-wrap"><div className="toggle-list notification-settings"><label className="notification-master"><span><strong>Bildirim merkezi ve cihaz bildirimi</strong><small>Önemli plan, çalışma, seri ve deneme gelişmelerini uygulama kapalıyken de gösterir.</small><em>{permissionLabel}</em></span><input type="checkbox" checked={preferences.notifications} onChange={(event) => toggleNotifications(event.target.checked)} /></label>{[['dailyPlan', 'Günlük plan hatırlatıcısı', 'Her gün planını hatırlatır.'], ['repeats', 'Tekrar hatırlatıcıları', 'Tekrar zamanı geldiğinde bildirir.'], ['pomodoro', 'Pomodoro bitiş bildirimi', 'Odak veya mola süresi bittiğinde bildirir.']].map(([key, label, text]) => <label key={key} className={!preferences.notifications ? 'is-disabled' : ''}><span><strong>{label}</strong><small>{text}</small></span><input type="checkbox" checked={preferences[key]} disabled={!preferences.notifications} onChange={(event) => setPreferences({ ...preferences, [key]: event.target.checked })} /></label>)}</div>{preferences.notifications && browserPermission === 'default' && <button className="browser-notification-button" onClick={() => requestBrowserPermission().catch((error) => setError(error.message))}><Bell size={15} /> Cihaz bildirimlerini aç</button>}{preferences.notifications && browserPermission === 'denied' && <p className="browser-notification-help">Bildirim izni engellenmiş. Adres çubuğundaki site izinlerinden bildirimleri açabilirsin.</p>}</div></section>
 
       <section className="settings-section study-panel"><div className="settings-intro"><LockKeyhole size={20} /><div><h2>Güvenlik</h2><p>En az 10 karakter; büyük/küçük harf, rakam ve özel karakter içeren bir şifre kullan.</p></div></div><form className="settings-fields password-fields" onSubmit={updatePassword}><label>Yeni şifre<input type="password" minLength={PASSWORD_MIN_LENGTH} value={password.value} onChange={(event) => setPassword({ ...password, value: event.target.value })} /></label><label>Yeni şifre tekrar<input type="password" minLength={PASSWORD_MIN_LENGTH} value={password.confirm} onChange={(event) => setPassword({ ...password, confirm: event.target.value })} /></label><button className="study-button">Şifreyi değiştir</button></form></section>
 

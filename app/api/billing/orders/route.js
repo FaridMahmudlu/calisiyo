@@ -1,6 +1,6 @@
 import { createLegalSnapshot } from '@/lib/billing/legal';
 import { getBillingReadiness } from '@/lib/billing/config';
-import { BILLING_PERIODS, getPublicPlan, LEGAL_DOCUMENT_VERSIONS } from '@/lib/billing/plans';
+import { BILLING_PERIODS, getBillingVariant, LEGAL_DOCUMENT_VERSIONS } from '@/lib/billing/plans';
 import { createOrderPaymentLink, deletePaymentLink } from '@/lib/billing/iyzico';
 import { createClient } from '@/lib/supabase/server';
 import { createAdminClient } from '@/lib/supabase/admin';
@@ -27,19 +27,19 @@ export async function POST(request) {
 
   let body;
   try { body = await request.json(); } catch { body = {}; }
-  const plan = getPublicPlan(String(body.planCode || ''));
+  const plan = getBillingVariant(String(body.planCode || ''));
   const billingPeriod = String(body.billingPeriod || '');
-  if (!['odak', 'zirve'].includes(plan.code) || !BILLING_PERIODS[billingPeriod]) {
+  if (!plan || plan.period !== billingPeriod || !BILLING_PERIODS[billingPeriod]) {
     return Response.json({ ok: false, message: 'Geçerli bir paket ve dönem seçmelisin.' }, { status: 400 });
   }
   if (body.acceptImmediateService !== true || body.confirmAdultOrGuardian !== true) {
     return Response.json({ ok: false, message: 'Zorunlu sözleşme onaylarını tamamlamalısın.' }, { status: 400 });
   }
 
-  const amount = billingPeriod === 'annual' ? plan.annualPrice : plan.monthlyPrice;
+  const amount = plan.price;
   const { hash } = createLegalSnapshot({
     planCode: plan.code,
-    planName: plan.name,
+    planName: `calisiyo plus · ${plan.label}`,
     billingPeriod,
     amount,
     orderNumber: null,

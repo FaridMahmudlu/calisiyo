@@ -49,7 +49,8 @@
 .sidebar-level-card > em { color: var(--study-muted); font-size: .59rem; font-style: normal; }
 .streak-info-button { width: 20px; height: 20px; margin: -4px -2px -4px 2px; padding: 0; border: 0; border-radius: 50%; background: #f1f5f4; color: var(--study-green-dark); display: inline-flex; align-items: center; justify-content: center; vertical-align: middle; cursor: pointer; }
 .streak-info-button svg { color: currentColor; }
-.streak-info-popover { position: absolute; z-index: 120; left: 8px; bottom: calc(100% + 8px); width: min(270px, calc(100vw - 32px)); padding: 13px 14px; border: 1px solid #cfe7dd; border-radius: 11px; background: #fff; box-shadow: 0 18px 48px rgba(13,24,48,.14); color: var(--study-ink); }
+.streak-info-popover { position: absolute; z-index: 120; left: 8px; bottom: calc(100% + 8px); width: min(270px, calc(100vw - 32px)); padding: 13px 14px; border: 1px solid #cfe7dd; border-radius: 11px; background: #fff; box-shadow: 0 18px 48px rgba(13,24,48,.14); color: var(--study-ink); opacity: 0; visibility: hidden; pointer-events: none; transform: translateY(6px) scale(.98); transform-origin: left bottom; transition: opacity .16s ease, transform .16s ease, visibility 0s linear .16s; }
+.streak-info-popover.is-open { opacity: 1; visibility: visible; pointer-events: auto; transform: translateY(0) scale(1); transition-delay: 0s; }
 .streak-info-popover p { margin: 5px 0 0; color: var(--study-muted); font-size: .7rem; line-height: 1.5; }
 .account-row { display: flex; align-items: center; gap: 10px; min-width: 0; }
 .avatar { width: 40px; height: 40px; border-radius: 50%; display: inline-flex; align-items: center; justify-content: center; flex: 0 0 auto; background: #1c1d21; color: #fff; text-decoration: none; font-weight: 700; }

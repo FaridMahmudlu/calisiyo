@@ -5,7 +5,7 @@ import PublicFooter from '@/components/landing/PublicFooter';
 
 export const metadata = {
   title: 'Paketler ve Fiyatlar',
-  description: 'calisiyo Başlangıç, Odak ve Zirve YKS çalışma koçu paketlerini karşılaştır.',
+  description: 'calisiyo ücretsiz ve calisiyo plus YKS çalışma koçu planlarını karşılaştır. Plus’ı 7 gün ücretsiz dene.',
   alternates: { canonical: '/paketler' },
 };
 
@@ -19,8 +19,8 @@ export default function PaketlerPage() {
       </nav>
       <div className="package-page-hero section-shell">
         <span className="public-kicker">Paketler</span>
-        <h1>Önce düzenini kur.<br />İhtiyacın olduğunda büyü.</h1>
-        <p>Bütün planlar gerçek çalışma verilerini temel alır. Ücretli paketler otomatik yenilenmez.</p>
+        <h1>İki plan.<br />Tek net seçim.</h1>
+        <p>Ücretsiz başla; daha geniş limitlere ihtiyaç duyduğunda sınav yılına uygun plus seçeneğini 7 gün dene.</p>
       </div>
       <PricingSection standalone />
       <PublicFooter />

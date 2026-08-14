@@ -14,7 +14,7 @@ export default function KayitPage() {
   const router = useRouter();
   const supabase = useMemo(() => createClient(), []);
   const [step, setStep] = useState(1);
-  const [form, setForm] = useState({ fullName: '', email: '', password: '', confirmPassword: '', alanSecimi: '' });
+  const [form, setForm] = useState({ fullName: '', email: '', password: '', confirmPassword: '', alanSecimi: '', yksYear: 2027 });
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
@@ -43,7 +43,7 @@ export default function KayitPage() {
       password: form.password,
       options: {
         emailRedirectTo: callback.toString(),
-        data: { full_name: form.fullName.trim(), alan_secimi: form.alanSecimi },
+        data: { full_name: form.fullName.trim(), alan_secimi: form.alanSecimi, yks_year: form.yksYear },
       },
     });
     setLoading(false);
@@ -124,6 +124,9 @@ export default function KayitPage() {
               </>
             ) : (
               <div className="signup-fields">
+                <div className="signup-year-choice" role="group" aria-label="YKS yılı">
+                  {[2027, 2028].map((year) => <button type="button" key={year} className={form.yksYear === year ? 'is-selected' : ''} onClick={() => setForm({ ...form, yksYear: year })}><span>YKS {year}</span><small>{year === 2028 ? 'Yeni MEB müfredatı' : 'Mevcut müfredat'}</small>{form.yksYear === year && <Check size={17} />}</button>)}
+                </div>
                 {Object.entries(ALANLAR).map(([key, details]) => (
                   <button type="button" key={key} className={form.alanSecimi === key ? 'is-selected' : ''} onClick={() => setForm({ ...form, alanSecimi: key })}>
                     <span>{details.label}</span><small>{getExamTabs(key).join(' + ')}</small>{form.alanSecimi === key && <Check size={17} />}

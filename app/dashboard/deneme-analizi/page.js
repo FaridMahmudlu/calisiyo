@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useMemo } from 'react';
 import { useUser } from '../layout';
 import { createClient } from '@/lib/supabase/client';
 import { getExamTabs } from '@/lib/constants/alanlar';
@@ -46,7 +46,7 @@ function ExamTooltip({ active, payload, label }) {
 
 export default function DenemeAnaliziPage() {
   const { profile, setError } = useUser();
-  const supabase = createClient();
+  const supabase = useMemo(() => createClient(), []);
   const examTabs = profile ? getExamTabs(profile.alan_secimi) : ['TYT', 'AYT'];
 
   const [activeTab, setActiveTab] = useState('TYT');
@@ -66,7 +66,7 @@ export default function DenemeAnaliziPage() {
     if (!profile) return;
     setLoading(true);
 
-    const [{ data: denemeData }, { data: dersData }] = await Promise.all([
+    const [examResult, courseResult] = await Promise.all([
       supabase
         .from('denemeler')
         .select('*, deneme_detaylari(*, dersler(ad, renk, ikon))')
@@ -77,14 +77,16 @@ export default function DenemeAnaliziPage() {
         .from('dersler')
         .select('*')
         .eq('sinav_turu', activeTab)
+        .eq('curriculum_year', Number(profile.yks_year || 2027))
         .contains('alan', [profile.alan_secimi])
         .order('sira'),
     ]);
-
-    setDenemeler(denemeData || []);
-    setDersler(dersData || []);
+    const loadError = examResult.error || courseResult.error;
+    if (loadError) setError('Deneme verileri yüklenemedi. Lütfen tekrar dene.');
+    setDenemeler(examResult.data || []);
+    setDersler(courseResult.data || []);
     setLoading(false);
-  }, [activeTab, profile, supabase]);
+  }, [activeTab, profile, setError, supabase]);
 
   useEffect(() => {
     const timer = setTimeout(loadData, 0);
@@ -113,56 +115,31 @@ export default function DenemeAnaliziPage() {
     if (duration !== null && (!Number.isInteger(duration) || duration < 1 || duration > 600)) {
       return setError('Deneme süresi 1 ile 600 dakika arasında olmalıdır.');
     }
-    const invalidDetail = Object.values(form.detaylar).some((detail) => (
+    const enteredDetails = Object.entries(form.detaylar).filter(([, detail]) => ['dogru', 'yanlis', 'bos'].some((field) => detail[field] !== ''));
+    if (!enteredDetails.length) return setError('Analiz için en az bir ders sonucu girmelisin.');
+    const invalidDetail = enteredDetails.some(([courseId, detail]) => (
       ['dogru', 'yanlis', 'bos'].some((field) => {
         if (detail[field] === '') return false;
         const value = Number(detail[field]);
         return !Number.isInteger(value) || value < 0;
-      })
+      }) || (() => {
+        const course = dersler.find((item) => item.id === courseId);
+        const total = ['dogru', 'yanlis', 'bos'].reduce((sum, field) => sum + Number(detail[field] || 0), 0);
+        return Number(course?.question_count || 0) > 0 && total > Number(course.question_count);
+      })()
     ));
-    if (invalidDetail) return setError('Doğru, yanlış ve boş sayıları sıfır veya pozitif tam sayı olmalıdır.');
+    if (invalidDetail) return setError('Soru sayıları pozitif tam sayı olmalı ve dersin toplam soru sınırını aşmamalıdır.');
 
     setSaving(true);
 
-    const { data: deneme, error: examError } = await supabase
-      .from('denemeler')
-      .insert({
-        user_id: profile.id,
-        sinav_turu: activeTab,
-        yayin: form.yayin,
-        tarih: form.tarih,
-        sure_dakika: duration,
-      })
-      .select()
-      .single();
-
-    if (examError) {
-      setSaving(false);
-      setError(`Deneme kaydedilemedi: ${examError.message}`);
-      return;
-    }
-
-    if (deneme) {
-      const detayRows = Object.entries(form.detaylar)
-        .filter(([, v]) => v.dogru || v.yanlis || v.bos)
-        .map(([dersId, v]) => ({
-          deneme_id: deneme.id,
-          ders_id: dersId,
-          dogru: parseInt(v.dogru) || 0,
-          yanlis: parseInt(v.yanlis) || 0,
-          bos: parseInt(v.bos) || 0,
-        }));
-
-      if (detayRows.length > 0) {
-        const { error: detailError } = await supabase.from('deneme_detaylari').insert(detayRows);
-        if (detailError) {
-          await supabase.from('denemeler').delete().eq('id', deneme.id).eq('user_id', profile.id);
-          setSaving(false);
-          setError(`Deneme ayrıntıları kaydedilemedi: ${detailError.message}`);
-          return;
-        }
-      }
-    }
+    const details = enteredDetails.map(([dersId, value]) => ({
+      ders_id: dersId, dogru: Number(value.dogru || 0), yanlis: Number(value.yanlis || 0), bos: Number(value.bos || 0),
+    }));
+    const { error: examError } = await supabase.rpc('create_exam_with_details', {
+      p_exam_type: activeTab, p_publisher: form.yayin.trim(), p_exam_date: form.tarih,
+      p_duration_minutes: duration, p_details: details,
+    });
+    if (examError) { setSaving(false); setError(examError.message || 'Deneme kaydedilemedi.'); return; }
 
     setShowModal(false);
     setSaving(false);
@@ -305,20 +282,20 @@ export default function DenemeAnaliziPage() {
       {/* Add Modal */}
       {showModal && (
         <div className="modal-overlay" onClick={() => setShowModal(false)}>
-          <div className="modal" onClick={(e) => e.stopPropagation()} style={{ maxWidth: '600px' }}>
+          <div className="modal" role="dialog" aria-modal="true" aria-labelledby="new-exam-title" onClick={(e) => e.stopPropagation()} style={{ maxWidth: '680px' }}>
             <div className="modal-header">
-              <h3 className="modal-title">Yeni {activeTab} Denemesi</h3>
+              <h3 className="modal-title" id="new-exam-title">Yeni {activeTab} Denemesi</h3>
               <button className="modal-close" onClick={() => setShowModal(false)}>✕</button>
             </div>
             <form onSubmit={handleSave}>
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '16px', marginBottom: '24px' }}>
                 <div className="input-group">
                   <label className="input-label">Yayın Adı</label>
-                  <input className="input" aria-label="Yayın Adı" value={form.yayin} onChange={(e) => setForm({ ...form, yayin: e.target.value })} placeholder="ör. 3D Türkiye Geneli" required />
+                  <input className="input" aria-label="Yayın Adı" value={form.yayin} onChange={(e) => setForm({ ...form, yayin: e.target.value })} placeholder="ör. 3D Türkiye Geneli" minLength={2} maxLength={120} required />
                 </div>
                 <div className="input-group">
                   <label className="input-label">Tarih</label>
-                  <input className="input" aria-label="Tarih" type="date" value={form.tarih} onChange={(e) => setForm({ ...form, tarih: e.target.value })} required />
+                  <input className="input" aria-label="Tarih" type="date" max={todayStr()} value={form.tarih} onChange={(e) => setForm({ ...form, tarih: e.target.value })} required />
                 </div>
                 <div className="input-group">
                   <label className="input-label">Süre (dk)</label>
@@ -328,8 +305,9 @@ export default function DenemeAnaliziPage() {
 
               <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '16px' }}>
                 <AlertCircle size={16} color="var(--text-tertiary)" />
-                <h4 style={{ fontSize: '0.875rem', fontWeight: 600, color: 'var(--text-secondary)' }}>Ders Bazlı Sonuçlar (Opsiyonel)</h4>
+                <h4 style={{ fontSize: '0.875rem', fontWeight: 600, color: 'var(--text-secondary)' }}>Ders bazlı sonuçlar</h4>
               </div>
+              <div className="ders-input-legend" aria-hidden="true"><span>Ders</span><span>Doğru</span><span>Yanlış</span><span>Boş</span><span>Net</span></div>
               
               <div className="ders-inputs">
                 {dersler.map(d => (
@@ -354,7 +332,9 @@ export default function DenemeAnaliziPage() {
                           ...form,
                           detaylar: { ...form.detaylar, [d.id]: { ...form.detaylar[d.id], bos: e.target.value } }
                         })} />
+                      <output className="ders-live-net">{(Number(form.detaylar[d.id]?.dogru || 0) - Number(form.detaylar[d.id]?.yanlis || 0) / 4).toFixed(2)}</output>
                     </div>
+                    {d.question_count && <small className="ders-question-limit">Toplam {d.question_count} soru</small>}
                   </div>
                 ))}
               </div>
@@ -495,6 +475,18 @@ export default function DenemeAnaliziPage() {
           padding-right: 8px;
         }
 
+        .ders-input-legend {
+          padding: 0 12px 7px;
+          display: grid;
+          grid-template-columns: minmax(120px, 1fr) repeat(4, 56px);
+          gap: 8px;
+          color: var(--text-tertiary);
+          font-size: .7rem;
+          font-weight: 700;
+          text-align: center;
+        }
+        .ders-input-legend span:first-child { text-align: left; }
+
         .ders-input-row {
           display: flex;
           align-items: center;
@@ -503,6 +495,7 @@ export default function DenemeAnaliziPage() {
           background: var(--bg-secondary);
           border-radius: var(--radius-md);
           border: 1px solid var(--border-light);
+          position: relative;
         }
 
         .ders-input-name {
@@ -520,6 +513,8 @@ export default function DenemeAnaliziPage() {
           text-align: center;
           padding: 8px;
         }
+        .ders-live-net { width: 56px; min-height: 38px; border-radius: 8px; background: var(--primary-50); color: var(--primary-700); display: grid; place-items: center; font-size: .75rem; font-weight: 800; }
+        .ders-question-limit { position: absolute; left: 12px; bottom: 4px; color: var(--text-tertiary); font-size: .62rem; }
 
         @media (max-width: 768px) {
           .deneme-list {
@@ -546,10 +541,9 @@ export default function DenemeAnaliziPage() {
             width: 100%;
             justify-content: space-between;
           }
+          .ders-input-legend { display: none; }
           
-          .ders-input-mini {
-            width: 30%;
-          }
+          .ders-input-mini, .ders-live-net { width: 23%; }
         }
       `}</style>
       <style jsx global>{`

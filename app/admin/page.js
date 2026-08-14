@@ -31,6 +31,11 @@ const ROLE_OPTIONS = [
   { value: 'moderator', label: 'Moderatör', description: 'Analizleri ve kullanıcıları görüntüler' },
   { value: 'admin', label: 'Admin', description: 'Kullanıcı işlemleri ve duyuru yetkisi' },
 ];
+const PLAN_OPTIONS = [
+  { value: 'baslangic', label: 'calisiyo ücretsiz', description: 'Temel limitler' },
+  { value: 'plus_2027', label: 'calisiyo plus · YKS 2027', description: '19 Ağustos 2027’ye kadar' },
+  { value: 'plus_2028', label: 'calisiyo plus · YKS 2028', description: '6 aylık erişim' },
+];
 
 const AUDIENCE_OPTIONS = [
   { value: 'all', label: 'Tüm aktif hesaplar', description: 'Yöneticiler dahil tüm aktif kullanıcılar' },
@@ -77,6 +82,8 @@ export default function AdminPage() {
   const [moderationDuration, setModerationDuration] = useState('1440');
   const [moderationClock, setModerationClock] = useState(() => Date.now());
   const [selectedRole, setSelectedRole] = useState('student');
+  const [selectedPlan, setSelectedPlan] = useState('baslangic');
+  const [userPlan, setUserPlan] = useState(null);
   const [adminNote, setAdminNote] = useState('');
   const [actionBusy, setActionBusy] = useState('');
   const [announcement, setAnnouncement] = useState({ title: '', body: '', actionUrl: '/dashboard', audience: 'all' });
@@ -141,9 +148,12 @@ export default function AdminPage() {
         loadOverview().catch(() => null);
         loadActivity().catch(() => null);
       })
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'user_subscriptions' }, () => {
+        loadUsers(page, search).catch(() => null);
+      })
       .subscribe();
     return () => { supabase.removeChannel(channel); };
-  }, [loadActivity, loadOverview, supabase]);
+  }, [loadActivity, loadOverview, loadUsers, page, search, supabase]);
 
   useEffect(() => {
     const timer = window.setInterval(() => setModerationClock(Date.now()), 30000);
@@ -167,14 +177,16 @@ export default function AdminPage() {
     setStatusReason(userItem.statusReason || '');
     setDetail(null);
     setModeration(null);
+    setUserPlan(null);
     setDetailLoading(true);
-    const [{ data, error }, { data: moderationData, error: moderationError }] = await Promise.all([
+    const [{ data, error }, { data: moderationData, error: moderationError }, { data: planData, error: planError }] = await Promise.all([
       supabase.rpc('admin_get_user_detail', { p_user_id: userItem.id }),
       supabase.rpc('admin_get_user_moderation', { p_user_id: userItem.id }),
+      supabase.rpc('admin_get_user_plan', { p_user_id: userItem.id }),
     ]);
     setDetailLoading(false);
     if (error) showNotice('error', error.message || 'Kullanıcı detayı yüklenemedi.');
-    else { setDetail(data); setModeration(moderationError ? null : moderationData); }
+    else { setDetail(data); setModeration(moderationError ? null : moderationData); setUserPlan(planError ? null : planData); setSelectedPlan(planData?.code || 'baslangic'); }
   };
 
   const moderateUser = async (action) => {
@@ -203,6 +215,17 @@ export default function AdminPage() {
     if (error) { showNotice('error', error.message); return; }
     showNotice('success', 'Kullanıcının rolü güncellendi.');
     await loadUsers();
+  };
+
+  const savePlan = async () => {
+    if (!selected || !['admin', 'super_admin'].includes(role)) return;
+    setActionBusy('plan');
+    const { data, error } = await supabase.rpc('admin_set_user_plan', { p_user_id: selected.id, p_plan_code: selectedPlan });
+    setActionBusy('');
+    if (error) return showNotice('error', error.message);
+    setUserPlan((current) => ({ ...current, code: data?.planCode || selectedPlan, periodEnd: data?.periodEnd, status: selectedPlan === 'baslangic' ? 'free' : 'active' }));
+    showNotice('success', 'Kullanıcının planı güncellendi. Değişiklik hesabına anlık yansıtıldı.');
+    await Promise.all([loadUsers(page, search), loadActivity()]);
   };
 
   const addNote = async (event) => {
@@ -306,6 +329,7 @@ export default function AdminPage() {
           <div className="admin-user-detail">
             <section className="user-detail-summary"><div><span className="admin-user-avatar large">{String(selected.name || 'Ö').charAt(0)}</span><div><strong>{selected.name}</strong><small>{selected.field?.replace('_', ' ') || 'Alan seçilmedi'} · {dateTime(selected.createdAt)} tarihinde katıldı</small></div></div><span className={`account-status is-${moderation?.status || selected.status}`}>{(moderation?.status || selected.status) === 'active' ? 'Aktif hesap' : 'Askıda'}</span></section>
             <section className="detail-metrics">{[['Toplam çalışma', minutes(selected.studyMinutes)], ['Soru', number(selected.questions)], ['Seri', `${selected.streak} gün`], ['Seviye', `${selected.level} · ${number(selected.xp)} XP`], ['Arkadaş', number(selected.friends)], ['Sınıf', number(selected.groups)]].map(([label, value]) => <div key={label}><span>{label}</span><strong>{value}</strong></div>)}</section>
+            <section className="detail-management"><div><h3>Üyelik planı</h3><p>{userPlan?.periodEnd ? `${userPlan.name || 'calisiyo plus'} · ${dateTime(userPlan.periodEnd)} tarihine kadar` : 'calisiyo ücretsiz · süresiz temel erişim'}</p></div><div className="role-control"><Select value={selectedPlan} onChange={setSelectedPlan} options={PLAN_OPTIONS} ariaLabel="Kullanıcı planı" /><button onClick={savePlan} disabled={!['admin', 'super_admin'].includes(role) || actionBusy === 'plan'}>{actionBusy === 'plan' ? 'Kaydediliyor…' : 'Planı kaydet'}</button></div></section>
             <section className="detail-management moderation-management"><div><h3>Hesap erişimi</h3><p>Askıya alma seçilen sürenin sonunda otomatik biter ve RLS erişimi yeniden açılır.{moderation?.suspendedUntil ? ` Bitiş: ${dateTime(moderation.suspendedUntil)}` : ''}</p></div>{moderation?.status === 'suspended' && (!moderation.suspendedUntil || Date.parse(moderation.suspendedUntil) > moderationClock) ? <button className="reactivate-button" onClick={() => moderateUser('activate')} disabled={actionBusy === 'activate'}><UserCheck size={16} /> Hesabı şimdi etkinleştir</button> : <div className="moderation-action-grid"><Select value={moderationDuration} onChange={setModerationDuration} options={MODERATION_DURATIONS} ariaLabel="Askıya alma süresi" /><textarea value={statusReason} onChange={(event) => setStatusReason(event.target.value)} maxLength={240} placeholder="İşlem nedeni (zorunlu)" /><button onClick={() => moderateUser('suspend')} disabled={!statusReason.trim() || actionBusy === 'suspend'}><Ban size={16} /> Süreli askıya al</button></div>}</section>
             <section className="detail-management moderation-management"><div><h3>Sosyal iletişim</h3><p>Susturulan kullanıcı sınıf sohbeti, tepkiler ve ortak odak başlatma araçlarını kullanamaz.{moderation?.mutedUntil ? ` Bitiş: ${dateTime(moderation.mutedUntil)}` : ''}</p></div>{moderation?.mutedUntil && Date.parse(moderation.mutedUntil) > moderationClock ? <button className="reactivate-button" onClick={() => moderateUser('unmute')} disabled={actionBusy === 'unmute'}><Volume2 size={16} /> Susturmayı kaldır</button> : <div className="moderation-action-grid"><Select value={moderationDuration} onChange={setModerationDuration} options={MODERATION_DURATIONS} ariaLabel="Susturma süresi" /><textarea value={statusReason} onChange={(event) => setStatusReason(event.target.value)} maxLength={240} placeholder="Susturma nedeni (zorunlu)" /><button onClick={() => moderateUser('mute')} disabled={!statusReason.trim() || actionBusy === 'mute'}><VolumeX size={16} /> Süreli sustur</button></div>}</section>
             {role === 'super_admin' && <section className="detail-management"><div><h3>Yönetim rolü</h3><p>En az yetki ilkesine göre yalnızca gerekli rolü verin.</p></div><div className="role-control"><Select value={selectedRole} onChange={setSelectedRole} options={ROLE_OPTIONS} ariaLabel="Kullanıcı rolü" /><button onClick={saveRole} disabled={actionBusy === 'role'}>Rolü kaydet</button></div></section>}
@@ -342,5 +366,5 @@ function eventDetail(event) {
 }
 
 function auditLabel(action) {
-  return ({ user_status_changed: 'Hesap durumu değiştirildi', user_role_changed: 'Yönetim rolü değiştirildi', user_note_added: 'Yönetici notu eklendi', announcement_sent: 'Duyuru gönderildi' })[action] || action;
+  return ({ user_status_changed: 'Hesap durumu değiştirildi', user_role_changed: 'Yönetim rolü değiştirildi', user_plan_changed: 'Üyelik planı değiştirildi', user_note_added: 'Yönetici notu eklendi', announcement_sent: 'Duyuru gönderildi' })[action] || action;
 }

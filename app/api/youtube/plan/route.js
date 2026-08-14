@@ -281,12 +281,33 @@ export async function POST(request) {
   const dailyMinutes = Number(body.dailyMinutes);
   const courseId = body.courseId ? String(body.courseId) : null;
   const examType = ['TYT', 'AYT', 'YDT'].includes(body.examType) ? body.examType : 'TYT';
+  const startItem = Number(body.startItem || 1);
+  const startOffsetMinutes = Number(body.startOffsetMinutes || 0);
   if (!/^\d{4}-\d{2}-\d{2}$/.test(startDate) || !Number.isInteger(dailyMinutes) || dailyMinutes < 15 || dailyMinutes > 360) {
     return invalid('Başlangıç tarihi ve günlük süre ayarlarını kontrol et.');
   }
-  const scheduledItems = scheduleItems(metadata.items, startDate, cadence, dailyMinutes);
+  if (!Number.isInteger(startItem) || startItem < 1 || startItem > metadata.items.length
+    || !Number.isInteger(startOffsetMinutes) || startOffsetMinutes < 0) {
+    return invalid('Devam noktası içerik sırasıyla eşleşmiyor.');
+  }
+  const remainingItems = metadata.items.slice(startItem - 1).map((item, index) => ({ ...item, position: index + 1 }));
+  const offsetSeconds = startOffsetMinutes * 60;
+  if (offsetSeconds >= remainingItems[0].durationSeconds) return invalid('Devam dakikası seçilen videonun süresinden kısa olmalı.');
+  if (offsetSeconds) {
+    remainingItems[0] = { ...remainingItems[0], durationSeconds: remainingItems[0].durationSeconds - offsetSeconds, startOffsetSeconds: offsetSeconds };
+  }
+  const remainingDurationMinutes = Math.max(1, Math.ceil(remainingItems.reduce((sum, item) => sum + item.durationSeconds, 0) / 60));
+  const selectedResource = {
+    ...metadata.resource,
+    durationMinutes: remainingDurationMinutes,
+    itemCount: remainingItems.length,
+    startItem,
+    startOffsetSeconds: offsetSeconds,
+    originalItemCount: metadata.items.length,
+  };
+  const scheduledItems = scheduleItems(remainingItems, startDate, cadence, dailyMinutes);
   const { data, error } = await supabase.rpc('import_youtube_learning_plan', {
-    p_resource: { ...metadata.resource, examType },
+    p_resource: { ...selectedResource, examType },
     p_items: scheduledItems,
     p_start_date: startDate,
     p_cadence: cadence,
@@ -297,5 +318,5 @@ export async function POST(request) {
     console.error('YouTube learning plan import failed', { code: error.code });
     return invalid('Plan kaydedilemedi. Tarih ve ders ayarlarını kontrol edip tekrar dene.', 422);
   }
-  return Response.json({ ok: true, result: data, resource: metadata.resource, items: scheduledItems });
+  return Response.json({ ok: true, result: data, resource: selectedResource, items: scheduledItems });
 }

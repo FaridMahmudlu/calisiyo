@@ -21,13 +21,6 @@ import PremiumFeaturePrompt from '@/components/billing/PremiumFeaturePrompt';
 const REALTIME_TABLES = ['calisma_suresi', 'gunluk_gorevler', 'denemeler', 'konu_takibi', 'yapamadiklari'];
 const COLORS = ['#00a870', '#3b82f6', '#8b5cf6', '#f59e0b', '#ef6c57', '#14b8a6'];
 
-function taskMinutes(task) {
-  if (!task.baslangic_saat || !task.bitis_saat) return 0;
-  const [startHour, startMinute] = task.baslangic_saat.split(':').map(Number);
-  const [endHour, endMinute] = task.bitis_saat.split(':').map(Number);
-  return Math.max(0, endHour * 60 + endMinute - startHour * 60 - startMinute);
-}
-
 function examNet(exam) {
   return Number((exam.deneme_detaylari || []).reduce((sum, detail) => sum + Number(detail.net ?? ((detail.dogru || 0) - (detail.yanlis || 0) / 4)), 0).toFixed(2));
 }
@@ -56,7 +49,7 @@ function ChartTooltip({ active, payload, label }) {
 }
 
 export default function IstatistiklerPage() {
-  const { profile, currentPlan } = useUser();
+  const { profile, currentPlan, stats: accountStats } = useUser();
   const supabase = useMemo(() => createClient(), []);
   const [range, setRange] = useState('month');
   const [loading, setLoading] = useState(true);
@@ -160,11 +153,12 @@ export default function IstatistiklerPage() {
     const weeklyQuestions = Math.max(weeklySessionQuestions, weeklyTaskQuestions);
     const bestDay = timeline.reduce((best, item) => item.minutes > (best?.minutes || 0) ? item : best, null);
     return {
-      activeDates, averageMinutes, bestDay, completionRate, completedTasks: completedTasks.length, courses, currentStreak: currentStreak(activeDates),
+      activeDates, averageMinutes, bestDay, completionRate, completedTasks: completedTasks.length, courses,
+      currentStreak: Number(accountStats?.streak ?? currentStreak(activeDates)),
       exams, goalMinutes, goalQuestions, lastNet, netDelta, solvedQuestions, timeline, topicCounts, totalMinutes, totalQuestions,
       unresolvedQuestions: Math.max(0, records.questions.length - solvedQuestions), weeklyMinutes, weeklyQuestions,
     };
-  }, [profile?.study_goals, records]);
+  }, [accountStats?.streak, profile?.study_goals, records]);
 
   const hasData = records.sessions.length || records.tasks.length || records.exams.length || records.topics.length;
   const weeklyMinutesProgress = stats.goalMinutes ? Math.min(100, Math.round(stats.weeklyMinutes / stats.goalMinutes * 100)) : 0;
@@ -173,7 +167,7 @@ export default function IstatistiklerPage() {
 
   const exportProgress = () => {
     if (!canExport) {
-      setPremiumPrompt({ feature: 'CSV ilerleme raporu', requiredPlan: 'Zirve', description: 'Çalışma süresi, soru ve tamamlanan görev verilerini CSV olarak indirip kendi arşivinde kullanabilirsin.', benefits: ['İlerleme verilerini dışa aktar', 'Kendi analiz dosyanı oluştur', 'Sınırsız istatistik geçmişini koru'] });
+      setPremiumPrompt({ feature: 'CSV ilerleme raporu', requiredPlan: 'calisiyo plus', description: 'Çalışma süresi, soru ve tamamlanan görev verilerini CSV olarak indirip kendi arşivinde kullanabilirsin.', benefits: ['İlerleme verilerini dışa aktar', 'Kendi analiz dosyanı oluştur', 'Sınırsız istatistik geçmişini koru'] });
       return;
     }
     const rows = [
@@ -191,14 +185,14 @@ export default function IstatistiklerPage() {
 
   return (
     <motion.div className="page stats-page" initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
-      <PageHeader title="İstatistikler" description="Çalışma, program, deneme ve konu kayıtlarından anlık olarak hesaplanan ilerleme görünümün." actions={<div className="stats-head-actions"><button className={`stats-export ${!canExport ? 'is-premium' : ''}`} onClick={exportProgress} title={!canExport ? 'CSV dışa aktarma Zirve planında' : 'İlerleme verilerini indir'}><Download size={14} /> {canExport ? 'CSV indir' : 'Zirve ile indir'}{!canExport && <span>Premium</span>}</button><span className="stats-live"><Activity size={14} /> Canlı veri</span></div>} />
+      <PageHeader title="İstatistikler" description="Çalışma, program, deneme ve konu kayıtlarından anlık olarak hesaplanan ilerleme görünümün." actions={<div className="stats-head-actions"><button className={`stats-export ${!canExport ? 'is-premium' : ''}`} onClick={exportProgress} title={!canExport ? 'CSV dışa aktarma calisiyo plus planında' : 'İlerleme verilerini indir'}><Download size={14} /> {canExport ? 'CSV indir' : 'Plus ile indir'}{!canExport && <span>Premium</span>}</button><span className="stats-live"><Activity size={14} /> Canlı veri</span></div>} />
       <div className="stats-toolbar">
         <div className="study-segments stats-range" aria-label="Tarih aralığı">
           <button className={range === 'week' ? 'is-active' : ''} onClick={() => setRange('week')}>7 Gün</button>
           <button className={range === 'month' ? 'is-active' : ''} onClick={() => setRange('month')}>30 Gün</button>
-          <button className={`${range === 'all' ? 'is-active' : ''} ${Number(currentPlan?.entitlements?.stats_history_days || 30) <= 30 ? 'is-premium' : ''}`} onClick={() => Number(currentPlan?.entitlements?.stats_history_days || 30) <= 30 ? setPremiumPrompt({ feature: 'Tüm istatistik geçmişi', requiredPlan: 'Odak', description: 'Başlangıç planında son 30 günü görürsün. Odak ve Zirve ile geçmiş kayıtlarının tamamını tek görünümde inceleyebilirsin.', benefits: ['30 günden eski kayıtları karşılaştır', 'Uzun dönem çalışma ritmini gör', 'Deneme ve süre trendlerini birlikte izle'] }) : setRange('all')} title={Number(currentPlan?.entitlements?.stats_history_days || 30) <= 30 ? 'Tüm geçmiş Odak ve Zirve planlarında' : undefined}>Tümü{Number(currentPlan?.entitlements?.stats_history_days || 30) <= 30 && <span>Premium</span>}</button>
+          <button className={`${range === 'all' ? 'is-active' : ''} ${Number(currentPlan?.entitlements?.stats_history_days || 30) <= 30 ? 'is-premium' : ''}`} onClick={() => Number(currentPlan?.entitlements?.stats_history_days || 30) <= 30 ? setPremiumPrompt({ feature: 'Tüm istatistik geçmişi', requiredPlan: 'calisiyo plus', description: 'calisiyo ücretsiz planında son 30 günü görürsün. Plus ile geçmiş kayıtlarının tamamını tek görünümde inceleyebilirsin.', benefits: ['30 günden eski kayıtları karşılaştır', 'Uzun dönem çalışma ritmini gör', 'Deneme ve süre trendlerini birlikte izle'] }) : setRange('all')} title={Number(currentPlan?.entitlements?.stats_history_days || 30) <= 30 ? 'Tüm geçmiş calisiyo plus planında' : undefined}>Tümü{Number(currentPlan?.entitlements?.stats_history_days || 30) <= 30 && <span>Premium</span>}</button>
         </div>
-        <span>{stats.activeDates.length} aktif gün · {Number(currentPlan?.entitlements?.stats_history_days || 30) <= 30 ? 'Başlangıç planında son 30 gün' : `${currentPlan?.name} geçmişi`} · Son kayıtlar otomatik yenilenir</span>
+        <span>{stats.activeDates.length} aktif gün · {Number(currentPlan?.entitlements?.stats_history_days || 30) <= 30 ? 'calisiyo ücretsiz planında son 30 gün' : `${currentPlan?.name} geçmişi`} · Son kayıtlar otomatik yenilenir</span>
       </div>
 
       <DataState loading={loading} error={error} empty={!hasData} emptyTitle="Henüz analiz edilecek kayıt yok" emptyText="Programını tamamladıkça, Pomodoro kullandıkça ve deneme ekledikçe bu sayfa gerçek verilerinle dolacak.">
@@ -248,7 +242,7 @@ export default function IstatistiklerPage() {
         {stats.exams.length > 0 && <section className="study-panel recent-exams"><div className="stats-card-heading"><div><span>Son sonuçlar</span><h2>Deneme geçmişi</h2></div></div><div className="recent-exam-list">{stats.exams.slice(-4).reverse().map((exam) => <div key={exam.id}><span className="exam-type">{exam.sinav_turu}</span><div><strong>{exam.yayin}</strong><small>{formatDate(exam.tarih)} · {exam.deneme_detaylari?.length || 0} ders</small></div><em>{exam.net.toFixed(1)} net</em></div>)}</div></section>}
       </DataState>
 
-      <PremiumFeaturePrompt open={Boolean(premiumPrompt)} onClose={() => setPremiumPrompt(null)} currentPlan={currentPlan?.name || 'Başlangıç'} {...premiumPrompt} />
+      <PremiumFeaturePrompt open={Boolean(premiumPrompt)} onClose={() => setPremiumPrompt(null)} currentPlan={currentPlan?.name || 'calisiyo ücretsiz'} {...premiumPrompt} />
 
       <style jsx>{`
         .stats-page { padding-bottom: 20px; }

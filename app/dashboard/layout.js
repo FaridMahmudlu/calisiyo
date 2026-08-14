@@ -57,7 +57,7 @@ export default function DashboardLayout({ children }) {
   const [user, setUser] = useState(null);
   const [profile, setProfile] = useState(null);
   const [adminRole, setAdminRole] = useState(null);
-  const [currentPlan, setCurrentPlan] = useState({ code: 'baslangic', name: 'Başlangıç', status: 'free', entitlements: {} });
+  const [currentPlan, setCurrentPlan] = useState({ code: 'baslangic', name: 'calisiyo ücretsiz', status: 'free', entitlements: {} });
   const [loading, setLoading] = useState(true);
   const [errorState, setErrorState] = useState({ message: '', pathname });
   const [sidebarOpen, setSidebarOpen] = useState(false);
@@ -75,6 +75,7 @@ export default function DashboardLayout({ children }) {
     todayMinutes: 0,
   });
   const [streakInfoOpen, setStreakInfoOpen] = useState(false);
+  const streakInfoRef = useRef(null);
   const [activePomodoroMinutes, setActivePomodoroMinutes] = useState(0);
   const error = errorState.pathname === pathname ? errorState.message : '';
   const setError = useCallback((message) => {
@@ -102,7 +103,7 @@ export default function DashboardLayout({ children }) {
     setUser(authUser);
     setProfile(result.profile || null);
     setAdminRole(result.adminRole || null);
-    setCurrentPlan(result.currentPlan || { code: 'baslangic', name: 'Başlangıç', status: 'free', entitlements: {} });
+    setCurrentPlan(result.currentPlan || { code: 'baslangic', name: 'calisiyo ücretsiz', status: 'free', entitlements: {} });
 
     const tasks = result.tasks || [];
     const sessions = result.sessions || [];
@@ -154,6 +155,22 @@ export default function DashboardLayout({ children }) {
   }, [sidebarWidth]);
 
   useEffect(() => {
+    if (!streakInfoOpen) return undefined;
+    const closeOnOutsidePress = (event) => {
+      if (!streakInfoRef.current?.contains(event.target)) setStreakInfoOpen(false);
+    };
+    const closeOnEscape = (event) => {
+      if (event.key === 'Escape') setStreakInfoOpen(false);
+    };
+    document.addEventListener('pointerdown', closeOnOutsidePress);
+    document.addEventListener('keydown', closeOnEscape);
+    return () => {
+      document.removeEventListener('pointerdown', closeOnOutsidePress);
+      document.removeEventListener('keydown', closeOnEscape);
+    };
+  }, [streakInfoOpen]);
+
+  useEffect(() => {
     if (!user?.id) return undefined;
     const readLivePomodoro = () => {
       try {
@@ -201,6 +218,7 @@ export default function DashboardLayout({ children }) {
   };
 
   const toggleSidebar = () => {
+    setStreakInfoOpen(false);
     if (window.innerWidth <= 980) setSidebarOpen(false);
     else setCollapsed((value) => !value);
   };
@@ -230,9 +248,16 @@ export default function DashboardLayout({ children }) {
   const initials = profile?.full_name?.trim()?.charAt(0)?.toLocaleUpperCase('tr-TR') || 'Ö';
   const liveTodayMinutes = stats.todayMinutes + activePomodoroMinutes;
   const liveStreak = stats.todayMinutes < 30 && liveTodayMinutes >= 30 ? stats.streak + 1 : stats.streak;
+  const liveStats = {
+    ...stats,
+    streak: liveStreak,
+    todayMinutes: liveTodayMinutes,
+    streakQualified: liveTodayMinutes >= 30,
+    activePomodoroMinutes,
+  };
 
   return (
-    <UserContext.Provider value={{ user, profile, setProfile, adminRole, currentPlan, error, setError, reloadAccount: loadAccount, stats }}>
+    <UserContext.Provider value={{ user, profile, setProfile, adminRole, currentPlan, error, setError, reloadAccount: loadAccount, stats: liveStats }}>
       <div className={`study-layout ${collapsed ? 'is-collapsed' : ''}`} style={{ '--sidebar-width': `${sidebarWidth}px` }}>
         {sidebarOpen && <button className="sidebar-backdrop" aria-label="Menüyü kapat" onClick={() => setSidebarOpen(false)} />}
         <aside className={`study-sidebar ${sidebarOpen ? 'is-open' : ''}`}>
@@ -272,11 +297,11 @@ export default function DashboardLayout({ children }) {
           <div className="sidebar-account">
             {!collapsed && (
               <>
-              <div className="study-streak">
+              <div className="study-streak" ref={streakInfoRef}>
                 <Flame size={17} />
-                <span><strong>{liveStreak}</strong> günlük seri <button className="streak-info-button" aria-label="Seri kuralını açıkla" aria-expanded={streakInfoOpen} onClick={() => setStreakInfoOpen((value) => !value)}><Info size={13} /></button></span>
+                <span><strong>{liveStreak}</strong> günlük seri <button className="streak-info-button" type="button" aria-label="Seri kuralını açıkla" aria-expanded={streakInfoOpen} aria-controls="streak-rule-popover" onClick={() => setStreakInfoOpen((value) => !value)}><Info size={13} /></button></span>
                 <small>Bugün {Math.min(liveTodayMinutes, 30)}/30 dk{activePomodoroMinutes > 0 ? ' · sayaç canlı' : ''}</small>
-                {streakInfoOpen && <div className="streak-info-popover" role="note"><strong>Seri nasıl ilerler?</strong><p>Her gün calisiyo’da Pomodoro veya çalışma kaydı ile en az 30 dakika ders çalış. Açık Pomodoro her tam dakikada canlı ilerler; oturum tamamlanınca kalıcı kayda dönüşür.</p></div>}
+                <div id="streak-rule-popover" className={`streak-info-popover ${streakInfoOpen ? 'is-open' : ''}`} role="tooltip" aria-hidden={!streakInfoOpen}><strong>Seri nasıl ilerler?</strong><p>Her gün calisiyo’da Pomodoro veya çalışma kaydı ile en az 30 dakika ders çalış. Açık Pomodoro her tam dakikada canlı ilerler; oturum tamamlanınca kalıcı kayda dönüşür.</p></div>
               </div>
               <Link href="/dashboard/gelisim" className="sidebar-level-card" onClick={() => setSidebarOpen(false)}>
                 <span><Trophy size={15} /><strong>Seviye {stats.level}</strong><small>{stats.levelTitle}</small></span>
@@ -298,7 +323,7 @@ export default function DashboardLayout({ children }) {
           <header className="study-topbar">
             <button className="icon-button mobile-menu-button" onClick={() => setSidebarOpen(true)} aria-label="Menüyü aç"><Menu size={21} /></button>
             <span className="topbar-context">YKS Çalışma Koçu</span>
-            <HeaderActions user={user} profile={profile} initials={initials} adminRole={adminRole} currentPlan={currentPlan} stats={stats} logout={logout} setError={setError} />
+            <HeaderActions user={user} profile={profile} initials={initials} adminRole={adminRole} currentPlan={currentPlan} stats={liveStats} logout={logout} setError={setError} />
           </header>
           {error && <div className="global-error" role="alert">{error}<button onClick={() => setError('')} aria-label="Uyarıyı kapat"><X size={16} /></button></div>}
           <main className={`study-content ${pathname === '/dashboard' ? 'dashboard-home' : ''}`}>{children}</main>

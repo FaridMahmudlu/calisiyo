@@ -84,6 +84,7 @@
 .editorial-landing .pricing-section .section-heading h2 { font-size: clamp(2.7rem, 5vw, 4.8rem); }
 .editorial-landing .pricing-section .section-heading p { margin-inline: 0; }
 .editorial-landing .pricing-period { margin: 30px 0 0 auto; }
+.editorial-landing .pricing-year-picker { width: 100%; margin: 22px 0 0; }
 .editorial-landing .pricing-grid { margin-top: 34px; gap: 10px; }
 .editorial-landing .pricing-card { min-height: 495px; padding: 26px; border-radius: 16px; box-shadow: none; }
 .editorial-landing .pricing-card.is-popular { border-color: #4eb48c; background: #f7fcfa; transform: none; box-shadow: inset 0 4px #00a870; }
