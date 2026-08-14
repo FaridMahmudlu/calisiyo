@@ -167,6 +167,7 @@ export async function PATCH(request) {
       .single();
 
     if (error) {
+      console.error('Account settings could not be saved', { code: error.code });
       return Response.json(
         { ok: false, message: 'Ayarların kaydedilemedi. Lütfen tekrar deneyin.' },
         { status: 500 }

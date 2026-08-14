@@ -1,4 +1,5 @@
 const { test, expect } = require('@playwright/test');
+const webpush = require('web-push');
 
 const email = process.env.QA_EMAIL;
 const password = process.env.QA_PASSWORD;
@@ -28,6 +29,49 @@ test.describe('curriculum, streak, analysis and continuation regressions', () =>
     await expect(page.getByRole('heading', { name: 'YKS yılı ve müfredat' })).toBeVisible();
     await page.getByRole('button', { name: /YKS 2028/ }).click();
     await expect(page.getByRole('link', { name: 'Resmî MEB programını aç' })).toHaveAttribute('href', /tymm\.meb\.gov\.tr/);
+  });
+
+  test('settings save and Service Worker activation complete without a race', async ({ page }) => {
+    await page.goto('/dashboard/ayarlar');
+    await page.getByRole('button', { name: 'Değişiklikleri kaydet' }).click();
+    await expect(page.locator('.save-indicator.is-visible')).toContainText('Kaydedildi');
+    await expect(page.locator('.global-error')).toHaveCount(0);
+
+    await page.evaluate(async () => {
+      await navigator.serviceWorker.register('/sw.js', { scope: '/', updateViaCache: 'none' });
+      await navigator.serviceWorker.ready;
+    });
+    await expect.poll(() => page.evaluate(async () => {
+      const registration = await navigator.serviceWorker.getRegistration('/');
+      return registration?.active?.state || null;
+    })).toBe('activated');
+  });
+
+  test('device notification permission failures stay local and do not block settings', async ({ page, context }) => {
+    const publicKey = webpush.generateVAPIDKeys().publicKey;
+    await context.grantPermissions(['notifications'], { origin: new URL(page.url()).origin });
+    await page.route('**/api/push/public-key', (route) => route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify({ publicKey }),
+    }));
+    await page.route('**/api/push/subscriptions', (route) => route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify({ ok: true }),
+    }));
+
+    await page.goto('/dashboard/ayarlar');
+    const toggle = page.getByText('Bildirim merkezi ve cihaz bildirimi').locator('xpath=ancestor::label').getByRole('checkbox');
+    if (await toggle.isChecked()) {
+      await toggle.uncheck();
+      await expect(toggle).not.toBeChecked();
+    }
+    await toggle.check();
+    await expect(page.getByRole('status')).toContainText('Bildirim izni verilmedi.');
+    await expect(page.locator('.global-error')).toHaveCount(0);
+    await page.getByRole('button', { name: 'Değişiklikleri kaydet' }).click();
+    await expect(page.locator('.save-indicator.is-visible')).toContainText('Kaydedildi');
   });
 
   test('exam form exposes clear D/Y/B/net columns and real official limits', async ({ page }) => {

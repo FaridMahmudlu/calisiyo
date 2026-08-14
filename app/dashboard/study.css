@@ -391,6 +391,8 @@
 .notification-settings-wrap { display: grid; gap: 9px; }
 .browser-notification-button { width: fit-content; min-height: 34px; padding: 0 11px; border: 1px solid #b9d9cc; border-radius: 8px; background: #f4fbf8; color: var(--study-green-dark); display: inline-flex; align-items: center; gap: 7px; font-size: .68rem; font-weight: 750; cursor: pointer; }
 .browser-notification-help { margin: 0; color: #9b5e10; font-size: .66rem; line-height: 1.45; }
+.browser-notification-help.is-error { color: #b42318; }
+.browser-notification-help.is-success { color: var(--study-green-dark); }
 .password-fields { grid-template-columns: 1fr 1fr auto; align-items: end; }
 .export-actions { display: flex; justify-content: flex-end; gap: 10px; }
 
