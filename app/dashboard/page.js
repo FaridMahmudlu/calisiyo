@@ -367,52 +367,43 @@ export default function DashboardPage() {
       className="dashboard-container"
     >
       {/* Header */}
-      <div className="greeting-header">
-        <h1 className="greeting-title">
-          Merhaba {profile?.full_name?.split(' ')[0] || 'Öğrenci'}! 👋
-        </h1>
-        <p className="greeting-sub">
-          Bugün harika bir gün, hedeflerine bir adım daha yaklaş!
-        </p>
-      </div>
+      <div className="dashboard-hero-header">
+        <div className="greeting-block">
+          <h1 className="greeting-title">
+            Merhaba, {profile?.full_name?.split(' ')[0] || 'Öğrenci'}! 👋
+          </h1>
+          <p className="greeting-sub">
+            Bugün harika bir gün, hedeflerine bir adım daha yaklaş.
+          </p>
+        </div>
 
-      {(profile?.study_goals?.university || profile?.study_goals?.program) && (
-        <Link
-          href="/dashboard/hedeflerim"
-          className={`dashboard-goal-banner ${goalImageUrl ? 'has-image' : ''}`}
-          style={goalImageUrl ? { backgroundImage: `linear-gradient(90deg, rgba(6,33,26,.94) 0%, rgba(6,33,26,.8) 55%, rgba(6,33,26,.45) 100%), url(${goalImageUrl})` } : undefined}
-        >
-          <div className="goal-banner-left">
-            <div className="dashboard-goal-icon">
-              <Target size={22} />
+        {(profile?.study_goals?.university || profile?.study_goals?.program) && (
+          <Link
+            href="/dashboard/hedeflerim"
+            className={`minimal-goal-pill ${goalImageUrl ? 'has-image' : ''}`}
+            style={goalImageUrl ? { backgroundImage: `linear-gradient(90deg, rgba(6,33,26,.92) 0%, rgba(6,33,26,.82) 100%), url(${goalImageUrl})` } : undefined}
+          >
+            <div className="goal-pill-badge">
+              <Target size={15} />
             </div>
-            <div className="dashboard-goal-copy">
-              <div className="goal-tag">
-                <span className="goal-tag-dot" />
-                <span>HEDEFİN SENİ BEKLİYOR</span>
-              </div>
-              <div className="goal-heading">
+            <div className="goal-pill-info">
+              <span className="goal-pill-label">Hedef</span>
+              <div className="goal-pill-target">
                 {profile.study_goals.university && (
-                  <span className="goal-uni">{profile.study_goals.university}</span>
+                  <strong className="goal-pill-uni">{profile.study_goals.university}</strong>
                 )}
                 {profile.study_goals.university && profile.study_goals.program && (
-                  <span className="goal-separator">·</span>
+                  <span className="goal-pill-dot">·</span>
                 )}
                 {profile.study_goals.program && (
-                  <span className="goal-prog">{profile.study_goals.program}</span>
+                  <span className="goal-pill-prog">{profile.study_goals.program}</span>
                 )}
               </div>
-              <p className="goal-subtext">
-                Her çözdüğün soru ve tamamladığın görev seni bu hedefe bir adım daha yaklaştırıyor.
-              </p>
             </div>
-          </div>
-          <div className="dashboard-goal-action">
-            <span>Hedefe İlerle</span>
-            <ArrowRight size={15} />
-          </div>
-        </Link>
-      )}
+            <ArrowRight size={15} className="goal-pill-arrow" />
+          </Link>
+        )}
+      </div>
 
       {/* Row 1: Top 4 Stat Cards */}
       <div className="row-4-grid">
@@ -820,215 +811,171 @@ export default function DashboardPage() {
           gap: 24px;
         }
 
-        .greeting-header {
-          display: flex;
-          flex-direction: column;
-          gap: 4px;
-          margin-bottom: 2px;
-        }
-
-        .greeting-title {
-          font-size: 1.625rem;
-          font-weight: 800;
-          color: #0f172a;
-          letter-spacing: -0.025em;
-          line-height: 1.25;
-        }
-
-        .greeting-sub {
-          font-size: 0.9375rem;
-          color: #64748b;
-          font-weight: 500;
-          margin: 0;
-        }
-
-        .dashboard-goal-banner {
-          position: relative;
-          min-height: 84px;
-          padding: 16px 20px;
-          border: 1px solid #d1fae5;
-          border-radius: 16px;
-          background: linear-gradient(135deg, #f0fdf4 0%, #ffffff 50%, #f4fbf7 100%);
-          background-position: center;
-          background-size: cover;
-          color: #064e3b;
+        .dashboard-hero-header {
           display: flex;
           align-items: center;
           justify-content: space-between;
           gap: 20px;
-          text-decoration: none;
-          box-shadow: 0 4px 18px -2px rgba(16, 185, 129, 0.08), 0 1px 3px rgba(0, 0, 0, 0.02);
-          transition: all 0.22s cubic-bezier(0.4, 0, 0.2, 1);
-          overflow: hidden;
+          flex-wrap: wrap;
+          margin-bottom: -4px;
         }
 
-        .dashboard-goal-banner:hover {
-          transform: translateY(-2px);
-          border-color: #a7f3d0;
-          box-shadow: 0 12px 28px -4px rgba(16, 185, 129, 0.14), 0 4px 8px -2px rgba(0, 0, 0, 0.03);
-        }
-
-        .dashboard-goal-banner.has-image {
-          color: #ffffff;
-          border-color: rgba(255, 255, 255, 0.18);
-          box-shadow: 0 10px 30px -4px rgba(6, 33, 26, 0.35);
-        }
-
-        .dashboard-goal-banner.has-image:hover {
-          border-color: rgba(255, 255, 255, 0.35);
-          box-shadow: 0 16px 36px -4px rgba(6, 33, 26, 0.45);
-        }
-
-        .goal-banner-left {
-          display: flex;
-          align-items: center;
-          gap: 16px;
-          min-width: 0;
-        }
-
-        .dashboard-goal-icon {
-          width: 44px;
-          height: 44px;
-          flex-shrink: 0;
-          border-radius: 12px;
-          background: #ecfdf5;
-          border: 1px solid #a7f3d0;
-          color: #059669;
-          display: grid;
-          place-items: center;
-          box-shadow: 0 2px 6px rgba(16, 185, 129, 0.12);
-          transition: transform 0.2s ease;
-        }
-
-        .dashboard-goal-banner:hover .dashboard-goal-icon {
-          transform: scale(1.06);
-        }
-
-        .has-image .dashboard-goal-icon {
-          background: rgba(255, 255, 255, 0.18);
-          border-color: rgba(255, 255, 255, 0.3);
-          color: #6ee7b7;
-          backdrop-filter: blur(8px);
-          box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
-        }
-
-        .dashboard-goal-copy {
-          min-width: 0;
+        .greeting-block {
           display: flex;
           flex-direction: column;
           gap: 3px;
         }
 
-        .goal-tag {
+        .greeting-title {
+          font-size: 1.5rem;
+          font-weight: 750;
+          color: #0f172a;
+          letter-spacing: -0.025em;
+          line-height: 1.25;
+          margin: 0;
+        }
+
+        .greeting-sub {
+          font-size: 0.875rem;
+          color: #64748b;
+          font-weight: 450;
+          margin: 0;
+          line-height: 1.4;
+        }
+
+        .minimal-goal-pill {
           display: inline-flex;
           align-items: center;
-          gap: 6px;
-          font-size: 0.6875rem;
+          gap: 12px;
+          padding: 8px 16px 8px 10px;
+          background: #ffffff;
+          border: 1px solid #e2e8f0;
+          border-radius: 999px;
+          text-decoration: none;
+          box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04), 0 1px 2px rgba(0, 0, 0, 0.02);
+          transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+          background-position: center;
+          background-size: cover;
+          max-width: 100%;
+        }
+
+        .minimal-goal-pill:hover {
+          border-color: #10b981;
+          transform: translateY(-1px);
+          box-shadow: 0 6px 18px -3px rgba(16, 185, 129, 0.12), 0 2px 4px -2px rgba(0, 0, 0, 0.04);
+        }
+
+        .minimal-goal-pill.has-image {
+          border-color: rgba(255, 255, 255, 0.2);
+          box-shadow: 0 4px 16px rgba(6, 33, 26, 0.22);
+        }
+
+        .minimal-goal-pill.has-image:hover {
+          border-color: rgba(255, 255, 255, 0.4);
+          box-shadow: 0 8px 24px rgba(6, 33, 26, 0.32);
+        }
+
+        .goal-pill-badge {
+          width: 32px;
+          height: 32px;
+          border-radius: 50%;
+          background: #ecfdf5;
+          color: #059669;
+          display: grid;
+          place-items: center;
+          flex-shrink: 0;
+          border: 1px solid #a7f3d0;
+          transition: transform 0.2s ease;
+        }
+
+        .minimal-goal-pill:hover .goal-pill-badge {
+          transform: scale(1.08);
+          background: #d1fae5;
+        }
+
+        .has-image .goal-pill-badge {
+          background: rgba(255, 255, 255, 0.18);
+          border-color: rgba(255, 255, 255, 0.3);
+          color: #6ee7b7;
+          backdrop-filter: blur(6px);
+        }
+
+        .goal-pill-info {
+          display: flex;
+          flex-direction: column;
+          gap: 1px;
+          min-width: 0;
+        }
+
+        .goal-pill-label {
+          font-size: 0.625rem;
           font-weight: 800;
-          letter-spacing: 0.06em;
+          letter-spacing: 0.07em;
           text-transform: uppercase;
           color: #059669;
+          line-height: 1;
         }
 
-        .goal-tag-dot {
-          width: 6px;
-          height: 6px;
-          border-radius: 50%;
-          background: #10b981;
-          box-shadow: 0 0 8px #10b981;
+        .has-image .goal-pill-label {
+          color: #a7f3d0;
         }
 
-        .has-image .goal-tag {
-          color: #6ee7b7;
-        }
-
-        .has-image .goal-tag-dot {
-          background: #34d399;
-          box-shadow: 0 0 8px #34d399;
-        }
-
-        .goal-heading {
-          font-size: 1.0625rem;
-          font-weight: 700;
-          color: #0f172a;
+        .goal-pill-target {
           display: flex;
           align-items: center;
-          flex-wrap: wrap;
-          gap: 7px;
-          line-height: 1.35;
+          gap: 6px;
+          font-size: 0.84rem;
+          line-height: 1.25;
+          white-space: nowrap;
+          overflow: hidden;
+          text-overflow: ellipsis;
         }
 
-        .goal-uni {
-          font-weight: 800;
-          color: #064e3b;
-          letter-spacing: -0.01em;
+        .goal-pill-uni {
+          font-weight: 750;
+          color: #0f172a;
         }
 
-        .goal-separator {
+        .goal-pill-dot {
           color: #94a3b8;
           font-weight: 400;
         }
 
-        .goal-prog {
-          font-weight: 600;
-          color: #334155;
+        .goal-pill-prog {
+          font-weight: 500;
+          color: #475569;
         }
 
-        .has-image .goal-heading,
-        .has-image .goal-uni {
+        .has-image .goal-pill-uni {
           color: #ffffff;
         }
 
-        .has-image .goal-separator {
+        .has-image .goal-pill-dot {
           color: rgba(255, 255, 255, 0.5);
         }
 
-        .has-image .goal-prog {
+        .has-image .goal-pill-prog {
           color: #e2e8f0;
         }
 
-        .goal-subtext {
-          margin: 0;
-          font-size: 0.8125rem;
-          color: #475569;
-          font-weight: 500;
-          line-height: 1.4;
-        }
-
-        .has-image .goal-subtext {
-          color: rgba(255, 255, 255, 0.82);
-        }
-
-        .dashboard-goal-action {
+        .goal-pill-arrow {
+          color: #94a3b8;
           flex-shrink: 0;
-          display: inline-flex;
-          align-items: center;
-          gap: 7px;
-          padding: 9px 16px;
-          border-radius: 999px;
-          background: #059669;
-          color: #ffffff;
-          font-size: 0.8125rem;
-          font-weight: 700;
-          box-shadow: 0 2px 8px rgba(5, 150, 105, 0.25);
-          transition: all 0.2s ease;
+          margin-left: 2px;
+          transition: transform 0.2s ease, color 0.2s ease;
         }
 
-        .dashboard-goal-banner:hover .dashboard-goal-action {
-          background: #047857;
+        .minimal-goal-pill:hover .goal-pill-arrow {
+          color: #059669;
           transform: translateX(3px);
-          box-shadow: 0 4px 14px rgba(5, 150, 105, 0.35);
         }
 
-        .has-image .dashboard-goal-action {
-          background: rgba(255, 255, 255, 0.95);
-          color: #064e3b;
-          box-shadow: 0 4px 16px rgba(0, 0, 0, 0.25);
+        .has-image .goal-pill-arrow {
+          color: rgba(255, 255, 255, 0.7);
         }
 
-        .has-image .dashboard-goal-banner:hover .dashboard-goal-action {
-          background: #ffffff;
-          color: #047857;
+        .has-image .minimal-goal-pill:hover .goal-pill-arrow {
+          color: #ffffff;
         }
 
         /* Grids */
@@ -1485,22 +1432,27 @@ export default function DashboardPage() {
           }
         }
 
-        @media (max-width: 640px) {
-          .dashboard-goal-banner {
+        @media (max-width: 768px) {
+          .dashboard-hero-header {
             flex-direction: column;
             align-items: flex-start;
-            gap: 14px;
-            padding: 16px;
+            gap: 12px;
           }
 
-          .goal-banner-left {
-            align-items: flex-start;
-          }
-
-          .dashboard-goal-action {
+          .minimal-goal-pill {
             width: 100%;
-            justify-content: center;
+            border-radius: 14px;
+            justify-content: space-between;
+            padding: 10px 14px;
           }
+
+          .goal-pill-target {
+            white-space: normal;
+            flex-wrap: wrap;
+          }
+        }
+
+        @media (max-width: 640px) {
           .row-4-grid {
             grid-template-columns: repeat(1, 1fr);
           }
