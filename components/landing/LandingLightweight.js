@@ -72,7 +72,7 @@ export default function LandingLightweight() {
 
       <section className="editorial-hero section-shell">
         <div className="editorial-hero-copy">
-          <span className="editorial-eyebrow"><PiSparkle /> 19 Ağustos 2027 YKS</span>
+          <span className="editorial-eyebrow"><PiSparkle /> 19 Haziran 2027 YKS</span>
           <h1>YKS hazırlığını tek bir <em>net düzende</em> yönet.</h1>
           <p>Planını kur, odaklanarak çalış ve ilerlemeni yalnızca kendi gerçek kayıtlarınla gör. Gereksiz karmaşa olmadan, her gün ne yapacağını bil.</p>
           <div className="hero-actions"><Link className="public-button primary" href="/kayit">Ücretsiz başla <PiArrowRight /></Link><a className="public-button" href="#paketler">Paketleri gör</a></div>

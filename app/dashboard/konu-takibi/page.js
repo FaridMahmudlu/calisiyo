@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useMemo } from 'react';
 import { useUser } from '../layout';
 import { createClient } from '@/lib/supabase/client';
 import { getExamTabs } from '@/lib/constants/alanlar';
@@ -27,7 +27,7 @@ const itemVariants = {
 
 export default function KonuTakibiPage() {
   const { profile, setError } = useUser();
-  const supabase = createClient();
+  const supabase = useMemo(() => createClient(), []);
   const examTabs = profile ? getExamTabs(profile.alan_secimi) : ['TYT', 'AYT'];
 
   const [activeTab, setActiveTab] = useState('TYT');
@@ -37,6 +37,7 @@ export default function KonuTakibiPage() {
   const [loading, setLoading] = useState(true);
   const [openDersId, setOpenDersId] = useState(null);
   const [search, setSearch] = useState('');
+  const [pendingTopics, setPendingTopics] = useState(() => new Set());
 
   const loadData = useCallback(async () => {
     if (!profile) return;
@@ -121,29 +122,45 @@ export default function KonuTakibiPage() {
     const timer = setTimeout(loadData, 0);
     return () => clearTimeout(timer);
   }, [loadData]);
-  useRealtimeRefresh({ tables: REALTIME_TABLES, userId: profile?.id, onChange: loadData });
+
+  const refreshTracking = useCallback(async () => {
+    if (!profile?.id) return;
+    const { data, error: trackingError } = await supabase
+      .from('konu_takibi')
+      .select('konu_id,durum')
+      .eq('user_id', profile.id);
+    if (trackingError) return;
+    setTakip(Object.fromEntries((data || []).map((item) => [item.konu_id, item.durum])));
+  }, [profile, supabase]);
+
+  useRealtimeRefresh({ tables: REALTIME_TABLES, userId: profile?.id, onChange: refreshTracking });
 
   async function handleStatusChange(konuId, newDurum) {
+    if (pendingTopics.has(konuId)) return;
     const existing = takip[konuId];
-    
-    // Optimistic update
-    setTakip(prev => ({ ...prev, [konuId]: newDurum }));
+    setPendingTopics((current) => new Set(current).add(konuId));
+    setTakip((previous) => ({ ...previous, [konuId]: newDurum }));
 
-    let result;
-    if (existing) {
-      result = await supabase
-        .from('konu_takibi')
-        .update({ durum: newDurum, updated_at: new Date().toISOString() })
-        .eq('user_id', profile.id)
-        .eq('konu_id', konuId);
-    } else {
-      result = await supabase
-        .from('konu_takibi')
-        .insert({ user_id: profile.id, konu_id: konuId, durum: newDurum });
-    }
-    if (result.error) {
-      setTakip(prev => ({ ...prev, [konuId]: existing || 'baslanmadi' }));
-      setError(`Konu durumu güncellenemedi: ${result.error.message}`);
+    try {
+      const result = existing
+        ? await supabase
+            .from('konu_takibi')
+            .update({ durum: newDurum, updated_at: new Date().toISOString() })
+            .eq('user_id', profile.id)
+            .eq('konu_id', konuId)
+        : await supabase
+            .from('konu_takibi')
+            .insert({ user_id: profile.id, konu_id: konuId, durum: newDurum });
+      if (result.error) throw result.error;
+    } catch (updateError) {
+      setTakip((previous) => ({ ...previous, [konuId]: existing || 'baslanmadi' }));
+      setError(`Konu durumu güncellenemedi: ${updateError.message}`);
+    } finally {
+      setPendingTopics((current) => {
+        const next = new Set(current);
+        next.delete(konuId);
+        return next;
+      });
     }
   }
 
@@ -271,8 +288,10 @@ export default function KonuTakibiPage() {
                                 <div key={konu.id} className={`konu-item ${currentDurum === 'tamamlandi' ? 'konu-completed' : ''}`}>
                                   <span className="konu-name">{konu.ad}</span>
                                   <button
-                                    className={`badge ${durumInfo.badge} status-btn`}
+                                    className={`badge ${durumInfo.badge} status-btn ${pendingTopics.has(konu.id) ? 'is-saving' : ''}`}
                                     aria-label={`${konu.ad}: ${durumInfo.label}. Sonraki duruma geçir`}
+                                    aria-busy={pendingTopics.has(konu.id)}
+                                    disabled={pendingTopics.has(konu.id)}
                                     onClick={() => {
                                       const currentIdx = durumCycle.indexOf(currentDurum);
                                       const nextDurum = durumCycle[(currentIdx + 1) % durumCycle.length];
@@ -447,6 +466,8 @@ export default function KonuTakibiPage() {
         .status-btn:hover {
           transform: scale(1.05);
         }
+
+        .status-btn.is-saving { opacity: .72; }
 
         @media (max-width: 768px) {
           .ders-summary {

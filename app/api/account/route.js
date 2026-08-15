@@ -193,10 +193,20 @@ export async function PATCH(request) {
       || !Number.isInteger(Number(goals.weeklyMinutes))) {
       return invalid('Konu, soru ve dakika hedefleri tam sayı olmalıdır.');
     }
+    const university = String(goals.university || '').trim();
+    const program = String(goals.program || '').trim();
+    const goalImagePath = String(goals.goalImagePath || '').trim();
+    if (university.length > 120 || program.length > 120) {
+      return invalid('Üniversite ve bölüm hedefleri en fazla 120 karakter olabilir.');
+    }
+    if (goalImagePath && !goalImagePath.startsWith(`${user.id}/goal-backgrounds/`)) {
+      return invalid('Hedef görseli bu hesaba ait değil.');
+    }
+    const normalizedGoals = { ...goals, university, program, goalImagePath };
     const updatedAt = new Date().toISOString();
     const { data, error } = await supabase
       .from('profiles')
-      .update({ study_goals: goals, study_goals_updated_at: updatedAt })
+      .update({ study_goals: normalizedGoals, study_goals_updated_at: updatedAt })
       .eq('id', user.id)
       .select('study_goals,study_goals_updated_at')
       .single();

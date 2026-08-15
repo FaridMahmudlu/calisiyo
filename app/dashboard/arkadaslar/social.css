@@ -101,3 +101,34 @@
 .class-create-form { gap: 20px; }.class-create-guide { display: grid; grid-template-columns: repeat(3,1fr); gap: 8px; }.class-create-guide article { min-height: 96px; padding: 13px; border-radius: 12px; background: #f2faf6; color: #087957; display: grid; align-content: start; gap: 5px; }.class-create-guide strong { color: var(--study-ink); font-size: .62rem; }.class-create-guide span { color: var(--study-muted); font-size: .51rem; line-height: 1.4; }.class-create-fields { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }.class-create-fields label.is-wide { grid-column: 1/-1; }.class-create-fields textarea { width: 100%; min-height: 84px; padding: 10px 12px; border: 1px solid var(--study-border); border-radius: 10px; resize: vertical; outline: 0; font: inherit; font-size: .66rem; }.class-create-fields textarea:focus { border-color: #68b99b; box-shadow: 0 0 0 3px rgba(0,168,112,.1); }.class-create-form > footer { padding-top: 14px; border-top: 1px solid var(--study-border); display: flex; align-items: center; justify-content: space-between; gap: 14px; }.class-create-form > footer > div { color: var(--study-muted); display: inline-flex; align-items: center; gap: 7px; font-size: .54rem; }.class-create-form > footer > div svg { color: #087957; }.class-create-form .study-select-popover { z-index: 1300; }
 @media (max-width:800px) { .social-pulse-grid { grid-template-columns:1fr 1fr; }.class-create-fields { grid-template-columns:1fr; }.class-create-fields label.is-wide { grid-column:auto; } }
 @media (max-width:520px) { .social-pulse-grid { grid-template-columns:1fr; }.class-create-guide { grid-template-columns:1fr; }.class-create-guide article { min-height:72px; }.class-create-form > footer { align-items:stretch; flex-direction:column; }.class-create-form > footer button { justify-content:center; } }
+
+.friend-code-card { align-items: stretch; display: grid; grid-template-columns: minmax(0,1fr) auto; }
+.username-form { align-self: end; display: grid; grid-template-columns: minmax(140px,1fr) auto; gap: 7px; }
+.username-form input { min-width: 0; height: 40px; padding: 0 11px; border: 1px solid var(--study-border); border-radius: 9px; background: var(--study-surface); color: var(--study-ink); font: inherit; font-size: .7rem; outline: 0; }
+.username-form input:focus { border-color: #68b99b; box-shadow: 0 0 0 3px rgba(0,168,112,.1); }
+.username-form button { min-height: 40px; padding: 0 12px; border: 0; border-radius: 9px; background: var(--study-green); color: #fff; font-size: .66rem; font-weight: 750; cursor: pointer; }
+.friend-code-card > .legacy-code-copy { grid-column: 1 / -1; width: fit-content; min-height: 28px; padding: 0 8px; border-color: var(--study-border); background: transparent; color: var(--study-muted); font-size: .58rem; }
+
+.public-class-section { display: grid; gap: 14px; }
+.public-class-section > header { display: flex; align-items: flex-start; justify-content: space-between; gap: 16px; }
+.public-class-section > header span { color: var(--study-green-dark); font-size: .62rem; font-weight: 800; letter-spacing: .09em; text-transform: uppercase; }
+.public-class-section h2 { margin: 5px 0 0; font-size: 1rem; }
+.public-class-section header p { margin: 6px 0 0; color: var(--study-muted); font-size: .68rem; }
+.public-class-section header em { padding: 5px 9px; border-radius: 999px; background: #eaf8f2; color: var(--study-green-dark); font-size: .62rem; font-style: normal; font-weight: 800; white-space: nowrap; }
+.public-class-grid { display: grid; grid-template-columns: repeat(auto-fit,minmax(270px,1fr)); gap: 12px; }
+.public-class-card { min-height: 245px; padding: 17px; display: grid; align-content: start; gap: 13px; }
+.public-class-top { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+.public-class-top > span { min-height: 27px; padding: 0 8px; border-radius: 999px; display: inline-flex; align-items: center; gap: 5px; font-size: .58rem; font-weight: 800; }
+.public-class-top > span.is-open { background: #eaf8f2; color: #087957; }
+.public-class-top > span.is-locked { background: #fff5e7; color: #9a5b08; }
+.public-class-top small { color: var(--study-muted); font-size: .6rem; }
+.public-class-card h3 { margin: 0 0 5px; font-size: .88rem; }
+.public-class-card p { min-height: 40px; margin: 0; color: var(--study-muted); font-size: .64rem; line-height: 1.5; }
+.public-class-card dl { margin: 0; display: grid; gap: 7px; }
+.public-class-card dl > div { display: grid; grid-template-columns: 48px 1fr; gap: 7px; }
+.public-class-card dt { color: var(--study-muted); font-size: .58rem; }
+.public-class-card dd { margin: 0; overflow: hidden; color: var(--study-ink); font-size: .61rem; font-weight: 700; text-overflow: ellipsis; white-space: nowrap; }
+.public-class-card > button { min-height: 37px; margin-top: auto; border: 0; border-radius: 9px; background: var(--study-green); color: #fff; display: inline-flex; align-items: center; justify-content: center; gap: 6px; font-size: .65rem; font-weight: 800; cursor: pointer; }
+.public-class-card > button:disabled { background: #d7dedb; color: #77827e; cursor: not-allowed; }
+
+@media (max-width:680px) { .friend-code-card { grid-template-columns: 1fr; }.friend-code-card > .legacy-code-copy { grid-column:auto; }.public-class-section > header { display:grid; }.public-class-section header em { width:fit-content; }.username-form { grid-template-columns:1fr; }.username-form button { width:100%; } }

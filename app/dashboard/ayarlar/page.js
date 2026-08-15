@@ -162,9 +162,19 @@ export default function AyarlarPage() {
 
   const disableDevicePush = async () => {
     if (!('serviceWorker' in navigator)) return;
-    const registration = await navigator.serviceWorker.getRegistration('/sw.js');
+    const registration = await navigator.serviceWorker.getRegistration('/');
     const subscription = await registration?.pushManager.getSubscription();
-    await fetch('/api/push/subscriptions', { method: 'DELETE', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ endpoint: subscription?.endpoint }) });
+    if (subscription?.endpoint) {
+      const response = await fetch('/api/push/subscriptions', {
+        method: 'DELETE',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ endpoint: subscription.endpoint }),
+      });
+      if (!response.ok) {
+        const result = await response.json().catch(() => ({}));
+        throw new Error(result.message || 'Cihaz bildirimi kapatılamadı.');
+      }
+    }
     await subscription?.unsubscribe();
     setPushStatus('idle');
     setPushMessage('Cihaz bildirimi kapatıldı.');
@@ -173,11 +183,12 @@ export default function AyarlarPage() {
   const toggleNotifications = async (enabled) => {
     setPreferences((current) => ({ ...current, notifications: enabled }));
     setPushMessage('');
-    try {
-      if (enabled) await requestBrowserPermission(); else await disableDevicePush();
-    } catch (notificationError) {
-      setPushMessage(notificationError.message);
+    if (enabled) {
+      setPushStatus('idle');
+      return;
     }
+    try { await disableDevicePush(); }
+    catch (notificationError) { setPushMessage(pushErrorMessage(notificationError)); }
   };
 
   const permissionLabel = {
@@ -200,6 +211,7 @@ export default function AyarlarPage() {
       const response = await fetch('/api/account', {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
+        cache: 'no-store',
         body: JSON.stringify({
           action: 'settings',
           fullName: form.full_name,
@@ -209,9 +221,9 @@ export default function AyarlarPage() {
           notificationsEnabled: preferences.notifications,
         }),
       });
-      const result = await response.json().catch(() => ({}));
+      const result = await response.json().catch(() => null);
       if (!response.ok || !result.ok) {
-        setError(result.message || 'Ayarların kaydedilemedi. Lütfen tekrar deneyin.');
+        setError(result?.message || 'Ayarların kaydedilemedi. Lütfen tekrar deneyin.');
         return;
       }
       setProfile(result.profile);
@@ -290,7 +302,7 @@ export default function AyarlarPage() {
 
       <section className="settings-section study-panel"><div className="settings-intro"><Monitor size={20} /><div><h2>Görünüm</h2><p>Uygulamanın görünüm temasını seç.</p></div></div><div className="theme-options">{[['light', 'Açık tema', Sun], ['dark', 'Koyu tema', Moon], ['system', 'Sistem ayarı', Monitor]].map(([value, label, Icon]) => <button key={value} className={preferences.theme === value ? 'is-selected' : ''} onClick={() => applyTheme(value)}><Icon size={18} />{label}</button>)}</div></section>
 
-      <section className="settings-section study-panel"><div className="settings-intro"><Bell size={20} /><div><h2>Bildirimler</h2><p>Uygulama içi ve cihaz bildirimlerini tek yerden yönet.</p></div></div><div className="notification-settings-wrap"><div className="toggle-list notification-settings"><label className="notification-master"><span><strong>Bildirim merkezi ve cihaz bildirimi</strong><small>Önemli plan, çalışma, seri ve deneme gelişmelerini uygulama kapalıyken de gösterir.</small><em>{permissionLabel}</em></span><input type="checkbox" checked={preferences.notifications} onChange={(event) => toggleNotifications(event.target.checked)} /></label>{[['dailyPlan', 'Günlük plan hatırlatıcısı', 'Her gün planını hatırlatır.'], ['repeats', 'Tekrar hatırlatıcıları', 'Tekrar zamanı geldiğinde bildirir.'], ['pomodoro', 'Pomodoro bitiş bildirimi', 'Odak veya mola süresi bittiğinde bildirir.']].map(([key, label, text]) => <label key={key} className={!preferences.notifications ? 'is-disabled' : ''}><span><strong>{label}</strong><small>{text}</small></span><input type="checkbox" checked={preferences[key]} disabled={!preferences.notifications} onChange={(event) => setPreferences({ ...preferences, [key]: event.target.checked })} /></label>)}</div>{preferences.notifications && browserPermission === 'default' && <button className="browser-notification-button" onClick={() => requestBrowserPermission().catch((error) => setPushMessage(error.message))}><Bell size={15} /> Cihaz bildirimlerini aç</button>}{preferences.notifications && browserPermission === 'denied' && <p className="browser-notification-help">Bildirim izni engellenmiş. Adres çubuğundaki site izinlerinden bildirimleri açabilirsin.</p>}{pushMessage && <p className={`browser-notification-help ${pushStatus === 'error' ? 'is-error' : 'is-success'}`} role="status">{pushMessage}</p>}</div></section>
+      <section className="settings-section study-panel"><div className="settings-intro"><Bell size={20} /><div><h2>Bildirimler</h2><p>Uygulama içi ve cihaz bildirimlerini tek yerden yönet.</p></div></div><div className="notification-settings-wrap"><div className="toggle-list notification-settings"><label className="notification-master"><span><strong>Bildirim merkezi</strong><small>Önemli plan, çalışma, seri ve deneme gelişmelerini uygulama içinde gösterir.</small><em>{permissionLabel}</em></span><input type="checkbox" checked={preferences.notifications} onChange={(event) => toggleNotifications(event.target.checked)} /></label>{[['dailyPlan', 'Günlük plan hatırlatıcısı', 'Her gün planını hatırlatır.'], ['repeats', 'Tekrar hatırlatıcıları', 'Tekrar zamanı geldiğinde bildirir.'], ['pomodoro', 'Pomodoro bitiş bildirimi', 'Odak veya mola süresi bittiğinde bildirir.']].map(([key, label, text]) => <label key={key} className={!preferences.notifications ? 'is-disabled' : ''}><span><strong>{label}</strong><small>{text}</small></span><input type="checkbox" checked={preferences[key]} disabled={!preferences.notifications} onChange={(event) => setPreferences({ ...preferences, [key]: event.target.checked })} /></label>)}</div>{preferences.notifications && ['default', 'granted'].includes(browserPermission) && pushStatus !== 'active' && <button className="browser-notification-button" type="button" disabled={pushStatus === 'saving'} onClick={() => requestBrowserPermission().catch((error) => setPushMessage(error.message))}><Bell size={15} /> {pushStatus === 'saving' ? 'Cihaz bağlanıyor…' : browserPermission === 'granted' ? 'Cihaz bildirimlerini bağla' : 'Cihaz bildirimlerini aç'}</button>}{preferences.notifications && browserPermission === 'denied' && <p className="browser-notification-help">Bildirim izni engellenmiş. Adres çubuğundaki site izinlerinden bildirimleri açabilirsin.</p>}{pushMessage && <p className={`browser-notification-help ${pushStatus === 'error' ? 'is-error' : 'is-success'}`} role="status">{pushMessage}</p>}</div></section>
 
       <section className="settings-section study-panel"><div className="settings-intro"><LockKeyhole size={20} /><div><h2>Güvenlik</h2><p>En az 10 karakter; büyük/küçük harf, rakam ve özel karakter içeren bir şifre kullan.</p></div></div><form className="settings-fields password-fields" onSubmit={updatePassword}><label>Yeni şifre<input type="password" minLength={PASSWORD_MIN_LENGTH} value={password.value} onChange={(event) => setPassword({ ...password, value: event.target.value })} /></label><label>Yeni şifre tekrar<input type="password" minLength={PASSWORD_MIN_LENGTH} value={password.confirm} onChange={(event) => setPassword({ ...password, confirm: event.target.value })} /></label><button className="study-button">Şifreyi değiştir</button></form></section>
 

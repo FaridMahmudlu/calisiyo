@@ -38,6 +38,9 @@ export default function FriendsPage() {
   const [busy, setBusy] = useState('');
   const [metric, setMetric] = useState('streak');
   const [friendCode, setFriendCode] = useState('');
+  const [identity, setIdentity] = useState(null);
+  const [usernameDraft, setUsernameDraft] = useState('');
+  const [publicGroups, setPublicGroups] = useState([]);
   const [searchResult, setSearchResult] = useState(null);
   const [searching, setSearching] = useState(false);
   const [copied, setCopied] = useState(false);
@@ -48,16 +51,27 @@ export default function FriendsPage() {
   const [groupCapacity, setGroupCapacity] = useState('8');
   const [groupExamTrack, setGroupExamTrack] = useState('tyt_ayt');
   const [groupStyle, setGroupStyle] = useState('balanced');
+  const [groupAccess, setGroupAccess] = useState('open');
+  const [groupPassword, setGroupPassword] = useState('');
   const [inviteCode, setInviteCode] = useState('');
+  const [protectedGroup, setProtectedGroup] = useState(null);
+  const [joinPassword, setJoinPassword] = useState('');
 
   const loadHub = useCallback(async ({ quiet = false } = {}) => {
     if (!user?.id) return;
     if (!quiet) setLoading(true);
-    const { data, error: hubError } = await supabase.rpc('get_social_hub');
-    if (hubError) {
+    const [hubResult, identityResult, directoryResult] = await Promise.all([
+      supabase.rpc('get_social_hub'),
+      supabase.rpc('get_my_social_identity'),
+      supabase.rpc('list_public_study_groups'),
+    ]);
+    if (hubResult.error || identityResult.error || directoryResult.error) {
       setError('Arkadaşlık merkezi şu anda yüklenemiyor. Lütfen tekrar dene.');
     } else {
-      setHub(data);
+      setHub(hubResult.data);
+      setIdentity(identityResult.data);
+      setUsernameDraft(identityResult.data?.username || '');
+      setPublicGroups(directoryResult.data || []);
       setError('');
     }
     setLoading(false);
@@ -90,22 +104,22 @@ export default function FriendsPage() {
 
   const searchStudent = async (event) => {
     event.preventDefault();
-    const code = friendCode.trim();
-    if (!code) return;
+    const username = friendCode.trim().toLowerCase().replace(/^@/, '');
+    if (!username) return;
     setSearching(true);
-    const { data, error: searchError } = await supabase.rpc('find_student_by_code', { p_code: code });
+    const { data, error: searchError } = await supabase.rpc('find_student_by_username', { p_username: username });
     setSearching(false);
     if (searchError) {
       setError(friendlyError(searchError, 'Öğrenci aranamadı.'));
       return;
     }
-    setSearchResult(data || { missing: true });
+    setSearchResult(data);
   };
 
   const sendRequest = async () => {
-    if (!searchResult?.code) return;
+    if (!searchResult?.username) return;
     setBusy('friend-request');
-    const { error: requestError } = await supabase.rpc('send_friend_request', { p_code: searchResult.code });
+    const { error: requestError } = await supabase.rpc('send_friend_request_by_username', { p_username: searchResult.username });
     setBusy('');
     if (requestError) {
       setError(friendlyError(requestError, 'Arkadaşlık isteği gönderilemedi.'));
@@ -114,6 +128,16 @@ export default function FriendsPage() {
     setSearchResult(null);
     setFriendCode('');
     await loadHub({ quiet: true });
+  };
+
+  const saveUsername = async (event) => {
+    event.preventDefault();
+    setBusy('username');
+    const { data, error: usernameError } = await supabase.rpc('set_my_username', { p_username: usernameDraft });
+    setBusy('');
+    if (usernameError) return setError(friendlyError(usernameError, 'Kullanıcı adı kaydedilemedi.'));
+    setIdentity((current) => ({ ...current, username: data.username }));
+    setUsernameDraft(data.username);
   };
 
   const respond = async (id, response) => {
@@ -154,13 +178,15 @@ export default function FriendsPage() {
   const createGroup = async (event) => {
     event.preventDefault();
     setBusy('create-group');
-    const { data, error: createError } = await supabase.rpc('create_study_group_v3', {
+    const { data, error: createError } = await supabase.rpc('create_study_group_v4', {
       p_name: groupName,
       p_description: groupDescription,
       p_weekly_goal_minutes: Number(groupGoal),
       p_max_members: Number(groupCapacity),
       p_exam_track: groupExamTrack,
       p_study_style: groupStyle,
+      p_access_type: groupAccess,
+      p_password: groupAccess === 'password' ? groupPassword : null,
     });
     setBusy('');
     if (createError) {
@@ -170,6 +196,27 @@ export default function FriendsPage() {
     setModal(null);
     setGroupName('');
     setGroupDescription('Her gün düzenli çalışıp birbirimizi motive ettiğimiz YKS sınıfı.');
+    setGroupPassword('');
+    setGroupAccess('open');
+    await loadHub({ quiet: true });
+    if (data?.id) router.push(`/dashboard/arkadaslar/${data.id}`);
+  };
+
+  const joinPublicGroup = async (group, password = null) => {
+    if (group.isMember) return router.push(`/dashboard/arkadaslar/${group.id}`);
+    if (group.accessType === 'password' && password == null) {
+      setProtectedGroup(group);
+      setJoinPassword('');
+      setModal('protected');
+      return;
+    }
+    setBusy(`public-${group.id}`);
+    const { data, error: joinError } = await supabase.rpc('join_public_study_group', { p_group_id: group.id, p_password: password });
+    setBusy('');
+    if (joinError) return setError(friendlyError(joinError, 'Sınıfa katılınamadı.'));
+    setModal(null);
+    setProtectedGroup(null);
+    setJoinPassword('');
     await loadHub({ quiet: true });
     if (data?.id) router.push(`/dashboard/arkadaslar/${data.id}`);
   };
@@ -233,21 +280,20 @@ export default function FriendsPage() {
 
             <section className="social-intro-grid">
               <article className="friend-code-card study-panel">
-                <div><span><UserPlus size={17} /> Arkadaş kodun</span><strong>{hub.profile.friendCode}</strong><p>Bu kodu yalnızca tanıdığın kişilerle paylaş. Kod, email adresini göstermez.</p></div>
-                <button onClick={copyCode}>{copied ? <Check size={17} /> : <Clipboard size={17} />}{copied ? 'Kopyalandı' : 'Kodu kopyala'}</button>
+                <div><span><UserPlus size={17} /> Kullanıcı adın</span><strong>@{identity?.username}</strong><p>Arkadaşların seni bu kullanıcı adıyla bulabilir. E-posta adresin görünmez.</p></div>
+                <form className="username-form" onSubmit={saveUsername}><input value={usernameDraft} onChange={(event) => setUsernameDraft(event.target.value.toLowerCase().replace(/[^a-z0-9_]/g, ''))} minLength={3} maxLength={24} aria-label="Kullanıcı adı" /><button disabled={busy === 'username'}>{busy === 'username' ? 'Kaydediliyor…' : 'Kaydet'}</button></form>
+                <button className="legacy-code-copy" onClick={copyCode}>{copied ? <Check size={15} /> : <Clipboard size={15} />}{copied ? 'Kod kopyalandı' : identity?.friendCode || hub.profile.friendCode}</button>
               </article>
 
               <article className="friend-search-card study-panel">
-                <div><span><Search size={17} /> Kodla arkadaş bul</span><p>Arkadaşının CAL- ile başlayan kişisel kodunu gir.</p></div>
+                <div><span><Search size={17} /> Kullanıcı adıyla arkadaş bul</span><p>Arkadaşının @kullanıcı_adı bilgisini yaz.</p></div>
                 <form onSubmit={searchStudent}>
-                  <input value={friendCode} onChange={(event) => setFriendCode(event.target.value.toUpperCase())} placeholder="CAL-XXXXXXXXXX" maxLength={14} />
+                  <input value={friendCode} onChange={(event) => setFriendCode(event.target.value.toLowerCase())} placeholder="@kullanici_adi" maxLength={25} />
                   <button disabled={searching}>{searching ? 'Aranıyor…' : 'Bul'}</button>
                 </form>
                 {searchResult && (
-                  <div className={`friend-search-result ${searchResult.missing ? 'is-missing' : ''}`}>
-                    {searchResult.missing ? <span>Bu kodla istek kabul eden öğrenci bulunamadı.</span> : (
-                      <><span className="social-avatar">{initials(searchResult.name)}</span><div><strong>{searchResult.name}</strong><small>{searchResult.relationship === 'none' ? 'Yeni bağlantı' : searchResult.relationship}</small></div><button onClick={sendRequest} disabled={busy === 'friend-request' || searchResult.relationship !== 'none'}>{busy === 'friend-request' ? 'Gönderiliyor…' : 'İstek gönder'}</button></>
-                    )}
+                  <div className="friend-search-result">
+                    <span className="social-avatar">{initials(searchResult.name)}</span><div><strong>{searchResult.name}</strong><small>@{searchResult.username} · {searchResult.friendshipStatus || 'Yeni bağlantı'}</small></div><button onClick={sendRequest} disabled={busy === 'friend-request' || Boolean(searchResult.friendshipStatus)}>{busy === 'friend-request' ? 'Gönderiliyor…' : 'İstek gönder'}</button>
                   </div>
                 )}
               </article>
@@ -308,6 +354,18 @@ export default function FriendsPage() {
               </article>
             </section>
 
+            <section className="public-class-section">
+              <header><div><span>Herkese açık sınıflar</span><h2>Çalışma ritmine uygun bir sınıf bul</h2><p>Açık sınıflara doğrudan, korumalı sınıflara doğru şifreyle katılabilirsin.</p></div><em>{publicGroups.length} sınıf</em></header>
+              {publicGroups.length === 0 ? <div className="social-empty study-panel"><DoorOpen size={28} /><strong>Henüz yayınlanan sınıf yok</strong><span>İlk herkese açık çalışma sınıfını sen oluşturabilirsin.</span></div> : <div className="public-class-grid">
+                {publicGroups.map((group) => <article className="public-class-card study-panel" key={group.id}>
+                  <div className="public-class-top"><span className={group.accessType === 'password' ? 'is-locked' : 'is-open'}>{group.accessType === 'password' ? <LockKeyhole size={14} /> : <DoorOpen size={14} />}{group.accessType === 'password' ? 'Şifreli' : 'Herkese açık'}</span><small>{group.memberCount}/{group.maxMembers} kişi</small></div>
+                  <div><h3>{group.name}</h3><p>{group.description}</p></div>
+                  <dl><div><dt>Kurucu</dt><dd>{group.ownerName} · @{group.ownerUsername}</dd></div><div><dt>Hedef</dt><dd>{Number(group.weeklyGoalMinutes).toLocaleString('tr-TR')} dk / hafta</dd></div></dl>
+                  <button onClick={() => joinPublicGroup(group)} disabled={busy === `public-${group.id}` || group.memberCount >= group.maxMembers}>{group.isMember ? 'Sınıfa git' : busy === `public-${group.id}` ? 'Katılınıyor…' : group.memberCount >= group.maxMembers ? 'Sınıf dolu' : group.accessType === 'password' ? 'Şifreyle katıl' : 'Hemen katıl'} <ArrowRight size={15} /></button>
+                </article>)}
+              </div>}
+            </section>
+
             <section className="group-section">
               <header><div><span>Çalışma sınıfları · {currentPlan?.name || 'calisiyo ücretsiz'}</span><h2>Ortak ritmin canlı alanı</h2><p>Planına göre {classroomMemberLimit} kişiye kadar özel sınıflarda haftalık hedefi ve canlı çalışma durumunu takip et.</p></div><div><button onClick={() => setModal('join')}><DoorOpen size={16} /> Katıl</button><button onClick={() => setModal('create')}><Plus size={16} /> Oluştur</button></div></header>
               {(hub.groups || []).length === 0 ? (
@@ -338,8 +396,10 @@ export default function FriendsPage() {
             <label><span>Çalışma atmosferi</span><Select value={groupStyle} onChange={setGroupStyle} ariaLabel="Çalışma atmosferi" options={[{ value:'balanced',label:'Dengeli',description:'Sohbet ve odak birlikte'},{ value:'quiet',label:'Sessiz odak',description:'Kurucu kontrollü iletişim'},{ value:'social',label:'Sosyal',description:'Motivasyon ve paylaşım yoğun'}]} /></label>
             <label><span>Üye kapasitesi</span><Select value={groupCapacity} onChange={setGroupCapacity} ariaLabel="Sınıf kapasitesi" options={capacityOptions} /></label>
             <label><span>Haftalık ortak hedef</span><input type="number" value={groupGoal} onChange={(event) => setGroupGoal(event.target.value)} min="30" max="50000" required /><small>{Math.round(Number(groupGoal || 0) / Math.max(1,Number(groupCapacity)) / 7)} dk / kişi / gün önerisi</small></label>
+            <label><span>Katılım biçimi</span><Select value={groupAccess} onChange={setGroupAccess} ariaLabel="Sınıf katılım biçimi" options={[{ value:'open',label:'Herkese açık',description:'İsteyen doğrudan katılır'},{ value:'password',label:'Şifreli',description:'Doğru sınıf şifresi gerekir'}]} /></label>
+            {groupAccess === 'password' && <label><span>Sınıf şifresi</span><input type="password" value={groupPassword} onChange={(event) => setGroupPassword(event.target.value)} minLength={4} maxLength={32} autoComplete="new-password" required /><small>4-32 karakter · yalnızca katılmasını istediğin kişilerle paylaş.</small></label>}
           </div>
-          <footer><div><LockKeyhole size={15} /><span>Sınıf yalnızca ROOM davet koduyla açılır.</span></div><button className="study-button study-button-primary" disabled={busy === 'create-group'}>{busy === 'create-group' ? 'Oluşturuluyor…' : 'Sınıfı oluştur ve aç'}</button></footer>
+          <footer><div>{groupAccess === 'password' ? <LockKeyhole size={15} /> : <DoorOpen size={15} />}<span>{groupAccess === 'password' ? 'Sınıf listede görünür; katılmak için şifre gerekir.' : 'Sınıf listede görünür ve herkes doğrudan katılabilir.'}</span></div><button className="study-button study-button-primary" disabled={busy === 'create-group'}>{busy === 'create-group' ? 'Oluşturuluyor…' : 'Sınıfı oluştur ve aç'}</button></footer>
         </form>
       </Modal>
 
@@ -347,6 +407,13 @@ export default function FriendsPage() {
         <form className="social-modal-form" onSubmit={joinGroup}>
           <label><span>Davet kodu</span><input value={inviteCode} onChange={(event) => setInviteCode(event.target.value.toUpperCase())} maxLength={13} placeholder="ROOM-XXXXXXXX" required /></label>
           <button className="study-button study-button-primary" disabled={busy === 'join-group'}>{busy === 'join-group' ? 'Katılınıyor…' : 'Sınıfa katıl'}</button>
+        </form>
+      </Modal>
+
+      <Modal open={modal === 'protected'} onClose={() => { setModal(null); setProtectedGroup(null); }} title={protectedGroup ? `${protectedGroup.name} sınıfına katıl` : 'Şifreli sınıfa katıl'} description="Kurucunun paylaştığı sınıf şifresini yaz.">
+        <form className="social-modal-form" onSubmit={(event) => { event.preventDefault(); if (protectedGroup) joinPublicGroup(protectedGroup, joinPassword); }}>
+          <label><span>Sınıf şifresi</span><input type="password" value={joinPassword} onChange={(event) => setJoinPassword(event.target.value)} minLength={4} maxLength={32} autoComplete="off" required /></label>
+          <button className="study-button study-button-primary" disabled={!protectedGroup || busy === `public-${protectedGroup?.id}`}>{busy === `public-${protectedGroup?.id}` ? 'Kontrol ediliyor…' : 'Şifreyi doğrula ve katıl'}</button>
         </form>
       </Modal>
     </div>

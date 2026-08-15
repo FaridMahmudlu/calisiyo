@@ -18,7 +18,7 @@ import PageHeader from '@/components/ui/PageHeader';
 import DataState from '@/components/ui/DataState';
 import PremiumFeaturePrompt from '@/components/billing/PremiumFeaturePrompt';
 
-const REALTIME_TABLES = ['calisma_suresi', 'gunluk_gorevler', 'denemeler', 'konu_takibi', 'yapamadiklari'];
+const REALTIME_TABLES = ['calisma_suresi', 'pomodoro_kayitlari', 'gunluk_gorevler', 'denemeler', 'konu_takibi', 'yapamadiklari'];
 const COLORS = ['#00a870', '#3b82f6', '#8b5cf6', '#f59e0b', '#ef6c57', '#14b8a6'];
 
 function examNet(exam) {
@@ -45,7 +45,7 @@ function Delta({ value, suffix = '' }) {
 
 function ChartTooltip({ active, payload, label }) {
   if (!active || !payload?.length) return null;
-  return <div className="stats-tooltip"><strong>{label}</strong>{payload.map((item) => <span key={item.dataKey} style={{ color: item.color }}>{item.name}: {item.dataKey === 'minutes' ? formatDuration(item.value) : item.value}</span>)}</div>;
+  return <div className="stats-tooltip"><strong>{label}</strong>{payload.map((item) => <span key={item.dataKey} style={{ color: item.color }}>{item.name}: {['minutes', 'studyMinutes', 'focusMinutes'].includes(item.dataKey) ? formatDuration(item.value) : item.value}</span>)}</div>;
 }
 
 export default function IstatistiklerPage() {
@@ -54,7 +54,7 @@ export default function IstatistiklerPage() {
   const [range, setRange] = useState('month');
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
-  const [records, setRecords] = useState({ sessions: [], tasks: [], exams: [], topics: [], questions: [] });
+  const [records, setRecords] = useState({ sessions: [], tasks: [], exams: [], topics: [], questions: [], time: { studyMinutes: 0, focusMinutes: 0, nonFocusMinutes: 0, daily: [] } });
   const [premiumPrompt, setPremiumPrompt] = useState(null);
 
   const loadStats = useCallback(async () => {
@@ -62,32 +62,40 @@ export default function IstatistiklerPage() {
     setLoading(true);
     setError('');
     const start = parseLocalDate(todayStr());
-    const historyDays = Math.max(7, Number(currentPlan?.entitlements?.stats_history_days || 30));
     if (range === 'week') start.setDate(start.getDate() - 6);
     if (range === 'month') start.setDate(start.getDate() - 29);
-    if (range === 'all') start.setDate(start.getDate() - (historyDays - 1));
     const startKey = toLocalDateKey(start);
+    const rangeStart = range === 'all' ? null : startKey;
 
     let sessionQuery = supabase.from('calisma_suresi').select('id,tarih,sure_dakika,soru_sayisi,created_at,dersler(ad,renk,sinav_turu)').eq('user_id', profile.id).order('tarih');
     let taskQuery = supabase.from('gunluk_gorevler').select('id,tarih,baslangic_saat,bitis_saat,tamamlandi,soru_sayisi,dersler(ad,renk,sinav_turu)').eq('user_id', profile.id).order('tarih');
     let examQuery = supabase.from('denemeler').select('id,tarih,yayin,sinav_turu,sure_dakika,deneme_detaylari(net,dogru,yanlis,bos,dersler(ad))').eq('user_id', profile.id).order('tarih');
-    if (range !== 'all' || historyDays < 36500) {
+    let topicQuery = supabase.from('konu_takibi').select('durum,updated_at,konular(ad,dersler(ad,renk,sinav_turu))').eq('user_id', profile.id);
+    let questionQuery = supabase.from('yapamadiklari').select('cozuldu,created_at').eq('user_id', profile.id);
+    if (rangeStart) {
       sessionQuery = sessionQuery.gte('tarih', startKey);
       taskQuery = taskQuery.gte('tarih', startKey);
       examQuery = examQuery.gte('tarih', startKey);
+      topicQuery = topicQuery.gte('updated_at', `${startKey}T00:00:00`);
+      questionQuery = questionQuery.gte('created_at', `${startKey}T00:00:00`);
     }
-    const [sessions, tasks, exams, topics, questions] = await Promise.all([
+    const [sessions, tasks, exams, topics, questions, time] = await Promise.all([
       sessionQuery,
       taskQuery,
       examQuery,
-      supabase.from('konu_takibi').select('durum,updated_at,konular(ad,dersler(ad,renk,sinav_turu))').eq('user_id', profile.id).gte('updated_at', `${startKey}T00:00:00`),
-      supabase.from('yapamadiklari').select('cozuldu,created_at').eq('user_id', profile.id).gte('created_at', `${startKey}T00:00:00`),
+      topicQuery,
+      questionQuery,
+      supabase.rpc('get_my_study_time_statistics', { p_start_date: rangeStart }),
     ]);
-    const firstError = sessions.error || tasks.error || exams.error || topics.error || questions.error;
+    const firstError = sessions.error || tasks.error || exams.error || topics.error || questions.error || time.error;
     if (firstError) setError('İstatistiklerin yüklenemedi. Lütfen sayfayı yenileyip tekrar dene.');
-    setRecords({ sessions: sessions.data || [], tasks: tasks.data || [], exams: exams.data || [], topics: topics.data || [], questions: questions.data || [] });
+    setRecords({
+      sessions: sessions.data || [], tasks: tasks.data || [], exams: exams.data || [],
+      topics: topics.data || [], questions: questions.data || [],
+      time: time.data || { studyMinutes: 0, focusMinutes: 0, nonFocusMinutes: 0, daily: [] },
+    });
     setLoading(false);
-  }, [currentPlan?.entitlements?.stats_history_days, profile, range, supabase]);
+  }, [profile, range, supabase]);
 
   useEffect(() => {
     const timer = setTimeout(loadStats, 0);
@@ -97,8 +105,14 @@ export default function IstatistiklerPage() {
 
   const stats = useMemo(() => {
     const completedTasks = records.tasks.filter((task) => task.tamamlandi);
-    const activeDates = [...new Set([...records.sessions.map((item) => item.tarih), ...completedTasks.map((item) => item.tarih)])].sort();
-    const totalMinutes = records.sessions.reduce((sum, item) => sum + (item.sure_dakika || 0), 0);
+    const timeDaily = Array.isArray(records.time?.daily) ? records.time.daily : [];
+    const activeDates = [...new Set([
+      ...timeDaily.filter((item) => Number(item.studyMinutes) > 0).map((item) => item.date),
+      ...completedTasks.map((item) => item.tarih),
+    ])].sort();
+    const totalMinutes = Number(records.time?.studyMinutes || 0);
+    const focusMinutes = Number(records.time?.focusMinutes || 0);
+    const nonFocusMinutes = Number(records.time?.nonFocusMinutes || 0);
     const sessionQuestions = records.sessions.reduce((sum, item) => sum + (item.soru_sayisi || 0), 0);
     const taskQuestions = completedTasks.reduce((sum, item) => sum + (item.soru_sayisi || 0), 0);
     // Study sessions and completed tasks can describe the same work. Until
@@ -109,15 +123,23 @@ export default function IstatistiklerPage() {
     const averageMinutes = activeDates.length ? Math.round(totalMinutes / activeDates.length) : 0;
 
     const timelineMap = {};
-    for (const date of activeDates) timelineMap[date] = { key: date, date: new Date(`${date}T12:00:00`).toLocaleDateString('tr-TR', { day: '2-digit', month: 'short' }), minutes: 0, questions: 0, tasks: 0 };
+    for (const item of timeDaily) {
+      timelineMap[item.date] = {
+        key: item.date,
+        date: new Date(`${item.date}T12:00:00`).toLocaleDateString('tr-TR', { day: '2-digit', month: 'short' }),
+        studyMinutes: Number(item.studyMinutes || 0),
+        focusMinutes: Number(item.focusMinutes || 0),
+        questions: Number(item.questions || 0),
+        tasks: 0,
+      };
+    }
     records.sessions.forEach((item) => {
-      timelineMap[item.tarih] ||= { key: item.tarih, date: new Date(`${item.tarih}T12:00:00`).toLocaleDateString('tr-TR', { day: '2-digit', month: 'short' }), minutes: 0, questions: 0, tasks: 0 };
-      timelineMap[item.tarih].minutes += item.sure_dakika || 0;
+      timelineMap[item.tarih] ||= { key: item.tarih, date: new Date(`${item.tarih}T12:00:00`).toLocaleDateString('tr-TR', { day: '2-digit', month: 'short' }), studyMinutes: 0, focusMinutes: 0, questions: 0, tasks: 0 };
       timelineMap[item.tarih].sessionQuestions = (timelineMap[item.tarih].sessionQuestions || 0) + (item.soru_sayisi || 0);
       timelineMap[item.tarih].questions = Math.max(timelineMap[item.tarih].questions, timelineMap[item.tarih].sessionQuestions);
     });
     completedTasks.forEach((item) => {
-      timelineMap[item.tarih] ||= { key: item.tarih, date: new Date(`${item.tarih}T12:00:00`).toLocaleDateString('tr-TR', { day: '2-digit', month: 'short' }), minutes: 0, questions: 0, tasks: 0 };
+      timelineMap[item.tarih] ||= { key: item.tarih, date: new Date(`${item.tarih}T12:00:00`).toLocaleDateString('tr-TR', { day: '2-digit', month: 'short' }), studyMinutes: 0, focusMinutes: 0, questions: 0, tasks: 0 };
       timelineMap[item.tarih].tasks += 1;
       timelineMap[item.tarih].taskQuestions = (timelineMap[item.tarih].taskQuestions || 0) + (item.soru_sayisi || 0);
       timelineMap[item.tarih].questions = Math.max(
@@ -151,16 +173,16 @@ export default function IstatistiklerPage() {
     const weeklySessionQuestions = weeklySessions.reduce((sum, item) => sum + (item.soru_sayisi || 0), 0);
     const weeklyTaskQuestions = weeklyTasks.reduce((sum, item) => sum + (item.soru_sayisi || 0), 0);
     const weeklyQuestions = Math.max(weeklySessionQuestions, weeklyTaskQuestions);
-    const bestDay = timeline.reduce((best, item) => item.minutes > (best?.minutes || 0) ? item : best, null);
+    const bestDay = timeline.reduce((best, item) => item.studyMinutes > (best?.studyMinutes || 0) ? item : best, null);
     return {
       activeDates, averageMinutes, bestDay, completionRate, completedTasks: completedTasks.length, courses,
       currentStreak: Number(accountStats?.streak ?? currentStreak(activeDates)),
-      exams, goalMinutes, goalQuestions, lastNet, netDelta, solvedQuestions, timeline, topicCounts, totalMinutes, totalQuestions,
+      exams, focusMinutes, nonFocusMinutes, goalMinutes, goalQuestions, lastNet, netDelta, solvedQuestions, timeline, topicCounts, totalMinutes, totalQuestions,
       unresolvedQuestions: Math.max(0, records.questions.length - solvedQuestions), weeklyMinutes, weeklyQuestions,
     };
   }, [accountStats?.streak, profile?.study_goals, records]);
 
-  const hasData = records.sessions.length || records.tasks.length || records.exams.length || records.topics.length;
+  const hasData = Number(records.time?.studyMinutes || 0) > 0 || records.tasks.length || records.exams.length || records.topics.length;
   const weeklyMinutesProgress = stats.goalMinutes ? Math.min(100, Math.round(stats.weeklyMinutes / stats.goalMinutes * 100)) : 0;
   const weeklyQuestionProgress = stats.goalQuestions ? Math.min(100, Math.round(stats.weeklyQuestions / stats.goalQuestions * 100)) : 0;
   const canExport = currentPlan?.entitlements?.progress_export === true;
@@ -171,8 +193,8 @@ export default function IstatistiklerPage() {
       return;
     }
     const rows = [
-      ['Tarih', 'Çalışma süresi (dk)', 'Soru', 'Tamamlanan görev'],
-      ...stats.timeline.map((item) => [item.key, item.minutes, item.questions, item.tasks]),
+      ['Tarih', 'Çalışma süresi (dk)', 'Odak süresi (dk)', 'Soru', 'Tamamlanan görev'],
+      ...stats.timeline.map((item) => [item.key, item.studyMinutes, item.focusMinutes, item.questions, item.tasks]),
     ];
     const csv = `\uFEFF${rows.map((row) => row.map((cell) => `"${String(cell ?? '').replaceAll('"', '""')}"`).join(';')).join('\n')}`;
     const url = URL.createObjectURL(new Blob([csv], { type: 'text/csv;charset=utf-8' }));
@@ -190,14 +212,15 @@ export default function IstatistiklerPage() {
         <div className="study-segments stats-range" aria-label="Tarih aralığı">
           <button className={range === 'week' ? 'is-active' : ''} onClick={() => setRange('week')}>7 Gün</button>
           <button className={range === 'month' ? 'is-active' : ''} onClick={() => setRange('month')}>30 Gün</button>
-          <button className={`${range === 'all' ? 'is-active' : ''} ${Number(currentPlan?.entitlements?.stats_history_days || 30) <= 30 ? 'is-premium' : ''}`} onClick={() => Number(currentPlan?.entitlements?.stats_history_days || 30) <= 30 ? setPremiumPrompt({ feature: 'Tüm istatistik geçmişi', requiredPlan: 'calisiyo plus', description: 'calisiyo ücretsiz planında son 30 günü görürsün. Plus ile geçmiş kayıtlarının tamamını tek görünümde inceleyebilirsin.', benefits: ['30 günden eski kayıtları karşılaştır', 'Uzun dönem çalışma ritmini gör', 'Deneme ve süre trendlerini birlikte izle'] }) : setRange('all')} title={Number(currentPlan?.entitlements?.stats_history_days || 30) <= 30 ? 'Tüm geçmiş calisiyo plus planında' : undefined}>Tümü{Number(currentPlan?.entitlements?.stats_history_days || 30) <= 30 && <span>Premium</span>}</button>
+          <button className={range === 'all' ? 'is-active' : ''} onClick={() => setRange('all')}>Tümü</button>
         </div>
-        <span>{stats.activeDates.length} aktif gün · {Number(currentPlan?.entitlements?.stats_history_days || 30) <= 30 ? 'calisiyo ücretsiz planında son 30 gün' : `${currentPlan?.name} geçmişi`} · Son kayıtlar otomatik yenilenir</span>
+        <span>{stats.activeDates.length} aktif gün · {range === 'all' ? 'Tüm gerçek kayıtların' : range === 'week' ? 'Son 7 günün' : 'Son 30 günün'} verisi · Son kayıtlar otomatik yenilenir</span>
       </div>
 
       <DataState loading={loading} error={error} empty={!hasData} emptyTitle="Henüz analiz edilecek kayıt yok" emptyText="Programını tamamladıkça, Pomodoro kullandıkça ve deneme ekledikçe bu sayfa gerçek verilerinle dolacak.">
         <section className="stats-metrics" aria-label="Temel istatistikler">
-          <article><span className="metric-icon is-green"><Clock3 size={19} /></span><div><small>Odak süresi</small><strong>{formatDuration(stats.totalMinutes)}</strong><span>Aktif gün ortalaması {formatDuration(stats.averageMinutes)}</span></div></article>
+          <article><span className="metric-icon is-green"><Clock3 size={19} /></span><div><small>Çalışma süresi</small><strong>{formatDuration(stats.totalMinutes)}</strong><span>Aktif gün ortalaması {formatDuration(stats.averageMinutes)}</span></div></article>
+          <article><span className="metric-icon is-cyan"><Activity size={19} /></span><div><small>Odak süresi</small><strong>{formatDuration(stats.focusMinutes)}</strong><span>Pomodoro ile doğrulanan süre</span></div></article>
           <article><span className="metric-icon is-blue"><BookOpenCheck size={19} /></span><div><small>Çözülen soru</small><strong>{stats.totalQuestions.toLocaleString('tr-TR')}</strong><span>Tamamlanan çalışma kayıtları</span></div></article>
           <article><span className="metric-icon is-violet"><CheckCircle2 size={19} /></span><div><small>Program uyumu</small><strong>%{stats.completionRate}</strong><span>{stats.completedTasks} görev tamamlandı</span></div></article>
           <article><span className="metric-icon is-orange"><Flame size={19} /></span><div><small>Güncel seri</small><strong>{stats.currentStreak} gün</strong><span>{stats.activeDates.length} farklı çalışma günü</span></div></article>
@@ -208,14 +231,14 @@ export default function IstatistiklerPage() {
         <section className="stats-primary-grid">
           <article className="study-panel stats-chart-card stats-activity-card">
             <div className="stats-card-heading"><div><span>Çalışma ritmi</span><h2>Süre ve soru gelişimi</h2></div><span className="stats-card-icon"><BarChart3 size={18} /></span></div>
-            <div className="stats-chart"><ResponsiveContainer width="100%" height="100%"><ComposedChart data={stats.timeline} margin={{ top: 10, right: 0, left: -24, bottom: 0 }}><CartesianGrid stroke="#e9eeec" strokeDasharray="3 5" vertical={false}/><XAxis dataKey="date" axisLine={false} tickLine={false} tick={{ fill: '#7d899b', fontSize: 11 }}/><YAxis yAxisId="minutes" axisLine={false} tickLine={false} tick={{ fill: '#7d899b', fontSize: 11 }}/><YAxis yAxisId="questions" orientation="right" hide/><Tooltip content={<ChartTooltip />}/><Bar yAxisId="minutes" dataKey="minutes" name="Süre" fill="#00a870" radius={[5,5,0,0]} barSize={13}/><Line yAxisId="questions" type="monotone" dataKey="questions" name="Soru" stroke="#3b82f6" strokeWidth={2.5} dot={false} activeDot={{ r: 4 }}/></ComposedChart></ResponsiveContainer></div>
+            <div className="stats-chart"><ResponsiveContainer width="100%" height="100%"><ComposedChart data={stats.timeline} margin={{ top: 10, right: 0, left: -24, bottom: 0 }}><CartesianGrid stroke="#e9eeec" strokeDasharray="3 5" vertical={false}/><XAxis dataKey="date" axisLine={false} tickLine={false} tick={{ fill: '#7d899b', fontSize: 11 }}/><YAxis yAxisId="minutes" axisLine={false} tickLine={false} tick={{ fill: '#7d899b', fontSize: 11 }}/><YAxis yAxisId="questions" orientation="right" hide/><Tooltip content={<ChartTooltip />}/><Bar yAxisId="minutes" dataKey="studyMinutes" name="Çalışma" fill="#00a870" radius={[5,5,0,0]} barSize={13}/><Line yAxisId="minutes" type="monotone" dataKey="focusMinutes" name="Odak" stroke="#8b5cf6" strokeWidth={2.5} dot={false} activeDot={{ r: 4 }}/><Line yAxisId="questions" type="monotone" dataKey="questions" name="Soru" stroke="#3b82f6" strokeWidth={2} dot={false} activeDot={{ r: 4 }}/></ComposedChart></ResponsiveContainer></div>
           </article>
 
           <article className="study-panel stats-goal-card">
             <div className="stats-card-heading"><div><span>Hedef takibi</span><h2>Son 7 günün ilerlemesi</h2></div><span className="stats-card-icon"><Goal size={18} /></span></div>
             <div className="goal-meter"><div><span>Soru hedefi</span><strong>{stats.weeklyQuestions} / {stats.goalQuestions || 'Hedef yok'}</strong></div><div className="goal-meter-track"><i style={{ width: `${weeklyQuestionProgress}%` }} /></div><small>{stats.goalQuestions ? `%${weeklyQuestionProgress} tamamlandı` : 'Hedeflerim sayfasından soru hedefi ekleyebilirsin.'}</small></div>
             <div className="goal-meter"><div><span>Süre hedefi</span><strong>{formatDuration(stats.weeklyMinutes)} / {stats.goalMinutes ? formatDuration(stats.goalMinutes) : 'Hedef yok'}</strong></div><div className="goal-meter-track"><i style={{ width: `${weeklyMinutesProgress}%` }} /></div><small>{stats.goalMinutes ? `%${weeklyMinutesProgress} tamamlandı` : 'Hedeflerim sayfasından süre hedefi ekleyebilirsin.'}</small></div>
-            <div className="stats-insight"><Sparkles size={17} /><p>{stats.bestDay ? <><strong>En verimli günün {formatDate(stats.bestDay.key)}.</strong> O gün {formatDuration(stats.bestDay.minutes)} odak kaydı oluşturdun.</> : 'İlk odak oturumunla kişisel içgörüler burada görünecek.'}</p></div>
+            <div className="stats-insight"><Sparkles size={17} /><p>{stats.bestDay ? <><strong>En verimli günün {formatDate(stats.bestDay.key)}.</strong> O gün toplam {formatDuration(stats.bestDay.studyMinutes)} çalıştın; bunun {formatDuration(stats.bestDay.focusMinutes)} kadarı Pomodoro odağıydı.</> : 'İlk çalışma kaydınla kişisel içgörüler burada görünecek.'}</p></div>
           </article>
         </section>
 

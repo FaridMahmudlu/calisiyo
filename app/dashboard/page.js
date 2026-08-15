@@ -8,11 +8,12 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { 
   Calendar as CalendarIcon, Target, BookOpen, Clock, Info, 
   ChevronLeft, ChevronRight, Flame, Trophy, TrendingUp, 
-  Quote, ArrowRight, CheckCircle2, Circle, Plus, BarChart2, Zap
+  Quote, ArrowRight, CheckCircle2, Circle, Plus, BarChart2, Zap, Flag
 } from 'lucide-react';
 import Link from 'next/link';
 import { ResponsiveContainer, AreaChart, Area, XAxis, YAxis, Tooltip } from 'recharts';
 import JourneyLoader from '@/components/ui/JourneyLoader';
+import { createStudyImageUrls } from '@/lib/supabase/storage';
 
 const MOTIVATION_QUOTES = [
   "Bugün attığın küçük adımlar, yarınki büyük başarılarının temeli olacak.",
@@ -39,6 +40,7 @@ export default function DashboardPage() {
   const [konuStatsMap, setKonuStatsMap] = useState({});
   const [denemeList, setDenemeList] = useState([]);
   const [calismaSuresiList, setCalismaSuresiList] = useState([]);
+  const [goalImageUrl, setGoalImageUrl] = useState('');
 
   // Quotes
   const currentQuote = useMemo(() => {
@@ -47,6 +49,19 @@ export default function DashboardPage() {
   }, []);
 
   const daysLeft = daysUntilYKS();
+
+  useEffect(() => {
+    let active = true;
+    const path = profile?.study_goals?.goalImagePath;
+    if (!path) {
+      const timer = setTimeout(() => setGoalImageUrl(''), 0);
+      return () => { active = false; clearTimeout(timer); };
+    }
+    createStudyImageUrls(supabase, [path]).then((urls) => {
+      if (active) setGoalImageUrl(urls[path] || '');
+    });
+    return () => { active = false; };
+  }, [profile?.study_goals?.goalImagePath, supabase]);
 
   // Load all dashboard data from Supabase
   const loadDashboardData = useCallback(async () => {
@@ -360,6 +375,18 @@ export default function DashboardPage() {
           Bugün harika bir gün, hedeflerine bir adım daha yaklaş!
         </p>
       </div>
+
+      {(profile?.study_goals?.university || profile?.study_goals?.program) && (
+        <Link
+          href="/dashboard/hedeflerim"
+          className={`dashboard-goal-banner ${goalImageUrl ? 'has-image' : ''}`}
+          style={goalImageUrl ? { backgroundImage: `linear-gradient(90deg, rgba(7,36,28,.9), rgba(7,36,28,.38)), url(${goalImageUrl})` } : undefined}
+        >
+          <span className="dashboard-goal-icon"><Flag size={17} /></span>
+          <span className="dashboard-goal-copy"><small>Hedefin seni bekliyor</small><strong>{profile.study_goals.program || 'Bölüm hedefi'}</strong><em>{profile.study_goals.university || 'Üniversite hedefi'}</em></span>
+          <span className="dashboard-goal-action">Hedefe ilerle <ArrowRight size={15} /></span>
+        </Link>
+      )}
 
       {/* Row 1: Top 4 Stat Cards */}
       <div className="row-4-grid">
@@ -784,6 +811,17 @@ export default function DashboardPage() {
           font-weight: 500;
           margin-top: 2px;
         }
+
+        .dashboard-goal-banner { min-height: 82px; margin-top: -8px; padding: 15px 18px; border: 1px solid #cce6dc; border-radius: 14px; background: linear-gradient(120deg, #eaf8f2, #f7fbf9); background-position: center; background-size: cover; color: #0c3428; display: grid; grid-template-columns: auto 1fr auto; align-items: center; gap: 12px; text-decoration: none; transition: transform .18s ease, box-shadow .18s ease; }
+        .dashboard-goal-banner:hover { transform: translateY(-2px); box-shadow: 0 12px 26px rgba(5,42,31,.08); }
+        .dashboard-goal-banner.has-image { color: #fff; border-color: transparent; }
+        .dashboard-goal-icon { width: 38px; height: 38px; border-radius: 10px; background: rgba(255,255,255,.86); color: #087a57; display: grid; place-items: center; }
+        .dashboard-goal-copy { min-width: 0; display: grid; gap: 1px; }
+        .dashboard-goal-copy small { color: #087a57; font-size: .62rem; font-weight: 800; letter-spacing: .04em; text-transform: uppercase; }
+        .has-image .dashboard-goal-copy small { color: #a8f1d3; }
+        .dashboard-goal-copy strong { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: .86rem; }
+        .dashboard-goal-copy em { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; opacity: .72; font-size: .68rem; font-style: normal; }
+        .dashboard-goal-action { display: inline-flex; align-items: center; gap: 5px; font-size: .68rem; font-weight: 750; }
 
         /* Grids */
         .row-4-grid {
@@ -1240,6 +1278,8 @@ export default function DashboardPage() {
         }
 
         @media (max-width: 640px) {
+          .dashboard-goal-banner { grid-template-columns: auto minmax(0, 1fr); }
+          .dashboard-goal-action { display: none; }
           .row-4-grid {
             grid-template-columns: repeat(1, 1fr);
           }

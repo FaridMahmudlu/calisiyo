@@ -47,29 +47,26 @@ test.describe('curriculum, streak, analysis and continuation regressions', () =>
     })).toBe('activated');
   });
 
-  test('device notification permission failures stay local and do not block settings', async ({ page, context }) => {
-    const publicKey = webpush.generateVAPIDKeys().publicKey;
-    await context.grantPermissions(['notifications'], { origin: new URL(page.url()).origin });
-    await page.route('**/api/push/public-key', (route) => route.fulfill({
+  test('device notification registration is explicit and does not block settings', async ({ page }) => {
+    let keyRequests = 0;
+    await page.route('**/api/push/public-key', (route) => {
+      keyRequests += 1;
+      return route.fulfill({
       status: 200,
       contentType: 'application/json',
-      body: JSON.stringify({ publicKey }),
-    }));
-    await page.route('**/api/push/subscriptions', (route) => route.fulfill({
-      status: 200,
-      contentType: 'application/json',
-      body: JSON.stringify({ ok: true }),
-    }));
+      body: JSON.stringify({ publicKey: webpush.generateVAPIDKeys().publicKey }),
+      });
+    });
 
     await page.goto('/dashboard/ayarlar');
-    const toggle = page.getByText('Bildirim merkezi ve cihaz bildirimi').locator('xpath=ancestor::label').getByRole('checkbox');
+    const toggle = page.getByText('Bildirim merkezi', { exact: true }).locator('xpath=ancestor::label').getByRole('checkbox');
     if (await toggle.isChecked()) {
       await toggle.uncheck();
       await expect(toggle).not.toBeChecked();
     }
     await toggle.check();
-    await expect(page.getByRole('status')).toContainText('Bildirim izni verilmedi.');
     await expect(page.locator('.global-error')).toHaveCount(0);
+    expect(keyRequests).toBe(0);
     await page.getByRole('button', { name: 'Değişiklikleri kaydet' }).click();
     await expect(page.locator('.save-indicator.is-visible')).toContainText('Kaydedildi');
   });
