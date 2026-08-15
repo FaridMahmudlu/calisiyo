@@ -54,6 +54,36 @@ async function waitForWorkerActivation(registration, timeoutMs = 15000) {
   return registration;
 }
 
+async function getActiveWorkerRegistration({ refresh = false } = {}) {
+  let registration = await navigator.serviceWorker.getRegistration('/');
+  if (!registration || refresh) {
+    registration = await navigator.serviceWorker.register('/sw.js', {
+      scope: '/',
+      updateViaCache: 'none',
+    });
+  }
+
+  if (refresh) await registration.update().catch(() => undefined);
+  return waitForWorkerActivation(registration);
+}
+
+async function createPushSubscription(applicationServerKey) {
+  let registration = await getActiveWorkerRegistration();
+  try {
+    return await registration.pushManager.getSubscription() || await registration.pushManager.subscribe({
+      userVisibleOnly: true,
+      applicationServerKey,
+    });
+  } catch (error) {
+    if (!/no active service worker|service worker.*active/i.test(String(error?.message || ''))) throw error;
+    registration = await getActiveWorkerRegistration({ refresh: true });
+    return registration.pushManager.getSubscription() || registration.pushManager.subscribe({
+      userVisibleOnly: true,
+      applicationServerKey,
+    });
+  }
+}
+
 export default function AyarlarPage() {
   const { user, profile, setProfile, setError } = useUser();
   const supabase = useMemo(() => createClient(), []);
@@ -115,15 +145,7 @@ export default function AyarlarPage() {
       setBrowserPermission(permission);
       if (permission !== 'granted') throw new Error('Bildirim izni verilmedi. Tarayıcı site ayarlarından izin verebilirsin.');
       setPushStatus('saving');
-      await navigator.serviceWorker.register('/sw.js', { scope: '/', updateViaCache: 'none' });
-      const readyRegistration = await Promise.race([
-        navigator.serviceWorker.ready,
-        new Promise((_, reject) => setTimeout(() => reject(new Error('Service Worker activation timed out.')), 15000)),
-      ]);
-      const registration = await waitForWorkerActivation(readyRegistration);
-      const subscription = await registration.pushManager.getSubscription() || await registration.pushManager.subscribe({
-        userVisibleOnly: true, applicationServerKey: decodeVapidKey(keyPayload.publicKey),
-      });
+      const subscription = await createPushSubscription(decodeVapidKey(keyPayload.publicKey));
       const response = await fetch('/api/push/subscriptions', {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ subscription: subscription.toJSON(), userAgent: navigator.userAgent }),
@@ -174,28 +196,33 @@ export default function AyarlarPage() {
     setError('');
     setSaving(true);
     setSaved(false);
-    const response = await fetch('/api/account', {
-      method: 'PATCH',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        action: 'settings',
-        fullName: form.full_name,
-        field: form.alan_secimi,
-        yksYear: form.yks_year,
-        preferences,
-        notificationsEnabled: preferences.notifications,
-      }),
-    });
-    const result = await response.json().catch(() => ({}));
-    setSaving(false);
-    if (!response.ok || !result.ok) {
-      setError(result.message || 'Ayarların kaydedilemedi. Lütfen tekrar deneyin.');
-      return;
+    try {
+      const response = await fetch('/api/account', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          action: 'settings',
+          fullName: form.full_name,
+          field: form.alan_secimi,
+          yksYear: form.yks_year,
+          preferences,
+          notificationsEnabled: preferences.notifications,
+        }),
+      });
+      const result = await response.json().catch(() => ({}));
+      if (!response.ok || !result.ok) {
+        setError(result.message || 'Ayarların kaydedilemedi. Lütfen tekrar deneyin.');
+        return;
+      }
+      setProfile(result.profile);
+      setError('');
+      setSaved(true);
+      setTimeout(() => setSaved(false), 2500);
+    } catch {
+      setError('Ayarlar kaydedilirken bağlantı kesildi. İnternet bağlantını kontrol edip tekrar dene.');
+    } finally {
+      setSaving(false);
     }
-    setProfile(result.profile);
-    setError('');
-    setSaved(true);
-    setTimeout(() => setSaved(false), 2500);
   };
 
   const updatePassword = async (event) => {
