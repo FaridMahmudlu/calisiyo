@@ -55,14 +55,28 @@ export async function GET() {
 
   let profile = existingProfile;
   if (!profile) {
-    const { data: repairedProfile, error: repairError } = await supabase
+    const defaults = profileDefaults(user);
+    const { error: repairError } = await supabase.rpc('upsert_own_profile', {
+      p_full_name: defaults.full_name,
+      p_alan_secimi: defaults.alan_secimi,
+      p_yks_year: defaults.yks_year,
+    });
+
+    if (repairError) {
+      console.error('Account profile could not be repaired', { code: repairError.code });
+      return Response.json(
+        { ok: false, message: 'Profilin hazırlanamadı. Lütfen tekrar giriş yap.' },
+        { status: 500 }
+      );
+    }
+
+    const { data: repairedProfile } = await supabase
       .from('profiles')
-      .upsert(profileDefaults(user), { onConflict: 'id' })
       .select('*')
+      .eq('id', user.id)
       .single();
 
-    if (repairError || !repairedProfile) {
-      console.error('Account profile could not be repaired', { code: repairError?.code });
+    if (!repairedProfile) {
       return Response.json(
         { ok: false, message: 'Profilin hazırlanamadı. Lütfen tekrar giriş yap.' },
         { status: 500 }

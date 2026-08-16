@@ -47,15 +47,22 @@ export default function ProfiliniTamamlaPage() {
     }
 
     const profile = { full_name: form.fullName.trim(), alan_secimi: form.alanSecimi, yks_year: form.yksYear };
-    const [{ error: profileError }, { error: metadataError }] = await Promise.all([
-      supabase.from('profiles').upsert({ id: user.id, ...profile }, { onConflict: 'id' }),
-      supabase.auth.updateUser({ data: profile }),
-    ]);
 
-    if (profileError || metadataError) {
-      setError(profileError?.message || metadataError?.message || 'Profil kaydedilemedi.');
+    const { error: profileError } = await supabase.rpc('upsert_own_profile', {
+      p_full_name: profile.full_name,
+      p_alan_secimi: profile.alan_secimi,
+      p_yks_year: profile.yks_year,
+    });
+
+    if (profileError) {
+      setError(profileError.message || 'Profil kaydedilemedi.');
       setLoading(false);
       return;
+    }
+
+    const { error: metadataError } = await supabase.auth.updateUser({ data: profile });
+    if (metadataError) {
+      console.error('User metadata update failed but profile saved', metadataError.message);
     }
 
     router.replace('/dashboard');
