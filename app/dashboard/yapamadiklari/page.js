@@ -22,7 +22,7 @@ const EMPTY_FORM = {
   soru_no: "",
   foto_url: "",
 };
-const EMPTY_BULK_FORM = { ders_id: "", konu: "", kaynak: "", rows: "" };
+const EMPTY_BULK_FORM = { ders_id: "", konu: "", kaynak: "" };
 const REALTIME_TABLES = ["yapamadiklari", "yapamadiklari_gorseller"];
 const MAX_IMAGES_PER_QUESTION = 6;
 
@@ -33,6 +33,12 @@ function questionImages(question) {
   return question.foto_url
     ? [{ id: `legacy-${question.id}`, storage_path: question.foto_url, sort_order: 0, legacy: true }]
     : [];
+}
+
+function LocalImagePreview({ file, index, onRemove }) {
+  const [url] = useState(() => URL.createObjectURL(file));
+  useEffect(() => () => URL.revokeObjectURL(url), [url]);
+  return <div className="bulk-image-preview"><Image src={url} alt={`${index + 1}. seçilen soru görseli`} width={180} height={130} unoptimized /><span>{index + 1}</span><button type="button" onClick={onRemove} aria-label={`${index + 1}. görseli kaldır`}><X size={14} /></button></div>;
 }
 
 export default function YapamadiklariPage() {
@@ -56,6 +62,7 @@ export default function YapamadiklariPage() {
   const [viewer, setViewer] = useState(null);
   const [bulkOpen, setBulkOpen] = useState(false);
   const [bulkForm, setBulkForm] = useState(EMPTY_BULK_FORM);
+  const [bulkFiles, setBulkFiles] = useState([]);
   const [saving, setSaving] = useState(false);
 
   const loadData = useCallback(async () => {
@@ -78,7 +85,7 @@ export default function YapamadiklariPage() {
         .order("sira"),
     ]);
     const loadError = questionResult.error || courseResult.error;
-    if (loadError) setError(loadError.message);
+    if (loadError) setError("Soru kayıtların yüklenemedi. Lütfen tekrar dene.");
     const rows = questionResult.data || [];
     setQuestions(rows);
     setCourses(courseResult.data || []);
@@ -138,76 +145,41 @@ export default function YapamadiklariPage() {
     }
     setSaving(true);
     const uploadedPaths = [];
-    let uploadedRowsPersisted = false;
     try {
       for (const imageFile of files) {
         uploadedPaths.push(await uploadStudyImage(supabase, profile.id, imageFile, "wrong-questions"));
       }
       const allPaths = [...existingImages.map((image) => image.storage_path), ...uploadedPaths];
-      const payload = {
-        user_id: profile.id,
-        ders_id: form.ders_id || null,
-        sinav_turu: activeExam,
-        konu: form.konu.trim() || null,
-        kaynak: form.kaynak.trim() || null,
-        sayfa: form.sayfa ? Number(form.sayfa) : null,
-        soru_no: form.soru_no.trim() || null,
-        foto_url: allPaths[0] || null,
-      };
-      let questionId = editing?.id;
-      if (editing) {
-        const { error: updateError } = await supabase
-          .from("yapamadiklari")
-          .update(payload)
-          .eq("id", editing.id)
-          .eq("user_id", profile.id);
-        if (updateError) throw updateError;
-      } else {
-        const { data: created, error: insertError } = await supabase
-          .from("yapamadiklari")
-          .insert(payload)
-          .select("id")
-          .single();
-        if (insertError) throw insertError;
-        questionId = created.id;
-      }
+      const { error: persistError } = await supabase.rpc("save_wrong_question_with_images", {
+        p_question_id: editing?.id || null,
+        p_exam_type: activeExam,
+        p_course_id: form.ders_id,
+        p_topic: form.konu.trim(),
+        p_source: form.kaynak.trim(),
+        p_page: form.sayfa ? Number(form.sayfa) : null,
+        p_question_number: form.soru_no.trim(),
+        p_image_paths: allPaths,
+      });
+      if (persistError) throw persistError;
 
-      if (uploadedPaths.length) {
-        const { error: imageInsertError } = await supabase
-          .from("yapamadiklari_gorseller")
-          .insert(uploadedPaths.map((storagePath, index) => ({
-            user_id: profile.id,
-            soru_id: questionId,
-            storage_path: storagePath,
-            sort_order: existingImages.length + index,
-          })));
-        if (imageInsertError) {
-          if (!editing) await supabase.from("yapamadiklari").delete().eq("id", questionId).eq("user_id", profile.id);
-          throw imageInsertError;
-        }
-        uploadedRowsPersisted = true;
-      }
-
-      if (editing && removedImageIds.size) {
-        const removed = questionImages(editing).filter((image) => removedImageIds.has(image.id));
-        const persistedIds = removed.filter((image) => !image.legacy).map((image) => image.id);
-        if (persistedIds.length) {
-          const { error: imageDeleteError } = await supabase
-            .from("yapamadiklari_gorseller")
-            .delete()
-            .eq("user_id", profile.id)
-            .in("id", persistedIds);
-          if (imageDeleteError) throw imageDeleteError;
-        }
-        if (removed.length) {
-          await supabase.storage.from("study-assets").remove(removed.map((image) => image.storage_path));
-        }
+      const removedPaths = editing
+        ? questionImages(editing).filter((image) => removedImageIds.has(image.id)).map((image) => image.storage_path)
+        : [];
+      if (removedPaths.length) {
+        const { error: cleanupError } = await supabase.storage.from("study-assets").remove(removedPaths);
+        if (cleanupError) setGlobalError("Soru güncellendi; kaldırılan eski görsel depodan temizlenemedi.");
       }
       setModalOpen(false);
       await loadData();
-    } catch (saveError) {
-      if (uploadedPaths.length && !uploadedRowsPersisted) await supabase.storage.from("study-assets").remove(uploadedPaths);
-      setGlobalError(`Soru kaydedilemedi: ${saveError.message}`);
+    } catch {
+      let cleanupFailed = false;
+      if (uploadedPaths.length) {
+        const { error: cleanupError } = await supabase.storage.from("study-assets").remove(uploadedPaths);
+        cleanupFailed = Boolean(cleanupError);
+      }
+      setGlobalError(cleanupFailed
+        ? "Soru kaydedilemedi ve yüklenen bazı görseller temizlenemedi. Lütfen destekle iletişime geç."
+        : "Soru kaydedilemedi. Bilgileri kontrol edip tekrar dene.");
     } finally {
       setSaving(false);
     }
@@ -229,7 +201,7 @@ export default function YapamadiklariPage() {
       setQuestions((current) =>
         current.map((item) => (item.id === question.id ? question : item)),
       );
-      setGlobalError(`Soru güncellenemedi: ${updateError.message}`);
+      setGlobalError("Soru durumu güncellenemedi. Lütfen tekrar dene.");
     }
   };
 
@@ -242,9 +214,12 @@ export default function YapamadiklariPage() {
       .eq("id", question.id)
       .eq("user_id", profile.id);
     if (deleteError)
-      return setGlobalError(`Soru silinemedi: ${deleteError.message}`);
+      return setGlobalError("Soru silinemedi. Lütfen tekrar dene.");
     const paths = questionImages(question).map((image) => image.storage_path);
-    if (paths.length) await supabase.storage.from("study-assets").remove(paths);
+    if (paths.length) {
+      const { error: cleanupError } = await supabase.storage.from("study-assets").remove(paths);
+      if (cleanupError) setGlobalError("Soru silindi; eski görseller depodan temizlenemedi.");
+    }
     setQuestions((current) =>
       current.filter((item) => item.id !== question.id),
     );
@@ -253,37 +228,38 @@ export default function YapamadiklariPage() {
   const saveBulkQuestions = async (event) => {
     event.preventDefault();
     if (!bulkForm.ders_id) return setGlobalError("Toplu soru kaydı için bir ders seçmelisin.");
-    const parsedRows = bulkForm.rows
-      .split(/\r?\n/)
-      .map((line) => line.trim())
-      .filter(Boolean)
-      .map((line) => {
-        const [pagePart, ...questionParts] = line.split("|");
-        const page = Number(pagePart.trim());
-        const hasPage = questionParts.length > 0;
-        return {
-          sayfa: hasPage && Number.isInteger(page) && page > 0 ? page : null,
-          soru_no: (hasPage ? questionParts.join("|") : pagePart).trim(),
-        };
-      });
-    if (!parsedRows.length) return setGlobalError("Her satıra en az bir soru numarası yazmalısın.");
-    if (parsedRows.length > 50) return setGlobalError("Tek seferde en fazla 50 soru ekleyebilirsin.");
-    if (parsedRows.some((row) => !row.soru_no)) return setGlobalError("Soru numarası boş bırakılamaz.");
+    if (!bulkFiles.length) return setGlobalError("En az bir soru görseli seçmelisin.");
+    if (bulkFiles.length > 50) return setGlobalError("Tek seferde en fazla 50 soru görseli ekleyebilirsin.");
     setSaving(true);
-    const { error: bulkError } = await supabase.from("yapamadiklari").insert(parsedRows.map((row) => ({
-      user_id: profile.id,
-      ders_id: bulkForm.ders_id,
-      sinav_turu: activeExam,
-      konu: bulkForm.konu.trim() || null,
-      kaynak: bulkForm.kaynak.trim() || null,
-      sayfa: row.sayfa,
-      soru_no: row.soru_no,
-    })));
-    setSaving(false);
-    if (bulkError) return setGlobalError(`Sorular toplu eklenemedi: ${bulkError.message}`);
-    setBulkOpen(false);
-    setBulkForm(EMPTY_BULK_FORM);
-    await loadData();
+    const uploadedPaths = [];
+    try {
+      for (const imageFile of bulkFiles) {
+        uploadedPaths.push(await uploadStudyImage(supabase, profile.id, imageFile, "wrong-questions"));
+      }
+      const { error: bulkError } = await supabase.rpc("create_wrong_questions_from_images", {
+        p_exam_type: activeExam,
+        p_course_id: bulkForm.ders_id,
+        p_topic: bulkForm.konu.trim(),
+        p_source: bulkForm.kaynak.trim(),
+        p_image_paths: uploadedPaths,
+      });
+      if (bulkError) throw bulkError;
+      setBulkOpen(false);
+      setBulkForm(EMPTY_BULK_FORM);
+      setBulkFiles([]);
+      await loadData();
+    } catch {
+      let cleanupFailed = false;
+      if (uploadedPaths.length) {
+        const { error: cleanupError } = await supabase.storage.from("study-assets").remove(uploadedPaths);
+        cleanupFailed = Boolean(cleanupError);
+      }
+      setGlobalError(cleanupFailed
+        ? "Sorular eklenemedi ve yüklenen bazı görseller temizlenemedi. Lütfen destekle iletişime geç."
+        : "Sorular toplu eklenemedi. Bilgileri kontrol edip tekrar dene.");
+    } finally {
+      setSaving(false);
+    }
   };
 
   const viewerImages = viewer ? questionImages(viewer.question) : [];
@@ -302,7 +278,7 @@ export default function YapamadiklariPage() {
         title="Yapamadığım Sorular"
         description="Zorlandığın soruları görseli ve kaynak bilgisiyle kaydet; çözdükçe işaretle."
         actions={<div className="wrong-head-actions">
-          <button className="study-button" onClick={() => { setBulkForm({ ...EMPTY_BULK_FORM, ders_id: courses[0]?.id || "" }); setBulkOpen(true); }}><ListPlus size={16} /> Toplu ekle</button>
+          <button className="study-button" onClick={() => { setBulkForm({ ...EMPTY_BULK_FORM, ders_id: courses[0]?.id || "" }); setBulkFiles([]); setBulkOpen(true); }}><ListPlus size={16} /> Toplu ekle</button>
           <button className="study-button study-button-primary" onClick={openCreate}><Plus size={16} /> Soru ekle</button>
         </div>}
       />
@@ -494,16 +470,17 @@ export default function YapamadiklariPage() {
         </form>
       </Modal>
 
-      <Modal open={bulkOpen} onClose={() => !saving && setBulkOpen(false)} title="Soruları toplu ekle" description="Aynı ders, konu ve kaynaktaki soruları tek seferde kaydet." size="lg">
+      <Modal open={bulkOpen} onClose={() => !saving && setBulkOpen(false)} title="Soruları görsellerle toplu ekle" description="Her görsel ayrı bir soru kaydı olur; ders, konu ve kaynak bilgisi hepsine uygulanır." size="lg">
         <form className="study-form" onSubmit={saveBulkQuestions}>
           <div className="form-grid-2">
             <label>Ders<Select ariaLabel="Toplu soru dersi" value={bulkForm.ders_id} onChange={(value) => setBulkForm({ ...bulkForm, ders_id: value })} placeholder="Ders seç" options={courses.map((course) => ({ value: course.id, label: course.ad }))} /></label>
             <label>Konu<input value={bulkForm.konu} onChange={(event) => setBulkForm({ ...bulkForm, konu: event.target.value })} /></label>
           </div>
           <label>Kaynak<input value={bulkForm.kaynak} onChange={(event) => setBulkForm({ ...bulkForm, kaynak: event.target.value })} placeholder="Kitap veya deneme adı" /></label>
-          <label>Sayfa ve soru numaraları<textarea rows="9" value={bulkForm.rows} onChange={(event) => setBulkForm({ ...bulkForm, rows: event.target.value })} placeholder={'Her satıra: Sayfa | Soru no\nÖrnek:\n42 | 7\n42 | 8\n43 | 1'} /></label>
-          <p className="bulk-question-help">“Sayfa | Soru no” biçimini kullan. Sayfa bilinmiyorsa yalnızca soru numarasını yazabilirsin. En fazla 50 kayıt.</p>
-          <div className="form-actions"><button type="button" className="study-button" onClick={() => setBulkOpen(false)}>İptal</button><button className="study-button study-button-primary" disabled={saving}>{saving ? "Ekleniyor…" : "Soruları ekle"}</button></div>
+          <label>Soru görselleri <small>JPG, PNG veya WebP · en fazla 50 görsel</small><input type="file" multiple accept="image/jpeg,image/png,image/webp" onChange={(event) => setBulkFiles(Array.from(event.target.files || []).slice(0, 50))} /></label>
+          {bulkFiles.length > 0 ? <div className="bulk-image-grid" aria-label="Seçilen soru görselleri">{bulkFiles.map((file, index) => <LocalImagePreview key={`${file.name}-${file.lastModified}-${index}`} file={file} index={index} onRemove={() => setBulkFiles((current) => current.filter((_, itemIndex) => itemIndex !== index))} />)}</div> : <div className="bulk-image-empty"><Images size={24} /><span>Soru fotoğraflarını seç; kaydetmeden önce burada kontrol edebilirsin.</span></div>}
+          <p className="bulk-question-help">Bir görsel bir soru kaydı olarak oluşturulur. Ayrıntıları daha sonra tekli düzenleme ekranından değiştirebilirsin.</p>
+          <div className="form-actions"><button type="button" className="study-button" onClick={() => setBulkOpen(false)}>İptal</button><button className="study-button study-button-primary" disabled={saving || !bulkFiles.length}>{saving ? `Yükleniyor (${bulkFiles.length})…` : `${bulkFiles.length || ''} soruyu ekle`}</button></div>
         </form>
       </Modal>
 
@@ -530,6 +507,12 @@ export default function YapamadiklariPage() {
         .selected-file-list { display: flex; flex-wrap: wrap; gap: 6px; }
         .selected-file-list span { max-width: 220px; padding: 6px 8px; border-radius: 7px; background: #f1f7f4; color: var(--study-green-dark); display: inline-flex; align-items: center; gap: 5px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: .65rem; }
         .bulk-question-help { margin: -4px 0 0; color: var(--study-muted); font-size: .68rem; line-height: 1.5; }
+        .bulk-image-grid { max-height: 360px; overflow-y: auto; display: grid; grid-template-columns: repeat(auto-fill, minmax(130px, 1fr)); gap: 10px; }
+        .bulk-image-preview { position: relative; aspect-ratio: 4 / 3; overflow: hidden; border: 1px solid var(--study-border); border-radius: 10px; background: #f4f7f6; }
+        .bulk-image-preview :global(img) { width: 100%; height: 100%; object-fit: cover; }
+        .bulk-image-preview > span { position: absolute; left: 7px; bottom: 7px; min-width: 24px; height: 24px; padding: 0 6px; border-radius: 999px; background: rgba(9, 24, 20, .78); color: #fff; display: grid; place-items: center; font-size: .62rem; font-weight: 800; }
+        .bulk-image-preview > button { position: absolute; top: 7px; right: 7px; width: 28px; height: 28px; border: 0; border-radius: 50%; background: rgba(168, 43, 35, .9); color: #fff; display: grid; place-items: center; cursor: pointer; }
+        .bulk-image-empty { min-height: 130px; padding: 18px; border: 1px dashed #b9c9c3; border-radius: 11px; background: #f8fbfa; color: var(--study-muted); display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 8px; text-align: center; font-size: .7rem; }
         .question-viewer { position: relative; min-height: 320px; max-height: 72vh; overflow: auto; border-radius: 12px; background: #111a18; display: grid; place-items: center; }
         .question-viewer :global(img) { width: auto; max-width: 100%; height: auto; max-height: none; object-fit: contain; }
         .viewer-nav { position: sticky; top: 50%; width: 42px; height: 42px; border: 1px solid rgba(255,255,255,.25); border-radius: 50%; background: rgba(9,18,16,.76); color: #fff; display: grid; place-items: center; cursor: pointer; }

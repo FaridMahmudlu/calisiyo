@@ -25,7 +25,7 @@ const MOTIVATION_QUOTES = [
 ];
 
 export default function DashboardPage() {
-  const { profile, stats: accountStats } = useUser();
+  const { profile, stats: accountStats, setError } = useUser();
   const supabase = useMemo(() => createClient(), []);
   const [loading, setLoading] = useState(true);
 
@@ -34,12 +34,11 @@ export default function DashboardPage() {
 
   // Real Database States
   const [todayTasks, setTodayTasks] = useState([]);
-  const [allTasks, setAllTasks] = useState([]);
   const [upcomingTasks, setUpcomingTasks] = useState([]);
   const [derslerList, setDerslerList] = useState([]);
   const [konuStatsMap, setKonuStatsMap] = useState({});
   const [denemeList, setDenemeList] = useState([]);
-  const [calismaSuresiList, setCalismaSuresiList] = useState([]);
+  const [activityTime, setActivityTime] = useState({ studyMinutes: 0, questions: 0, daily: [] });
   const [goalImageUrl, setGoalImageUrl] = useState('');
 
   // Quotes
@@ -74,37 +73,30 @@ export default function DashboardPage() {
     const today = todayStr();
 
     // 1. Fetch user's subjects (dersler) for their field
-    const { data: dersData } = await supabase
+    const { data: dersData, error: courseError } = await supabase
       .from('dersler')
       .select('*')
       .eq('curriculum_year', Number(profile.yks_year || 2027))
       .contains('alan', [profile.alan_secimi || 'sayisal'])
       .order('sira');
+    if (courseError) setError('Derslerin yüklenemedi. Lütfen tekrar dene.');
 
     const currentDersler = dersData || [];
     setDerslerList(currentDersler);
 
     // 2. Fetch today's tasks
-    const { data: todayTasksData } = await supabase
+    const { data: todayTasksData, error: todayTaskError } = await supabase
       .from('gunluk_gorevler')
       .select('*, dersler(ad, renk, ikon, sinav_turu)')
       .eq('user_id', profile.id)
       .eq('tarih', today)
       .order('baslangic_saat');
+    if (todayTaskError) setError('Bugünkü programın yüklenemedi. Lütfen tekrar dene.');
 
     setTodayTasks(todayTasksData || []);
 
-    // 3. Fetch all tasks (for total stats & heatmap & streak)
-    const { data: allTasksData } = await supabase
-      .from('gunluk_gorevler')
-      .select('*, dersler(ad, renk, ikon, sinav_turu)')
-      .eq('user_id', profile.id)
-      .order('tarih', { ascending: false });
-
-    setAllTasks(allTasksData || []);
-
-    // 4. Fetch upcoming tasks (uncompleted, today or future)
-    const { data: upcomingData } = await supabase
+    // 3. Fetch upcoming tasks (uncompleted, today or future)
+    const { data: upcomingData, error: upcomingError } = await supabase
       .from('gunluk_gorevler')
       .select('*, dersler(ad, renk, ikon)')
       .eq('user_id', profile.id)
@@ -113,16 +105,18 @@ export default function DashboardPage() {
       .order('tarih', { ascending: true })
       .order('baslangic_saat', { ascending: true })
       .limit(4);
+    if (upcomingError) setError('Yaklaşan görevlerin yüklenemedi. Lütfen tekrar dene.');
 
     setUpcomingTasks(upcomingData || []);
 
-    // 5. Fetch topics & tracking for Subject Progress
+    // 4. Fetch topics & tracking for Subject Progress
     const dersIds = currentDersler.map(d => d.id);
     if (dersIds.length > 0) {
-      const [{ data: konularData }, { data: takipData }] = await Promise.all([
+      const [{ data: konularData, error: topicsError }, { data: takipData, error: trackingError }] = await Promise.all([
         supabase.from('konular').select('id, ders_id').in('ders_id', dersIds),
         supabase.from('konu_takibi').select('konu_id, durum').eq('user_id', profile.id),
       ]);
+      if (topicsError || trackingError) setError('Konu ilerlemen yüklenemedi. Lütfen tekrar dene.');
 
       const takipMap = {};
       (takipData || []).forEach(t => { takipMap[t.konu_id] = t.durum; });
@@ -138,25 +132,24 @@ export default function DashboardPage() {
       setKonuStatsMap(subjectStats);
     }
 
-    // 6. Fetch Denemeler for net development chart & average net
-    const { data: denemeData } = await supabase
+    // 5. Fetch Denemeler for net development chart & average net
+    const { data: denemeData, error: examError } = await supabase
       .from('denemeler')
       .select('*, deneme_detaylari(net)')
       .eq('user_id', profile.id)
       .order('tarih', { ascending: true });
+    if (examError) setError('Deneme özetin yüklenemedi. Lütfen tekrar dene.');
 
     setDenemeList(denemeData || []);
 
-    // 7. Fetch calisma_suresi table records
-    const { data: calismaData } = await supabase
-      .from('calisma_suresi')
-      .select('*')
-      .eq('user_id', profile.id);
-
-    setCalismaSuresiList(calismaData || []);
+    // 6. Use the same canonical aggregation as Statistics and streak.
+    const { data: canonicalTime, error: canonicalError } = await supabase
+      .rpc('get_my_study_time_statistics', { p_start_date: null });
+    if (canonicalError) setError('Çalışma istatistiklerin yüklenemedi. Lütfen tekrar dene.');
+    setActivityTime(canonicalTime || { studyMinutes: 0, questions: 0, daily: [] });
 
     setLoading(false);
-  }, [profile, supabase]);
+  }, [profile, setError, supabase]);
 
   useEffect(() => {
     const initialLoad = setTimeout(loadDashboardData, 0);
@@ -174,6 +167,8 @@ export default function DashboardPage() {
       .on('postgres_changes', { event: '*', schema: 'public', table: 'konu_takibi', filter: `user_id=eq.${profile.id}` }, () => {
         loadDashboardData();
       })
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'calisma_suresi', filter: `user_id=eq.${profile.id}` }, loadDashboardData)
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'pomodoro_kayitlari', filter: `user_id=eq.${profile.id}` }, loadDashboardData)
       .subscribe();
 
     return () => {
@@ -185,18 +180,14 @@ export default function DashboardPage() {
   // Task Toggle Helper
   const handleToggleTask = async (taskId, currentStatus) => {
     setTodayTasks(prev => prev.map(t => t.id === taskId ? { ...t, tamamlandi: !currentStatus } : t));
-    await supabase.from('gunluk_gorevler').update({ tamamlandi: !currentStatus }).eq('id', taskId);
+    const { error: updateError } = await supabase.from('gunluk_gorevler').update({ tamamlandi: !currentStatus }).eq('id', taskId).eq('user_id', profile.id);
+    if (updateError) {
+      setTodayTasks(prev => prev.map(t => t.id === taskId ? { ...t, tamamlandi: currentStatus } : t));
+      setError('Görev güncellenemedi. Lütfen tekrar dene.');
+      return;
+    }
     loadDashboardData();
   };
-
-  // Helper to get task duration in minutes
-  function getTaskMinutes(t) {
-    if (!t.baslangic_saat || !t.bitis_saat) return 40;
-    const [bH, bM] = t.baslangic_saat.split(':').map(Number);
-    const [eH, eM] = t.bitis_saat.split(':').map(Number);
-    const diff = (eH * 60 + eM) - (bH * 60 + bM);
-    return diff > 0 ? diff : 40;
-  }
 
   // 📊 CALCULATED DYNAMIC STATS
 
@@ -212,11 +203,7 @@ export default function DashboardPage() {
   const todayQuestionPct = totalPlannedQuestionsToday > 0 ? Math.round((solvedQuestionsToday / totalPlannedQuestionsToday) * 100) : 0;
 
   // 3. Today's Study Time (Minutes)
-  const todayStudyMinutesFromTasks = completedTodayTasks.reduce((s, t) => s + getTaskMinutes(t), 0);
-  const todayStudyMinutesFromCalisma = calismaSuresiList
-    .filter(c => c.tarih === todayStr())
-    .reduce((s, c) => s + (c.sure_dakika || 0), 0);
-  const todayTotalMinutes = Math.max(todayStudyMinutesFromTasks, todayStudyMinutesFromCalisma);
+  const todayTotalMinutes = Number(activityTime.daily?.find((item) => item.date === todayStr())?.studyMinutes || 0);
   const targetMinutesToday = 300; // 5 hours target
   const todayTimePct = Math.min(100, Math.round((todayTotalMinutes / targetMinutesToday) * 100));
 
@@ -256,15 +243,9 @@ export default function DashboardPage() {
     const endDate = new Date(todayObj);
     endDate.setDate(todayObj.getDate() + (dayOfWeek === 0 ? 0 : 7 - dayOfWeek));
 
-    const activityMap = {};
-    allTasks.forEach(t => {
-      if (t.tamamlandi) {
-        activityMap[t.tarih] = (activityMap[t.tarih] || 0) + (t.soru_sayisi || 1);
-      }
-    });
-    calismaSuresiList.forEach(c => {
-      activityMap[c.tarih] = (activityMap[c.tarih] || 0) + (c.sure_dakika || 1);
-    });
+    const activityMap = Object.fromEntries(
+      (activityTime.daily || []).map((item) => [item.date, Number(item.studyMinutes || 0)]),
+    );
 
     const cols = [];
     for (let col = 11; col >= 0; col--) {
@@ -286,7 +267,7 @@ export default function DashboardPage() {
       cols.push(colDays);
     }
     return cols;
-  }, [allTasks, calismaSuresiList]);
+  }, [activityTime.daily]);
 
   // Streak and today's minutes are calculated once by the account RPC/layout.
   // Every surface consumes that same live value so a Pomodoro minute cannot
@@ -294,27 +275,15 @@ export default function DashboardPage() {
   const currentStreak = Number(accountStats?.streak || 0);
 
   // 7. Overall Summary Stats
-  const totalQuestionsAllTime = useMemo(() => {
-    const q1 = allTasks.filter(t => t.tamamlandi).reduce((s, t) => s + (t.soru_sayisi || 0), 0);
-    const q2 = calismaSuresiList.reduce((s, c) => s + (c.soru_sayisi || 0), 0);
-    return Math.max(q1, q2);
-  }, [allTasks, calismaSuresiList]);
-
-  const totalMinutesAllTime = useMemo(
-    () => calismaSuresiList.reduce((sum, item) => sum + Number(item.sure_dakika || 0), 0),
-    [calismaSuresiList],
-  );
+  const totalQuestionsAllTime = Number(activityTime.questions || 0);
+  const totalMinutesAllTime = Number(activityTime.studyMinutes || 0);
 
   // Max study time in a single day
   const maxStudyDay = useMemo(() => {
-    const dayMap = {};
-    calismaSuresiList.forEach(c => {
-      dayMap[c.tarih] = (dayMap[c.tarih] || 0) + Number(c.sure_dakika || 0);
-    });
-
     let maxMins = 0;
     let maxDate = '';
-    Object.entries(dayMap).forEach(([date, mins]) => {
+    (activityTime.daily || []).forEach(({ date, studyMinutes }) => {
+      const mins = Number(studyMinutes || 0);
       if (mins > maxMins) {
         maxMins = mins;
         maxDate = date;
@@ -325,7 +294,7 @@ export default function DashboardPage() {
       duration: maxMins > 0 ? formatDuration(maxMins) : '0sa',
       date: maxDate ? formatDate(maxDate) : 'Henüz veri yok'
     };
-  }, [calismaSuresiList]);
+  }, [activityTime.daily]);
 
   // Average Net Calculation
   const averageNet = useMemo(() => {

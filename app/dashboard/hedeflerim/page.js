@@ -13,7 +13,7 @@ import Modal from '@/components/ui/Modal';
 import { createStudyImageUrls, uploadStudyImage } from '@/lib/supabase/storage';
 
 const DEFAULT_GOALS = { nets: { TYT: 0, AYT: 0, YDT: 0 }, weeklyQuestions: 0, weeklyMinutes: 0, topics: { TYT: 0, AYT: 0, YDT: 0 }, university: '', program: '', goalImagePath: '' };
-const REALTIME_TABLES = ['denemeler', 'gunluk_gorevler', 'calisma_suresi', 'konu_takibi'];
+const REALTIME_TABLES = ['denemeler', 'gunluk_gorevler', 'calisma_suresi', 'pomodoro_kayitlari', 'konu_takibi'];
 
 function ProgressRow({ icon: Icon, title, description, current, target, unit }) {
   const percent = target > 0 ? Math.min(100, Math.round(current / target * 100)) : 0;
@@ -48,13 +48,12 @@ export default function HedeflerimPage() {
     const week = getCurrentWeekDates();
     const start = toLocalDateKey(week[0]);
     const end = toLocalDateKey(week[6]);
-    const [examsResult, taskResult, studyResult, topicResult] = await Promise.all([
+    const [examsResult, timeResult, topicResult] = await Promise.all([
       supabase.from('denemeler').select('sinav_turu, tarih, deneme_detaylari(net,dogru,yanlis)').eq('user_id', profile.id),
-      supabase.from('gunluk_gorevler').select('soru_sayisi,tamamlandi,tarih').eq('user_id', profile.id).gte('tarih', start).lte('tarih', end),
-      supabase.from('calisma_suresi').select('sure_dakika,soru_sayisi,tarih').eq('user_id', profile.id).gte('tarih', start).lte('tarih', end),
+      supabase.rpc('get_my_study_time_statistics', { p_start_date: start }),
       supabase.from('konu_takibi').select('durum, konular!inner(dersler!inner(sinav_turu))').eq('user_id', profile.id).eq('durum', 'tamamlandi'),
     ]);
-    const firstError = examsResult.error || taskResult.error || studyResult.error || topicResult.error;
+    const firstError = examsResult.error || timeResult.error || topicResult.error;
     if (firstError) setError('Hedef verilerinin bir bölümü yüklenemedi. Lütfen sayfayı yenileyip tekrar deneyin.');
 
     const saved = { ...DEFAULT_GOALS, ...(profile.study_goals || {}) };
@@ -68,13 +67,12 @@ export default function HedeflerimPage() {
 
     const exams = (examsResult.data || []).filter((exam) => exam.sinav_turu === activeExam);
     const netValues = exams.map((exam) => (exam.deneme_detaylari || []).reduce((sum, detail) => sum + Number(detail.net ?? ((detail.dogru || 0) - (detail.yanlis || 0) / 4)), 0));
-    const taskQuestions = (taskResult.data || []).filter((task) => task.tamamlandi).reduce((sum, task) => sum + (task.soru_sayisi || 0), 0);
-    const studyQuestions = (studyResult.data || []).reduce((sum, session) => sum + (session.soru_sayisi || 0), 0);
+    const canonicalWeek = (timeResult.data?.daily || []).filter((item) => item.date <= end);
     const topicCount = (topicResult.data || []).filter((row) => row.konular?.dersler?.sinav_turu === activeExam).length;
     setActual({
       net: netValues.length ? Number((netValues.reduce((sum, value) => sum + value, 0) / netValues.length).toFixed(1)) : 0,
-      questions: Math.max(taskQuestions, studyQuestions),
-      minutes: (studyResult.data || []).reduce((sum, session) => sum + (session.sure_dakika || 0), 0),
+      questions: canonicalWeek.reduce((sum, item) => sum + Number(item.questions || 0), 0),
+      minutes: canonicalWeek.reduce((sum, item) => sum + Number(item.studyMinutes || 0), 0),
       topics: topicCount,
     });
     setLoading(false);
@@ -166,7 +164,7 @@ export default function HedeflerimPage() {
         <section className="goals-list study-panel">
           <ProgressRow icon={Target} title="Net Hedefi" description={`${activeExam} denemelerindeki ortalama netin.`} current={actual.net} target={goals.nets[activeExam]} unit="net" />
           <ProgressRow icon={ListChecks} title="Haftalık Soru Hedefi" description="Bu hafta tamamladığın görev ve çalışma kayıtları." current={actual.questions} target={goals.weeklyQuestions} unit="soru" />
-          <ProgressRow icon={Clock3} title="Haftalık Çalışma Süresi" description="Pomodoro ve çalışma kayıtlarından hesaplanır." current={actual.minutes} target={goals.weeklyMinutes} unit="dk" />
+          <ProgressRow icon={Clock3} title="Haftalık Çalışma Süresi" description="Kronometre, tamamlanan program ve çalışma kayıtlarından hesaplanır." current={actual.minutes} target={goals.weeklyMinutes} unit="dk" />
           <ProgressRow icon={BookOpen} title="Konu Tamamlama Hedefi" description={`${activeExam} için tamamladığın konu sayısı.`} current={actual.topics} target={goals.topics[activeExam]} unit="konu" />
         </section>
       </DataState>

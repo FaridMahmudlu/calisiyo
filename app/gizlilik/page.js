@@ -41,7 +41,7 @@ export default function GizlilikPage() {
           <ul>
             <li><strong>Kimlik ve İletişim Bilgileri:</strong> Ad soyad, e-posta adresi, şifrelenmiş kimlik doğrulama parolası.</li>
             <li><strong>Akademik ve Alan Seçim Verileri:</strong> YKS hazırlık alanı (Sayısal, Eşit Ağırlık, Sözel, Dil), hedef üniversite/bölüm bilgileri.</li>
-            <li><strong>Çalışma ve İlerleme Verileri:</strong> Günlük/haftalık ders programı kayıtları, çalışma süreleri (Pomodoro kayıtları), çözülen soru sayıları, deneme sınavı net ve süre sonuçları, konu tamamlama durumları ve kişisel notlar.</li>
+            <li><strong>Çalışma ve İlerleme Verileri:</strong> Günlük/haftalık ders programı kayıtları, çalışma süreleri (Kronometre kayıtları), çözülen soru sayıları, deneme sınavı net ve süre sonuçları, konu tamamlama durumları ve kişisel notlar.</li>
             <li><strong>Teknik ve Kullanım Verileri:</strong> IP adresi, cihaz türü, tarayıcı bilgisi, oturum çerezleri, sayfa görüntüleme istatistikleri ve sistem hata logları.</li>
           </ul>
 

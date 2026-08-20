@@ -1,11 +1,12 @@
 'use client';
 
 import { useState, useEffect, useCallback, useMemo } from 'react';
+import Link from 'next/link';
 import { useUser } from '../layout';
 import { createClient } from '@/lib/supabase/client';
 import { getExamTabs } from '@/lib/constants/alanlar';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Circle, PlayCircle, CheckCircle2, BookOpen, ChevronDown, ChevronUp, Search } from 'lucide-react';
+import { Circle, PlayCircle, CheckCircle2, BookOpen, ChevronDown, ChevronUp, Repeat2, Search } from 'lucide-react';
 import { useRealtimeRefresh } from '@/lib/hooks/useRealtimeRefresh';
 import PageHeader from '@/components/ui/PageHeader';
 import JourneyLoader from '@/components/ui/JourneyLoader';
@@ -198,7 +199,7 @@ export default function KonuTakibiPage() {
       animate={{ opacity: 1 }}
       className="page"
     >
-      <PageHeader title="Konu Takibi" description="Alanına uygun konuları durumlarına göre takip et; tamamlanan konular için tekrarlar otomatik oluşur." />
+      <PageHeader title="Konu Takibi" description="Alanına uygun konuları durumlarına göre takip et; tekrar planını yalnızca istediğinde oluştur." actions={<Link className="study-button" href="/dashboard/tekrarlarim"><Repeat2 size={16} /> Tekrar planla</Link>} />
       <div className="page-header" style={{ marginBottom: '24px' }}>
         <div className="study-segments">
           {examTabs.map(tab => (

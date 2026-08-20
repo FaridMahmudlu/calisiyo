@@ -47,7 +47,7 @@ export default function GirisPage() {
         </div>
         <div className="auth-side-list">
           <span><Clock3 size={18} /> Günlük planın</span>
-          <span><Clock3 size={18} /> Pomodoro kayıtların</span>
+          <span><Clock3 size={18} /> Kronometre kayıtların</span>
           <span><Target size={18} /> Gerçek ilerleme verilerin</span>
         </div>
       </section>

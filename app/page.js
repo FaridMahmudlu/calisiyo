@@ -6,7 +6,7 @@ const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || 'https://calisiyo-theta.ver
 
 export const metadata = {
   title: { absolute: 'YKS Çalışma Programı ve Koçu · calisiyo' },
-  description: 'YKS çalışma programını oluştur; Pomodoro, konu takibi, deneme analizi ve gerçek çalışma istatistiklerini Calisiyo ile tek yerde yönet.',
+  description: 'YKS çalışma programını oluştur; Kronometre, konu takibi, deneme analizi ve gerçek çalışma istatistiklerini Calisiyo ile tek yerde yönet.',
   alternates: { canonical: '/' },
   robots: {
     index: true,
@@ -15,7 +15,7 @@ export const metadata = {
   },
   openGraph: {
     title: 'YKS Çalışma Programı ve Koçu · calisiyo',
-    description: 'Planını kur, Pomodoro ile odaklan ve YKS ilerlemeni gerçek çalışma kayıtlarınla takip et.',
+    description: 'Planını kur, Kronometre ile çalış ve YKS ilerlemeni gerçek çalışma kayıtlarınla takip et.',
     url: '/',
   },
 };
@@ -29,14 +29,14 @@ export default function HomePage() {
         '@id': `${SITE_URL}/#application`,
         name: 'calisiyo · YKS Çalışma Koçu',
         url: SITE_URL,
-        description: 'YKS çalışma planı, Pomodoro, konu ve tekrar takibi, deneme analizi ve gerçek çalışma istatistiklerini bir araya getiren web uygulaması.',
+        description: 'YKS çalışma planı, Kronometre, konu ve tekrar takibi, deneme analizi ve gerçek çalışma istatistiklerini bir araya getiren web uygulaması.',
         applicationCategory: 'EducationalApplication',
         operatingSystem: 'Web',
         browserRequirements: 'Modern web tarayıcısı ve internet bağlantısı',
         inLanguage: 'tr-TR',
         featureList: [
           'Günlük ve haftalık YKS çalışma planı',
-          'Pomodoro ve çalışma süresi kaydı',
+          'Kronometre ve çalışma süresi kaydı',
           'TYT, AYT ve YDT konu takibi',
           'Deneme analizi ve net karşılaştırması',
           'Gerçek çalışma kayıtlarından istatistikler',

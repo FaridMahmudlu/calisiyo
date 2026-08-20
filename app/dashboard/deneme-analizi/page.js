@@ -97,7 +97,7 @@ export default function DenemeAnaliziPage() {
   function openAddModal() {
     const initialDetaylar = {};
     dersler.forEach(d => {
-      initialDetaylar[d.id] = { dogru: '', yanlis: '', bos: '' };
+      initialDetaylar[d.id] = { dogru: '', yanlis: '' };
     });
     setForm({
       yayin: '',
@@ -115,31 +115,31 @@ export default function DenemeAnaliziPage() {
     if (duration !== null && (!Number.isInteger(duration) || duration < 1 || duration > 600)) {
       return setError('Deneme süresi 1 ile 600 dakika arasında olmalıdır.');
     }
-    const enteredDetails = Object.entries(form.detaylar).filter(([, detail]) => ['dogru', 'yanlis', 'bos'].some((field) => detail[field] !== ''));
+    const enteredDetails = Object.entries(form.detaylar).filter(([, detail]) => ['dogru', 'yanlis'].some((field) => detail[field] !== ''));
     if (!enteredDetails.length) return setError('Analiz için en az bir ders sonucu girmelisin.');
     const invalidDetail = enteredDetails.some(([courseId, detail]) => (
-      ['dogru', 'yanlis', 'bos'].some((field) => {
+      ['dogru', 'yanlis'].some((field) => {
         if (detail[field] === '') return false;
         const value = Number(detail[field]);
         return !Number.isInteger(value) || value < 0;
       }) || (() => {
         const course = dersler.find((item) => item.id === courseId);
-        const total = ['dogru', 'yanlis', 'bos'].reduce((sum, field) => sum + Number(detail[field] || 0), 0);
-        return Number(course?.question_count || 0) > 0 && total > Number(course.question_count);
+        const total = Number(detail.dogru || 0) + Number(detail.yanlis || 0);
+        return !Number(course?.question_count || 0) || total > Number(course.question_count);
       })()
     ));
-    if (invalidDetail) return setError('Soru sayıları pozitif tam sayı olmalı ve dersin toplam soru sınırını aşmamalıdır.');
+    if (invalidDetail) return setError('Doğru ve yanlış değerleri negatif olmayan tam sayı olmalı; toplamları dersin soru sayısını aşmamalıdır.');
 
     setSaving(true);
 
     const details = enteredDetails.map(([dersId, value]) => ({
-      ders_id: dersId, dogru: Number(value.dogru || 0), yanlis: Number(value.yanlis || 0), bos: Number(value.bos || 0),
+      ders_id: dersId, dogru: Number(value.dogru || 0), yanlis: Number(value.yanlis || 0),
     }));
     const { error: examError } = await supabase.rpc('create_exam_with_details', {
       p_exam_type: activeTab, p_publisher: form.yayin.trim(), p_exam_date: form.tarih,
       p_duration_minutes: duration, p_details: details,
     });
-    if (examError) { setSaving(false); setError(examError.message || 'Deneme kaydedilemedi.'); return; }
+    if (examError) { setSaving(false); setError(examError.message || 'Deneme kaydedilemedi. Bilgileri kontrol edip tekrar dene.'); return; }
 
     setShowModal(false);
     setSaving(false);
@@ -148,7 +148,6 @@ export default function DenemeAnaliziPage() {
 
   async function handleDelete(id) {
     if (!window.confirm('Bu deneme ve tüm ders sonuçları silinsin mi?')) return;
-    await supabase.from('deneme_detaylari').delete().eq('deneme_id', id);
     const { error: deleteError } = await supabase.from('denemeler').delete().eq('id', id).eq('user_id', profile.id);
     if (deleteError) return setError(`Deneme silinemedi: ${deleteError.message}`);
     loadData();
@@ -307,7 +306,7 @@ export default function DenemeAnaliziPage() {
                 <AlertCircle size={16} color="var(--text-tertiary)" />
                 <h4 style={{ fontSize: '0.875rem', fontWeight: 600, color: 'var(--text-secondary)' }}>Ders bazlı sonuçlar</h4>
               </div>
-              <div className="ders-input-legend" aria-hidden="true"><span>Ders</span><span>Doğru</span><span>Yanlış</span><span>Boş</span><span>Net</span></div>
+              <div className="ders-input-legend" aria-hidden="true"><span>Ders</span><span>Doğru</span><span>Yanlış</span><span>Boş (otomatik)</span><span>Net</span></div>
               
               <div className="ders-inputs">
                 {dersler.map(d => (
@@ -326,15 +325,14 @@ export default function DenemeAnaliziPage() {
                           ...form,
                           detaylar: { ...form.detaylar, [d.id]: { ...form.detaylar[d.id], yanlis: e.target.value } }
                         })} />
-                      <input className="input ders-input-mini" aria-label={`${d.ad} boş`} type="number" step="1" placeholder="B"
-                        value={form.detaylar[d.id]?.bos || ''}
-                        onChange={(e) => setForm({
-                          ...form,
-                          detaylar: { ...form.detaylar, [d.id]: { ...form.detaylar[d.id], bos: e.target.value } }
-                        })} />
+                      <output className="ders-auto-blank" aria-label={`${d.ad} boş soru`}>
+                        {d.question_count
+                          ? Math.max(0, Number(d.question_count) - Number(form.detaylar[d.id]?.dogru || 0) - Number(form.detaylar[d.id]?.yanlis || 0))
+                          : '—'}
+                      </output>
                       <output className="ders-live-net">{(Number(form.detaylar[d.id]?.dogru || 0) - Number(form.detaylar[d.id]?.yanlis || 0) / 4).toFixed(2)}</output>
                     </div>
-                    {d.question_count && <small className="ders-question-limit">Toplam {d.question_count} soru</small>}
+                    <small className="ders-question-limit">{d.question_count ? `Toplam ${d.question_count} soru` : 'Toplam soru sayısı tanımlanmadığı için bu ders kaydedilemez.'}</small>
                   </div>
                 ))}
               </div>
@@ -513,7 +511,9 @@ export default function DenemeAnaliziPage() {
           text-align: center;
           padding: 8px;
         }
-        .ders-live-net { width: 56px; min-height: 38px; border-radius: 8px; background: var(--primary-50); color: var(--primary-700); display: grid; place-items: center; font-size: .75rem; font-weight: 800; }
+        .ders-live-net, .ders-auto-blank { width: 56px; min-height: 38px; border-radius: 8px; display: grid; place-items: center; font-size: .75rem; font-weight: 800; }
+        .ders-live-net { background: var(--primary-50); color: var(--primary-700); }
+        .ders-auto-blank { border: 1px solid var(--border-light); background: var(--bg-primary); color: var(--text-secondary); }
         .ders-question-limit { position: absolute; left: 12px; bottom: 4px; color: var(--text-tertiary); font-size: .62rem; }
 
         @media (max-width: 768px) {
@@ -543,7 +543,7 @@ export default function DenemeAnaliziPage() {
           }
           .ders-input-legend { display: none; }
           
-          .ders-input-mini, .ders-live-net { width: 23%; }
+          .ders-input-mini, .ders-live-net, .ders-auto-blank { width: 23%; }
         }
       `}</style>
       <style jsx global>{`

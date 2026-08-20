@@ -18,7 +18,7 @@ const agenda = [
 
 const chapters = [
   { number: '01', title: 'Planını kur.', text: 'Ders, konu, saat, süre ve soru hedefini bir kez ekle. Günlük ve haftalık görünüm aynı kayıttan güncellensin.', Icon: PiCalendarBlank, type: 'plan' },
-  { number: '02', title: 'Çalışmanı kaydet.', text: 'Pomodoro veya manuel çalışma kaydıyla harcadığın süreyi ve çözdüğün soruları doğrudan ilerlemene ekle.', Icon: PiTimer, type: 'focus' },
+  { number: '02', title: 'Çalışmanı kaydet.', text: 'Kronometre veya manuel çalışma kaydıyla harcadığın süreyi ve çözdüğün soruları doğrudan ilerlemene ekle.', Icon: PiTimer, type: 'focus' },
   { number: '03', title: 'İlerlemeni anla.', text: 'Deneme, konu, süre ve soru kayıtlarını birlikte gör. Sonraki çalışma kararını kendi verilerinle ver.', Icon: PiChartLineUp, type: 'progress' },
 ];
 
@@ -29,7 +29,7 @@ function ProductWorkspace() {
         <BrandLogo />
         <span className="workspace-nav is-active"><PiCalendarBlank /> Bugün</span>
         <span className="workspace-nav"><PiListChecks /> Planım</span>
-        <span className="workspace-nav"><PiTimer /> Pomodoro</span>
+        <span className="workspace-nav"><PiTimer /> Kronometre</span>
         <span className="workspace-nav"><PiTarget /> Denemeler</span>
         <span className="workspace-nav"><PiChartLineUp /> İstatistikler</span>
       </aside>
@@ -45,11 +45,11 @@ function ProductWorkspace() {
         <Link href="/kayit" className="workspace-edit">Planını oluşturmaya başla <PiArrowRight /></Link>
       </section>
       <aside className="workspace-focus">
-        <div><small>Pomodoro</small><span>Odaklan</span></div>
+        <div><small>Kronometre</small><span>Çalış</span></div>
         <strong>25:00</strong>
-        <progress value="17" max="25" aria-label="Örnek Pomodoro ilerlemesi">17 / 25</progress>
+        <progress value="17" max="25" aria-label="Örnek Kronometre ilerlemesi">17 / 25</progress>
         <button type="button" tabIndex="-1"><PiPlayCircle /> Başlat</button>
-        <dl><div><dt>Odak süresi</dt><dd>2 sa 45 dk</dd></div><div><dt>Tamamlanan</dt><dd>2 / 4</dd></div><div><dt>Soru</dt><dd>86</dd></div></dl>
+        <dl><div><dt>Çalışma süresi</dt><dd>2 sa 45 dk</dd></div><div><dt>Tamamlanan</dt><dd>2 / 4</dd></div><div><dt>Soru</dt><dd>86</dd></div></dl>
       </aside>
     </div>
   );
@@ -92,7 +92,7 @@ export default function LandingLightweight() {
 
       <section className="landing-data-band" id="ozellikler">
         <div className="section-shell data-band-grid">
-          <div className="data-band-copy"><span><PiLockKey /> Gerçek veriden görünür ilerleme</span><h2>Rakamların yalnızca sen çalıştıkça oluşur.</h2><p>Calisiyo; program, Pomodoro, soru, konu ve deneme kayıtlarını birlikte değerlendirir. Veri yoksa yapay başarı oranı göstermez.</p><Link href="/kayit">Ücretsiz çalışma alanını aç <PiArrowRight /></Link></div>
+          <div className="data-band-copy"><span><PiLockKey /> Gerçek veriden görünür ilerleme</span><h2>Rakamların yalnızca sen çalıştıkça oluşur.</h2><p>Calisiyo; program, Kronometre, soru, konu ve deneme kayıtlarını birlikte değerlendirir. Veri yoksa yapay başarı oranı göstermez.</p><Link href="/kayit">Ücretsiz çalışma alanını aç <PiArrowRight /></Link></div>
           <div className="data-source-panel" aria-label="İstatistik veri kaynakları"><header><PiTrendUp /><div><strong>İlerlemenin kaynakları</strong><small>Örnek veri akışı</small></div></header>{[[PiClock, 'Çalışma sürelerin'], [PiBookOpenText, 'Çözdüğün sorular'], [PiTarget, 'Deneme sonuçların'], [PiListChecks, 'Tamamladığın görevler']].map(([Icon, label]) => <div key={label}><Icon /><span>{label}</span><PiCheck /></div>)}</div>
         </div>
       </section>

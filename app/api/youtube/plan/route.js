@@ -283,12 +283,16 @@ export async function POST(request) {
   const examType = ['TYT', 'AYT', 'YDT'].includes(body.examType) ? body.examType : 'TYT';
   const startItem = Number(body.startItem || 1);
   const startOffsetMinutes = Number(body.startOffsetMinutes || 0);
+  const requestId = String(body.requestId || '');
   if (!/^\d{4}-\d{2}-\d{2}$/.test(startDate) || !Number.isInteger(dailyMinutes) || dailyMinutes < 15 || dailyMinutes > 360) {
     return invalid('Başlangıç tarihi ve günlük süre ayarlarını kontrol et.');
   }
   if (!Number.isInteger(startItem) || startItem < 1 || startItem > metadata.items.length
     || !Number.isInteger(startOffsetMinutes) || startOffsetMinutes < 0) {
     return invalid('Devam noktası içerik sırasıyla eşleşmiyor.');
+  }
+  if (!/^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-5][0-9a-fA-F]{3}-[89aAbB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}$/.test(requestId)) {
+    return invalid('Plan isteği doğrulanamadı. Sayfayı yenileyip tekrar dene.');
   }
   const remainingItems = metadata.items.slice(startItem - 1).map((item, index) => ({ ...item, position: index + 1 }));
   const offsetSeconds = startOffsetMinutes * 60;
@@ -306,7 +310,8 @@ export async function POST(request) {
     originalItemCount: metadata.items.length,
   };
   const scheduledItems = scheduleItems(remainingItems, startDate, cadence, dailyMinutes);
-  const { data, error } = await supabase.rpc('import_youtube_learning_plan', {
+  const { data, error } = await supabase.rpc('import_youtube_learning_plan_idempotent', {
+    p_request_id: requestId,
     p_resource: { ...selectedResource, examType },
     p_items: scheduledItems,
     p_start_date: startDate,
@@ -316,6 +321,9 @@ export async function POST(request) {
   });
   if (error) {
     console.error('YouTube learning plan import failed', { code: error.code });
+    if (error.code === '54000') {
+      return invalid('Mevcut plan limitin bu YouTube planını kaydetmek için yeterli değil. Paket ve Ödemeler sayfasından limitlerini inceleyebilirsin.', 409);
+    }
     return invalid('Plan kaydedilemedi. Tarih ve ders ayarlarını kontrol edip tekrar dene.', 422);
   }
   return Response.json({ ok: true, result: data, resource: selectedResource, items: scheduledItems });

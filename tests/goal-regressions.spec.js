@@ -78,7 +78,9 @@ test.describe('curriculum, streak, analysis and continuation regressions', () =>
     await expect(dialog).toBeVisible();
     await expect(dialog.getByText('Doğru', { exact: true })).toBeVisible();
     await expect(dialog.getByText('Yanlış', { exact: true })).toBeVisible();
-    await expect(dialog.getByText('Boş', { exact: true })).toBeVisible();
+    await expect(dialog.getByText('Boş (otomatik)', { exact: true })).toBeVisible();
+    await expect(dialog.getByLabel(/boş soru/).first()).toHaveText('40');
+    await expect(dialog.locator('input[aria-label*="boş"]')).toHaveCount(0);
     await expect(dialog.getByText('Net', { exact: true })).toBeVisible();
     await expect(dialog.getByText('Toplam 40 soru').first()).toBeVisible();
   });

@@ -38,7 +38,7 @@ export default function KvkkPage() {
 
           <h2>2. İşlenen Kişisel Verileriniz ve Toplama Yöntemi</h2>
           <p>
-            Kişisel verileriniz, calisiyo platformuna kayıt olmanız, giriş yapmanız, profil bilgilerinizi doldurmanız ve platform içerisindeki günlük program, pomodoro süresi, deneme analizi ve not kaydı araçlarını kullanmanız sırasında doğrudan dijital ortamda elektronik yöntemlerle toplanmaktadır. Toplanan verileriniz şunlardır:
+            Kişisel verileriniz, calisiyo platformuna kayıt olmanız, giriş yapmanız, profil bilgilerinizi doldurmanız ve platform içerisindeki günlük program, Kronometre süresi, deneme analizi ve not kaydı araçlarını kullanmanız sırasında doğrudan dijital ortamda elektronik yöntemlerle toplanmaktadır. Toplanan verileriniz şunlardır:
           </p>
           <ul>
             <li><strong>Kimlik Verisi:</strong> Ad ve soyadınız.</li>

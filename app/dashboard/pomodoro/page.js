@@ -52,7 +52,7 @@ export default function PomodoroPage() {
       supabase.from('calisma_suresi').select('*, dersler(ad)').eq('user_id', profile.id).eq('tarih', todayStr()).order('created_at', { ascending: false }),
     ]);
     const loadError = courseResult.error || resourceResult.error || sessionResult.error;
-    if (loadError) setError(`Pomodoro verileri yüklenemedi: ${loadError.message}`);
+    if (loadError) setError('Kronometre verilerin yüklenemedi. Lütfen tekrar dene.');
     setCourses(courseResult.data || []);
     setResources(resourceResult.data || []);
     setTodaySessions(sessionResult.data || []);
@@ -138,7 +138,7 @@ export default function PomodoroPage() {
       action_url: '/dashboard/pomodoro',
       dedupe_key: `pomodoro-${uniqueId}`,
     });
-    if (error) setError('Pomodoro bildirimi oluşturulamadı.');
+    if (error) setError('Kronometre bildirimi oluşturulamadı.');
     if (typeof Notification !== 'undefined' && Notification.permission === 'granted') {
       new Notification(title, { body, tag: uniqueId });
     }
@@ -235,7 +235,7 @@ export default function PomodoroPage() {
 
   return (
     <div className="page pomodoro-page">
-      <PageHeader title="Pomodoro" description="Odaklan, molanı ver, ritmini koru. Tamamlanan odak oturumları istatistiklerine kaydedilir." />
+      <PageHeader title="Kronometre" description="Çalışma ve mola süreni gerçek zamanlı takip et. Tamamlanan çalışma oturumları istatistiklerine kaydedilir." />
       <div className="pomodoro-context">
         <label>Konu / ders <Select ariaLabel="Konu / ders" value={courseId} onChange={setCourseId} placeholder="Ders seç (isteğe bağlı)" options={[{ value: '', label: 'Ders seçilmesin' }, ...courses.map((course) => ({ value: course.id, label: course.ad, description: course.sinav_turu }))]} /></label>
         <label>Kaynak <Select ariaLabel="Kaynak" value={resourceId} onChange={setResourceId} placeholder="Kaynak seç (isteğe bağlı)" options={[{ value: '', label: 'Kaynak seçilmesin' }, ...resources.map((resource) => ({ value: resource.id, label: resource.kaynaklar_sistem?.ad || resource.custom_ad }))]} /></label>
@@ -244,10 +244,10 @@ export default function PomodoroPage() {
       <div className="pomodoro-workspace">
         <aside className="pomodoro-presets study-panel">
           <h2>Hazır Süreler</h2>
-          {PRESETS.map((item, index) => <button key={item.label} className={!customActive && presetIndex === index ? 'is-active' : ''} onClick={() => applyPreset(index)}><strong>{item.label}</strong><span>Odak / Mola</span>{!customActive && presetIndex === index && <CheckCircle2 size={18} />}</button>)}
+          {PRESETS.map((item, index) => <button key={item.label} className={!customActive && presetIndex === index ? 'is-active' : ''} onClick={() => applyPreset(index)}><strong>{item.label}</strong><span>Çalışma / Mola</span>{!customActive && presetIndex === index && <CheckCircle2 size={18} />}</button>)}
           <div className="custom-divider"><span>veya</span></div>
           <h2>Özel Süre</h2>
-          <label>Odak süresi (dk)<input type="number" min="1" max="180" value={custom.work} onChange={(event) => setCustom({ ...custom, work: event.target.value })} /></label>
+          <label>Çalışma süresi (dk)<input type="number" min="1" max="180" value={custom.work} onChange={(event) => setCustom({ ...custom, work: event.target.value })} /></label>
           <label>Mola süresi (dk)<input type="number" min="1" max="60" value={custom.breakMinutes} onChange={(event) => setCustom({ ...custom, breakMinutes: event.target.value })} /></label>
           <button className="study-button" onClick={applyCustom}>Özel süreyi uygula</button>
         </aside>
@@ -257,21 +257,21 @@ export default function PomodoroPage() {
             <ResponsiveContainer width="100%" height="100%">
               <PieChart><Pie data={chartData} dataKey="value" startAngle={90} endAngle={-270} innerRadius="88%" outerRadius="98%" stroke="none" isAnimationActive={false}>{chartData.map((entry, index) => <Cell key={entry.name} fill={index === 0 ? '#00a870' : '#dceee8'} />)}</Pie></PieChart>
             </ResponsiveContainer>
-            <div className="timer-copy"><span>{breakMode ? 'Mola' : 'Odak'}</span><strong>{String(minutes).padStart(2, '0')}:{String(seconds).padStart(2, '0')}</strong><p>{breakMode ? `${preset.breakMinutes} dk mola` : `${preset.work} dk odaklan`}</p></div>
+            <div className="timer-copy"><span>{breakMode ? 'Mola' : 'Çalışma'}</span><strong>{String(minutes).padStart(2, '0')}:{String(seconds).padStart(2, '0')}</strong><p>{breakMode ? `${preset.breakMinutes} dk mola` : `${preset.work} dk çalış`}</p></div>
           </div>
           <div className="timer-controls">
             <button className="study-button" onClick={reset}><RotateCcw size={18} /> Sıfırla</button>
             <button className="study-button study-button-primary" onClick={toggleRunning}>{running ? <><Pause size={18} /> Duraklat</> : <><Play size={18} /> {timeLeft < totalSeconds ? 'Devam et' : 'Başla'}</>}</button>
           </div>
-          <p className="focus-note"><span /> Odaklanma modundasın. Dikkatini dağıtan bildirimleri kapatmanı öneririz.</p>
+          <p className="focus-note"><span /> Çalışma modundasın. Dikkatini dağıtan bildirimleri kapatmanı öneririz.</p>
         </section>
       </div>
 
       <section className="today-sessions study-panel">
-        <div><h2>Bugünkü oturumlar</h2><p>Tamamlanan odak oturumların istatistiklerine kaydedilir.</p></div>
+        <div><h2>Bugünkü oturumlar</h2><p>Tamamlanan çalışma oturumların istatistiklerine kaydedilir.</p></div>
         <span className="summary-icon"><TimerReset size={20} /></span>
         <strong>{todaySessions.length}</strong><span>tamamlanan oturum</span>
-        <strong>{completedMinutes} dk</strong><span>toplam odak süresi</span>
+        <strong>{completedMinutes} dk</strong><span>toplam çalışma süresi</span>
       </section>
     </div>
   );

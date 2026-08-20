@@ -61,7 +61,7 @@ test.describe('Editorial landing page', () => {
     await page.goto('/');
     await expect(page).toHaveTitle(/YKS Çalışma Programı ve Koçu/);
     await expect(page.locator('link[rel="canonical"]')).toHaveAttribute('href', /calisiyo-theta\.vercel\.app\/?$/);
-    await expect(page.locator('meta[name="description"]')).toHaveAttribute('content', /Pomodoro/);
+    await expect(page.locator('meta[name="description"]')).toHaveAttribute('content', /Kronometre/);
     const schemas = await page.locator('script[type="application/ld+json"]').allTextContents();
     expect(schemas.length).toBeGreaterThanOrEqual(2);
     for (const schema of schemas) expect(() => JSON.parse(schema)).not.toThrow();

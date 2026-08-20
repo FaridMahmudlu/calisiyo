@@ -137,10 +137,10 @@ test.describe('Calisiyo production-grade QA journey', () => {
     await expect(page.getByText(`${topic} güncellendi`)).toHaveCount(0);
   });
 
-  test('Pomodoro survives refresh, tracks wall-clock time and records once', async ({ page }) => {
+  test('Kronometre survives refresh, tracks wall-clock time and records once', async ({ page }) => {
     await login(page);
     await page.goto(`${baseURL}/dashboard/pomodoro`);
-    const workInput = page.getByLabel('Odak süresi (dk)');
+    const workInput = page.getByLabel('Çalışma süresi (dk)');
     await workInput.fill('1');
     await page.getByLabel('Mola süresi (dk)').fill('1');
     await page.getByRole('button', { name: 'Özel süreyi uygula' }).click();

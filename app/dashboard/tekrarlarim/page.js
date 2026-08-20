@@ -104,7 +104,7 @@ export default function TekrarlarimPage() {
       animate={{ opacity: 1 }}
       className="page"
     >
-      <PageHeader title="Tekrarlarım" description="Tamamladığın konular için 1, 7 ve 30 günlük tekrarlar otomatik oluşur; istersen manuel tekrar da ekleyebilirsin." />
+      <PageHeader title="Tekrarlarım" description="Pekiştirmek istediğin konular için kendi tekrar tarihini planla ve tamamladıkça işaretle." />
       <div className="page-header" style={{ marginBottom: '24px' }}>
         <div className="tabs">
           {examTabs.map(tab => (

@@ -9,19 +9,21 @@ test('public auth, protected navigation, daily CRUD and responsive visuals', asy
   const browserErrors = [];
   page.on('pageerror', (error) => browserErrors.push(`pageerror: ${error.message}`));
   page.on('console', (message) => {
-    if (message.type() === 'error' && !message.text().includes('Failed to load resource')) {
+    const isLocalGoogleOriginWarning = message.text().includes('[GSI_LOGGER]: The given origin is not allowed');
+    if (message.type() === 'error' && !message.text().includes('Failed to load resource') && !isLocalGoogleOriginWarning) {
       browserErrors.push(`console: ${message.text()}`);
     }
   });
   page.on('response', (response) => {
-    if (response.status() >= 400) browserErrors.push(`response ${response.status()}: ${response.url()}`);
+    const isLocalGoogleButton = response.url().startsWith('https://accounts.google.com/gsi/button');
+    if (response.status() >= 400 && !isLocalGoogleButton) browserErrors.push(`response ${response.status()}: ${response.url()}`);
   });
 
   await page.setViewportSize({ width: 1440, height: 1024 });
   await page.goto(baseURL);
-  await expect(page.getByRole('heading', { name: /Dağınık çalışmayı/ })).toBeVisible();
-  await expect(page.getByRole('heading', { name: 'Planından YKS hedefine kadar tek, bağlı bir akış.' })).toBeVisible();
-  await expect(page.getByRole('heading', { name: 'Teknik ayar yok. Çalışma var.' })).toBeVisible();
+  await expect(page.getByRole('heading', { name: /YKS hazırlığını tek bir net düzende yönet/ })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Tek bir kayıt, bütün çalışma akışını günceller.' })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Rakamların yalnızca sen çalıştıkça oluşur.' })).toBeVisible();
   const landingHeight = await page.evaluate(() => document.documentElement.scrollHeight);
   for (let y = 0; y < landingHeight; y += 700) {
     await page.evaluate((nextY) => window.scrollTo(0, nextY), y);
@@ -33,7 +35,7 @@ test('public auth, protected navigation, daily CRUD and responsive visuals', asy
 
   await page.setViewportSize({ width: 390, height: 844 });
   await page.reload();
-  await expect(page.getByRole('heading', { name: /Dağınık çalışmayı/ })).toBeVisible();
+  await expect(page.getByRole('heading', { name: /YKS hazırlığını tek bir net düzende yönet/ })).toBeVisible();
   await expect.poll(() => page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true);
   await page.screenshot({ path: path.join(qaDir, 'landing-story-mobile.png'), fullPage: true });
   await page.setViewportSize({ width: 1440, height: 1024 });
@@ -46,6 +48,11 @@ test('public auth, protected navigation, daily CRUD and responsive visuals', asy
   await expect(page.getByText('Yakında')).toHaveCount(0);
   await page.goto(`${baseURL}/giris`);
   await page.screenshot({ path: path.join(qaDir, 'giris-desktop.png') });
+
+  if (!process.env.SIGNUP_EMAIL || !process.env.QA_EMAIL || !process.env.QA_PASSWORD) {
+    expect(browserErrors).toEqual([]);
+    return;
+  }
 
   await page.goto(`${baseURL}/kayit`);
   await expect(page.getByRole('heading', { name: 'Hesap oluştur' })).toBeVisible();
@@ -139,7 +146,7 @@ test('public auth, protected navigation, daily CRUD and responsive visuals', asy
     ['yapamadiklari', 'Yapamadığım Sorular'],
     ['kaynaklarim', 'Kaynaklarım'],
     ['istatistikler', 'İstatistikler'],
-    ['pomodoro', 'Pomodoro'],
+    ['pomodoro', 'Kronometre'],
     ['not-defteri', 'Not Defterim'],
     ['hedeflerim', 'Hedeflerim'],
     ['ayarlar', 'Ayarlar'],

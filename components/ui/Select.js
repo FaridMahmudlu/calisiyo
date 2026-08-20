@@ -38,10 +38,6 @@ export default function Select({
     return () => document.removeEventListener('pointerdown', close);
   }, []);
 
-  useEffect(() => {
-    if (open && shouldSearch) requestAnimationFrame(() => searchRef.current?.focus());
-  }, [open, shouldSearch]);
-
   const choose = (nextValue) => {
     onChange?.(String(nextValue));
     setOpen(false);

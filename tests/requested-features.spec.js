@@ -31,7 +31,10 @@ test.describe('requested study feature regressions', () => {
   test('supports bulk questions and multiple images', async ({ page }) => {
     await page.goto('/dashboard/yapamadiklari');
     await page.getByRole('button', { name: 'Toplu ekle' }).click();
-    await expect(page.getByRole('dialog', { name: 'Soruları toplu ekle' })).toBeVisible();
+    const bulkDialog = page.getByRole('dialog', { name: 'Soruları görsellerle toplu ekle' });
+    await expect(bulkDialog).toBeVisible();
+    await expect(bulkDialog.locator('input[type="file"]')).toHaveAttribute('multiple', '');
+    await expect(bulkDialog.locator('textarea')).toHaveCount(0);
     await page.getByRole('button', { name: 'İptal' }).click();
     await page.getByRole('button', { name: 'Soru ekle' }).click();
     await expect(page.getByRole('dialog').locator('input[type="file"]')).toHaveAttribute('multiple', '');
@@ -54,10 +57,12 @@ test.describe('requested study feature regressions', () => {
     await expect(status).toHaveAttribute('aria-label', original);
   });
 
-  test('separates study and focus statistics and exposes username classrooms', async ({ page }) => {
+  test('shows canonical study statistics without a separate focus metric and exposes username classrooms', async ({ page }) => {
     await page.goto('/dashboard/istatistikler');
     await expect(page.getByText('Çalışma süresi', { exact: true })).toBeVisible();
-    await expect(page.getByText('Odak süresi', { exact: true })).toBeVisible();
+    await expect(page.getByText('Odak süresi', { exact: true })).toHaveCount(0);
+    await expect(page.getByText('Seçili dönemde program uyumu', { exact: true })).toBeVisible();
+    await expect(page.getByText('Sonradan çözülen soru', { exact: true })).toBeVisible();
     await page.getByRole('button', { name: 'Tümü' }).click();
     await expect(page.locator('.global-error')).toHaveCount(0);
 
@@ -75,5 +80,22 @@ test.describe('requested study feature regressions', () => {
       const overflow = await page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth);
       expect(overflow).toBeLessThanOrEqual(1);
     }
+  });
+
+  test('mobile searchable Select opens without forcing the keyboard', async ({ page }) => {
+    await page.setViewportSize({ width: 390, height: 844 });
+    await page.goto('/dashboard/gunluk-program');
+    await page.getByRole('button', { name: 'Görev ekle' }).click();
+    const dialog = page.getByRole('dialog');
+    await dialog.getByRole('button', { name: 'Ders' }).click();
+    await expect(dialog.locator('.study-select-popover')).toBeVisible();
+    await expect.poll(() => page.evaluate(() => document.activeElement?.tagName)).not.toBe('INPUT');
+    const search = dialog.locator('.study-select-search input');
+    if (await search.count()) {
+      await search.tap();
+      await expect(search).toBeFocused();
+    }
+    await page.keyboard.press('Escape');
+    await expect(dialog.locator('.study-select-popover')).toBeHidden();
   });
 });

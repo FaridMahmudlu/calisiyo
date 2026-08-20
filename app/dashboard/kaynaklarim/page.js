@@ -33,6 +33,16 @@ const YOUTUBE_CADENCE_OPTIONS = [
   { value: "weekly", label: "Haftada 3 gün", description: "Pazartesi, çarşamba ve cumartesi planlar" },
 ];
 
+function createYoutubeRequestId() {
+  if (globalThis.crypto?.randomUUID) return globalThis.crypto.randomUUID();
+  const bytes = new Uint8Array(16);
+  globalThis.crypto?.getRandomValues?.(bytes);
+  bytes[6] = (bytes[6] & 0x0f) | 0x40;
+  bytes[8] = (bytes[8] & 0x3f) | 0x80;
+  const hex = [...bytes].map((value) => value.toString(16).padStart(2, "0")).join("");
+  return `${hex.slice(0, 8)}-${hex.slice(8, 12)}-${hex.slice(12, 16)}-${hex.slice(16, 20)}-${hex.slice(20)}`;
+}
+
 export default function KaynaklarimPage() {
   const { profile, currentPlan, setError: setGlobalError } = useUser();
   const supabase = useMemo(() => createClient(), []);
@@ -58,6 +68,8 @@ export default function KaynaklarimPage() {
   const [youtubeUrl, setYoutubeUrl] = useState("");
   const [youtubePreview, setYoutubePreview] = useState(null);
   const [youtubeBusy, setYoutubeBusy] = useState("");
+  const [youtubeProgress, setYoutubeProgress] = useState("");
+  const [youtubeRequestId, setYoutubeRequestId] = useState("");
   const [youtubeError, setYoutubeError] = useState("");
   const [youtubeNotice, setYoutubeNotice] = useState("");
   const [premiumPrompt, setPremiumPrompt] = useState(false);
@@ -212,6 +224,8 @@ export default function KaynaklarimPage() {
     setYoutubeUrl("");
     setYoutubePreview(null);
     setYoutubeError("");
+    setYoutubeProgress("");
+    setYoutubeRequestId(createYoutubeRequestId());
     setYoutubeOpen(true);
   };
 
@@ -219,10 +233,12 @@ export default function KaynaklarimPage() {
     event?.preventDefault();
     if (!youtubeUrl.trim()) return;
     setYoutubeBusy("analyze");
+    setYoutubeProgress("İçerik analiz ediliyor…");
     setYoutubeError("");
     try {
       const response = await fetch("/api/youtube/plan", {
         method: "POST",
+        signal: AbortSignal.timeout(45000),
         headers: { "content-type": "application/json" },
         body: JSON.stringify({ action: "analyze", url: youtubeUrl.trim() }),
       });
@@ -232,21 +248,26 @@ export default function KaynaklarimPage() {
       setYoutubePlan((current) => ({ ...current, startItem: "1", startOffsetMinutes: "0" }));
     } catch (requestError) {
       setYoutubePreview(null);
-      setYoutubeError(requestError.message || "YouTube içeriği okunamadı.");
+      setYoutubeError(requestError.name === "TimeoutError" ? "YouTube yanıtı zaman aşımına uğradı. Bağlantıyı kontrol edip tekrar dene." : requestError.message || "YouTube içeriği okunamadı.");
     } finally {
       setYoutubeBusy("");
+      setYoutubeProgress("");
     }
   };
 
   const importYoutubePlan = async () => {
     setYoutubeBusy("import");
+    setYoutubeProgress("İçerik doğrulanıyor…");
     setYoutubeError("");
+    const progressTimer = window.setTimeout(() => setYoutubeProgress("Plan oluşturuluyor ve görevler kaydediliyor…"), 2500);
     try {
       const response = await fetch("/api/youtube/plan", {
         method: "POST",
+        signal: AbortSignal.timeout(45000),
         headers: { "content-type": "application/json" },
         body: JSON.stringify({
           action: "import",
+          requestId: youtubeRequestId,
           url: youtubeUrl.trim(),
           ...youtubePlan,
           examType: activeExam,
@@ -255,16 +276,20 @@ export default function KaynaklarimPage() {
       });
       const payload = await response.json();
       if (!response.ok || !payload.ok) throw new Error(payload.message || "Plan kaydedilemedi.");
-      setYoutubeNotice(`${payload.result.tasksCreated} video gerçek günlük görevlerine eklendi.`);
+      setYoutubeNotice(payload.result.reused
+        ? `Bu plan daha önce kaydedilmişti; ${payload.result.tasksCreated} görev yeniden kullanılmadan bulundu.`
+        : `${payload.result.tasksCreated} video gerçek günlük görevlerine eklendi.`);
       window.setTimeout(() => setYoutubeNotice(""), 5000);
       setYoutubeOpen(false);
       setYoutubePreview(null);
       setYoutubeUrl("");
       await loadData();
     } catch (requestError) {
-      setYoutubeError(requestError.message || "Plan kaydedilemedi.");
+      setYoutubeError(requestError.name === "TimeoutError" ? "Plan işlemi zaman aşımına uğradı. Aynı planı güvenle tekrar deneyebilirsin." : requestError.message || "Plan kaydedilemedi. Aynı işlemi güvenle tekrar deneyebilirsin.");
     } finally {
+      window.clearTimeout(progressTimer);
       setYoutubeBusy("");
+      setYoutubeProgress("");
     }
   };
 
@@ -486,7 +511,7 @@ export default function KaynaklarimPage() {
           <form className="youtube-url-form" onSubmit={analyzeYoutube}>
             <label>
               <span>YouTube bağlantısı</span>
-              <div><CirclePlay size={18} /><input type="url" value={youtubeUrl} onChange={(event) => { setYoutubeUrl(event.target.value); setYoutubePreview(null); }} placeholder="https://www.youtube.com/watch?v=..." required /><button disabled={youtubeBusy === "analyze"}>{youtubeBusy === "analyze" ? "Okunuyor…" : "İçeriği analiz et"}</button></div>
+              <div><CirclePlay size={18} /><input type="url" value={youtubeUrl} onChange={(event) => { setYoutubeUrl(event.target.value); setYoutubePreview(null); setYoutubeRequestId(createYoutubeRequestId()); }} placeholder="https://www.youtube.com/watch?v=..." required /><button disabled={Boolean(youtubeBusy)}>{youtubeBusy === "analyze" ? "Analiz ediliyor…" : "İçeriği analiz et"}</button></div>
             </label>
           </form>
           {youtubeError && <div className="youtube-plan-error" role="alert">{youtubeError}</div>}
@@ -506,7 +531,8 @@ export default function KaynaklarimPage() {
                 <label>Videodaki dakika<input type="number" min="0" max="1440" step="1" value={youtubePlan.startOffsetMinutes} onChange={(event) => setYoutubePlan({ ...youtubePlan, startOffsetMinutes: event.target.value })} /><small>Baştan başlamak için 0</small></label>
               </div>
               <div className="youtube-plan-summary"><CalendarDays size={17} /><span><strong>Yaklaşık {Math.max(1, Math.ceil(youtubePreview.resource.durationMinutes / Math.max(15, Number(youtubePlan.dailyMinutes) || 15)))} çalışma oturumu</strong><small>Kaynak ve bütün görevler tek işlemde, kendi hesabına kaydedilir.</small></span></div>
-              <button className="study-button study-button-primary youtube-import-button" onClick={importYoutubePlan} disabled={youtubeBusy === "import" || !youtubePlan.startDate}>{youtubeBusy === "import" ? "Plan hazırlanıyor…" : <><Sparkles size={16} /> Planı oluştur ve görevlerime ekle</>}</button>
+              {youtubeProgress && <p className="youtube-plan-progress" role="status" aria-live="polite"><span /> {youtubeProgress}</p>}
+              <button className="study-button study-button-primary youtube-import-button" onClick={importYoutubePlan} disabled={Boolean(youtubeBusy) || !youtubePlan.startDate}>{youtubeBusy === "import" ? "İşlem sürüyor…" : <><Sparkles size={16} /> Planı oluştur ve görevlerime ekle</>}</button>
             </section>
           </>}
         </div>

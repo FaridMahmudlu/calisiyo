@@ -37,7 +37,7 @@ const NAV_GROUPS = [
       ['/dashboard/yapamadiklari', 'Yapamadığım Sorular', AlertTriangle],
       ['/dashboard/kaynaklarim', 'Kaynaklarım', BookOpen],
       ['/dashboard/istatistikler', 'İstatistikler', BarChart3],
-      ['/dashboard/pomodoro', 'Pomodoro', Timer],
+      ['/dashboard/pomodoro', 'Kronometre', Timer],
       ['/dashboard/not-defteri', 'Not Defterim', FileText],
       ['/dashboard/hedeflerim', 'Hedeflerim', Target],
       ['/dashboard/gelisim', 'Gelişim ve Seviyem', Trophy],
@@ -301,7 +301,7 @@ export default function DashboardLayout({ children }) {
                 <Flame size={17} />
                 <span><strong>{liveStreak}</strong> günlük seri <button className="streak-info-button" type="button" aria-label="Seri kuralını açıkla" aria-expanded={streakInfoOpen} aria-controls="streak-rule-popover" onClick={() => setStreakInfoOpen((value) => !value)}><Info size={13} /></button></span>
                 <small>Bugün {Math.min(liveTodayMinutes, 30)}/30 dk{activePomodoroMinutes > 0 ? ' · sayaç canlı' : ''}</small>
-                <div id="streak-rule-popover" className={`streak-info-popover ${streakInfoOpen ? 'is-open' : ''}`} role="tooltip" aria-hidden={!streakInfoOpen}><strong>Seri nasıl ilerler?</strong><p>Her gün calisiyo’da Pomodoro veya çalışma kaydı ile en az 30 dakika ders çalış. Açık Pomodoro her tam dakikada canlı ilerler; oturum tamamlanınca kalıcı kayda dönüşür.</p></div>
+                <div id="streak-rule-popover" className={`streak-info-popover ${streakInfoOpen ? 'is-open' : ''}`} role="tooltip" aria-hidden={!streakInfoOpen}><strong>Seri nasıl ilerler?</strong><p>Her gün calisiyo’da Kronometre, tamamlanan program veya çalışma kaydı ile en az 30 dakika ders çalış. Açık Kronometre her tam dakikada canlı ilerler; oturum tamamlanınca kalıcı kayda dönüşür.</p></div>
               </div>
               <Link href="/dashboard/gelisim" className="sidebar-level-card" onClick={() => setSidebarOpen(false)}>
                 <span><Trophy size={15} /><strong>Seviye {stats.level}</strong><small>{stats.levelTitle}</small></span>
