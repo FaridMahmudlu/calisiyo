@@ -6,7 +6,7 @@ test.describe('Google Login Button Consistency', () => {
   for (const pagePath of pages) {
     test(`Google button is always present on ${pagePath} across repeated reloads`, async ({ page }) => {
       for (let i = 0; i < 5; i++) {
-        await page.goto(`http://localhost:3000${pagePath}`, { waitUntil: 'domcontentloaded' });
+        await page.goto(pagePath, { waitUntil: 'domcontentloaded' });
         
         // Assert the social-auth container exists
         const socialAuth = page.locator('.social-auth');
