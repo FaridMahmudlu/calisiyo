@@ -94,7 +94,7 @@ test.describe('SaaS pricing, legal and billing safety', () => {
     await expect(page.getByRole('heading', { name: 'İki plan, tek net seçim' })).toBeVisible();
     await page.getByRole('button', { name: /Satın al/ }).click();
     await expect(page.getByRole('dialog', { name: /calisiyo plus · YKS 2027/ })).toBeVisible();
-    await expect(page.getByRole('button', { name: /Siparişi onayla/ })).toBeDisabled();
+    await expect(page.getByRole('button', { name: /Shopier ile ödemeye geç/ })).toBeDisabled();
     await expect(page.getByText('Satışa hazırlık tamamlanıyor')).toBeVisible();
     const billing = await page.evaluate(async () => (await fetch('/api/billing')).json());
     expect(billing.currentPlan.code).toBe('baslangic');

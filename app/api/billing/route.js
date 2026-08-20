@@ -16,13 +16,15 @@ export async function GET() {
       supabase.rpc('current_plan_details'),
       supabase
         .from('billing_orders')
-        .select('id,order_number,plan_code,billing_period,amount,currency,status,iyzico_link_url,payment_claimed_at,verified_at,created_at,decision_note')
+        .select('id,order_number,plan_code,billing_period,amount,currency,status,payment_provider,provider_checkout_url,provider_status,payment_claimed_at,verified_at,created_at,decision_note')
         .eq('user_id', user.id)
         .order('created_at', { ascending: false })
         .limit(20),
     ]);
     currentPlan = plan || null;
-    if (!orderError) orders = orderRows || [];
+    if (!orderError) {
+      orders = (orderRows || []).map(({ provider_checkout_url: paymentUrl, ...order }) => ({ ...order, paymentUrl }));
+    }
   }
 
   return Response.json({
@@ -30,7 +32,7 @@ export async function GET() {
     authenticated: Boolean(user),
     checkoutEnabled: readiness.ready,
     checkoutMessage: readiness.ready
-      ? 'Güvenli ödeme bağlantısı hazır.'
+      ? 'Shopier üzerinden güvenli ödeme hazır.'
       : 'Ücretli paket satışı kısa süre içinde açılacak.',
     environment: readiness.environment,
     plans: PUBLIC_PLANS,

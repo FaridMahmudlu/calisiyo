@@ -1,16 +1,8 @@
-import { timingSafeEqual } from 'node:crypto';
 import { getBillingReadiness } from '@/lib/billing/config';
-import { getPaymentLinkDetails } from '@/lib/billing/iyzico';
-import { createAdminClient } from '@/lib/supabase/admin';
+import { reconcileShopierOrder } from '@/lib/billing/shopier-service';
 import { createClient } from '@/lib/supabase/server';
 
 export const runtime = 'nodejs';
-
-function sameText(left, right) {
-  const a = Buffer.from(String(left ?? ''), 'utf8');
-  const b = Buffer.from(String(right ?? ''), 'utf8');
-  return a.length === b.length && timingSafeEqual(a, b);
-}
 
 export async function POST(request) {
   const supabase = await createClient();
@@ -19,6 +11,7 @@ export async function POST(request) {
   if (!getBillingReadiness().ready) {
     return Response.json({ ok: false, message: 'Ödeme doğrulaması henüz kullanıma açık değil.' }, { status: 503 });
   }
+
   let body;
   try { body = await request.json(); } catch { body = {}; }
   const orderId = String(body.orderId || '');
@@ -26,57 +19,38 @@ export async function POST(request) {
     return Response.json({ ok: false, message: 'Geçersiz sipariş.' }, { status: 400 });
   }
 
-  const { data: order, error: orderError } = await supabase
+  const { data: order, error } = await supabase
     .from('billing_orders')
-    .select('id,user_id,status,amount,currency,iyzico_conversation_id,iyzico_link_token')
+    .select('id,status,payment_provider')
     .eq('id', orderId)
     .eq('user_id', user.id)
     .maybeSingle();
-  if (orderError || !order) return Response.json({ ok: false, message: 'Sipariş bulunamadı.' }, { status: 404 });
-  if (order.status === 'approved') return Response.json({ ok: true, status: 'approved' });
-  if (!['payment_link_ready', 'awaiting_review'].includes(order.status) || !order.iyzico_link_token) {
+  if (error || !order) return Response.json({ ok: false, message: 'Sipariş bulunamadı.' }, { status: 404 });
+  if (order.payment_provider !== 'shopier') {
+    return Response.json({ ok: false, message: 'Bu eski sipariş otomatik doğrulamaya uygun değil.' }, { status: 409 });
+  }
+  if (order.status === 'approved') {
+    return Response.json({ ok: true, status: 'approved', message: 'Ödemen daha önce doğrulandı.' });
+  }
+  if (!['payment_link_ready', 'awaiting_review'].includes(order.status)) {
     return Response.json({ ok: false, message: 'Bu sipariş doğrulama için uygun değil.' }, { status: 409 });
   }
 
   try {
-    const details = await getPaymentLinkDetails(order.iyzico_link_token, order.iyzico_conversation_id);
-    const sold = Number(details?.soldCount || 0);
-    const providerPrice = Number(details?.price || 0);
-    const matches = sameText(details?.conversationId, order.iyzico_conversation_id)
-      && sameText(details?.currencyCode, order.currency)
-      && Math.abs(providerPrice - Number(order.amount)) < 0.001
-      && sameText(details?.token, order.iyzico_link_token);
-
-    if (!matches) {
-      console.error('iyzico Link verification mismatch', { orderId });
-      return Response.json({ ok: false, message: 'Ödeme bilgileri siparişle eşleşmedi. Destek ekibi inceleyecek.' }, { status: 409 });
+    const result = await reconcileShopierOrder(orderId);
+    if (result.outcome === 'approved') {
+      return Response.json({ ok: true, status: 'approved', message: 'Ödemen doğrulandı ve Plus erişimin etkinleştirildi.' });
     }
-    if (sold < 1) {
-      if (order.status === 'payment_link_ready') await supabase.rpc('claim_billing_payment', { p_order_id: order.id });
-      return Response.json({
-        ok: true,
-        status: 'pending',
-        message: 'Ödeme henüz İyzico tarafından kesinleşmedi. Birkaç dakika sonra yeniden kontrol et.',
-      });
+    if (result.outcome === 'review_required') {
+      return Response.json({ ok: true, status: 'review', message: 'Ödemen güvenli inceleme sırasına alındı.' });
     }
-
-    const admin = createAdminClient();
-    const reference = `iyzilink:${order.iyzico_link_token}:${sold}`;
-    const { data, error } = await admin.rpc('provider_confirm_billing_order', {
-      p_order_id: order.id,
-      p_payment_reference: reference,
-      p_provider_payload: {
-        provider: 'iyzico_link',
-        token: order.iyzico_link_token,
-        soldCount: sold,
-        productStatus: details?.productStatus || null,
-        systemTime: details?.systemTime || null,
-      },
+    return Response.json({
+      ok: true,
+      status: 'pending',
+      message: 'Shopier ödemeyi henüz eşleştirmedi. Birkaç dakika sonra yeniden kontrol edebilirsin.',
     });
-    if (error) throw error;
-    return Response.json({ ok: true, status: 'approved', subscription: data });
-  } catch (error) {
-    console.error('iyzico Link verification failed', { code: error?.code, name: error?.name });
+  } catch (verificationError) {
+    console.error('Shopier reconciliation failed', { code: verificationError?.code || 'provider_unavailable' });
     return Response.json({
       ok: false,
       message: 'Ödeme şu anda doğrulanamadı. Siparişin korunuyor; lütfen biraz sonra tekrar dene.',

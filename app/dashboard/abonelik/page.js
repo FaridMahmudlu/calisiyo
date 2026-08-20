@@ -1,6 +1,5 @@
 'use client';
 
-import Image from 'next/image';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { ArrowUpRight, Check, CheckCircle2, Clock3, CreditCard, ExternalLink, LoaderCircle, LockKeyhole, ReceiptText, ShieldCheck, Sparkles } from 'lucide-react';
 import PageHeader from '@/components/ui/PageHeader';
@@ -10,7 +9,7 @@ import './billing.css';
 
 const STATUS = {
   created: ['Hazırlanıyor', 'muted'], payment_link_ready: ['Ödeme bekleniyor', 'warning'],
-  awaiting_review: ['Doğrulanıyor', 'warning'], approved: ['Etkinleştirildi', 'success'],
+  awaiting_review: ['İnceleme gerekli', 'warning'], approved: ['Etkinleştirildi', 'success'],
   rejected: ['Doğrulanamadı', 'danger'], cancelled: ['İptal edildi', 'muted'],
   refunded: ['İade edildi', 'muted'], expired: ['Süresi doldu', 'muted'],
 };
@@ -124,7 +123,7 @@ export default function BillingPage() {
 
     <section className="billing-orders">
       <div className="billing-section-head"><div><span>Sipariş geçmişi</span><h2>Ödemelerin ve erişim durumun</h2></div><ReceiptText /></div>
-      {billing?.orders?.length ? <div className="billing-order-list">{billing.orders.map((order) => { const meta = STATUS[order.status] || ['Bilinmiyor', 'muted']; const plan = getPublicPlan(order.plan_code); return <article key={order.id}><div><strong>{order.order_number}</strong><span>{plan.name} · {plan.duration || order.billing_period}</span><time>{new Intl.DateTimeFormat('tr-TR', { dateStyle: 'medium', timeStyle: 'short' }).format(new Date(order.created_at))}</time></div><strong>{formatTry(order.amount)}</strong><span className={`order-status is-${meta[1]}`}>{meta[0]}</span>{['payment_link_ready', 'awaiting_review'].includes(order.status) && <div className="order-actions"><a href={order.iyzico_link_url} target="_blank" rel="noopener noreferrer">Ödeme sayfası <ExternalLink /></a><button disabled={busy === order.id} onClick={() => verifyOrder(order.id)}><ShieldCheck /> Ödemeyi doğrula</button></div>}</article>; })}</div> : <div className="billing-empty"><ReceiptText /><strong>Henüz ücretli siparişin yok</strong><p>Satın alma açıldığında sipariş ve ödeme durumu burada görünür.</p></div>}
+      {billing?.orders?.length ? <div className="billing-order-list">{billing.orders.map((order) => { const meta = STATUS[order.status] || ['Bilinmiyor', 'muted']; const plan = getPublicPlan(order.plan_code); return <article key={order.id}><div><strong>{order.order_number}</strong><span>{plan.name} · {plan.duration || order.billing_period}</span><time>{new Intl.DateTimeFormat('tr-TR', { dateStyle: 'medium', timeStyle: 'short' }).format(new Date(order.created_at))}</time></div><strong>{formatTry(order.amount)}</strong><span className={`order-status is-${meta[1]}`}>{meta[0]}</span>{['payment_link_ready', 'awaiting_review'].includes(order.status) && <div className="order-actions">{order.paymentUrl && <a href={order.paymentUrl} target="_blank" rel="noopener noreferrer">Shopier ödeme sayfası <ExternalLink /></a>}<button disabled={busy === order.id} onClick={() => verifyOrder(order.id)}><ShieldCheck /> Ödemeyi doğrula</button></div>}</article>; })}</div> : <div className="billing-empty"><ReceiptText /><strong>Henüz ücretli siparişin yok</strong><p>Satın alma açıldığında sipariş ve ödeme durumu burada görünür.</p></div>}
     </section>
 
     {checkoutOpen && <div className="billing-modal-backdrop" role="presentation" onMouseDown={() => !busy && setCheckoutOpen(false)}><section className="billing-checkout" role="dialog" aria-modal="true" aria-labelledby="checkout-title" onMouseDown={(event) => event.stopPropagation()}>
@@ -134,8 +133,8 @@ export default function BillingPage() {
       <div className="checkout-links"><a href="/on-bilgilendirme" target="_blank">Ön Bilgilendirme</a><a href="/mesafeli-satis" target="_blank">Mesafeli Satış</a><a href="/iptal-iade" target="_blank">İptal ve İade</a><a href="/kvkk" target="_blank">KVKK</a></div>
       <label><input type="checkbox" checked={confirmGuardian} onChange={(event) => setConfirmGuardian(event.target.checked)} /><span>18 yaşındayım veya veli/kanuni temsilci onayıyla işlem yapıyorum; sözleşmeleri okudum.</span></label>
       <label><input type="checkbox" checked={acceptImmediate} onChange={(event) => setAcceptImmediate(event.target.checked)} /><span>Ödeme doğrulandığında dijital hizmetin hemen başlamasını istiyorum.</span></label>
-      <button className="checkout-pay" disabled={!billing?.checkoutEnabled || busy === 'checkout' || !acceptImmediate || !confirmGuardian} onClick={startCheckout}>{busy === 'checkout' ? <LoaderCircle className="is-spinning" /> : <ShieldCheck />} Siparişi onayla</button>
-      <div className="checkout-payment-methods"><Image src="/brand/iyzico-payment-methods.svg" alt="iyzico ile öde, Visa ve Mastercard" width={429} height={32} /><p className="checkout-security"><ShieldCheck /> Kart bilgilerin calisiyo sunucularına girmez.</p></div>
+      <button className="checkout-pay" disabled={!billing?.checkoutEnabled || busy === 'checkout' || !acceptImmediate || !confirmGuardian} onClick={startCheckout}>{busy === 'checkout' ? <LoaderCircle className="is-spinning" /> : <ShieldCheck />} Shopier ile ödemeye geç</button>
+      <div className="checkout-payment-methods"><strong>Shopier üzerinden güvenli ödeme</strong><p className="checkout-security"><ShieldCheck /> Kart bilgilerin yalnızca Shopier ödeme sayfasına girilir; calisiyo sunucularına ulaşmaz.</p></div>
     </section></div>}
   </div>;
 }

@@ -1,76 +1,79 @@
-# calisiyo SaaS yayına alma kontrol listesi
+# calisiyo Shopier yayına alma kontrol listesi
 
-Bu belge, ücretli paketlerin eksik veya güvensiz yapılandırmayla yanlışlıkla açılmasını önlemek için hazırlanmış operasyonel kontrol listesidir. Uygulama, bütün zorunlu değerler sağlanana kadar ücretli ödeme akışını kapalı tutar.
+Ücretli satış, aşağıdaki koşulların tamamı doğrulanana kadar uygulamadaki readiness kapısı tarafından kapalı tutulur. Shopier Personal Access Token ve webhook tokenları hiçbir zaman GitHub'a, tarayıcıya veya `NEXT_PUBLIC_` değişkenine yazılmamalıdır.
 
-## 1. İyzico hesabı ve hukuki kimlik
-
-İyzico Link bireysel veya kurumsal satıcılar tarafından kullanılabilir; ancak calisiyo düzenli dijital hizmet satacağı için ticari ve vergisel statü bir mali müşavir/hukukçu ile doğrulanmalıdır. Uygulamadaki satıcı bilgileri İyzico sözleşmesi ve başvuru bilgileriyle birebir aynı olmalıdır.
-
-Hazırlanacak bilgiler:
+## 1. Hukuki ve mağaza bilgileri
 
 - Resmi ad-soyad veya ticari unvan
-- Vergi kimlik veya MERSİS numarası (uygulanan hukuki statüye göre)
-- İyzico hesabında doğrulanan IBAN ve kimlik/işletme belgeleri
-- Resmi destek e-postası
-- Telefon: `+90 555 049 73 60`
-- Adres: `ATATÜRK MAH. 01117 NOLU SK. ZİRVE SİTESİ A BLOK NO:2 İÇ KAPI NO:11 ŞEHİTKAMİL / GAZİANTEP`
+- Vergi kimlik veya MERSİS numarası (uygulanan statüye göre)
+- Shopier hesabında doğrulanmış mağaza/ödeme bilgileri
+- `calisiyo.destek@gmail.com`, telefon ve açık adres
+- Shopier ürün fiyatlarının sırasıyla 2.000 TRY ve 1.000 TRY olması
 
-İyzico panelinde Link/API ürününün hesap için etkin olduğu doğrulanmalıdır. Production anahtarları yalnız İyzico onayından sonra kullanılmalıdır.
-
-## 2. Vercel production değişkenleri
-
-Aşağıdaki server-only değişkenler Vercel Project Settings → Environment Variables bölümüne eklenmelidir. Anahtarları mesaja, GitHub'a, ekran görüntüsüne veya `NEXT_PUBLIC_` önekli bir değişkene yazmayın.
+## 2. Server-only production değişkenleri
 
 ```text
-CALISIYO_LEGAL_NAME=<İyzico hesabındaki resmi ad/unvan>
+CALISIYO_LEGAL_NAME=<resmi ad/unvan>
 CALISIYO_TAX_OR_MERSIS_NUMBER=<resmi vergi veya MERSİS numarası>
-CALISIYO_SUPPORT_EMAIL=<gerçek destek e-postası>
-IYZICO_ENVIRONMENT=production
-IYZICO_API_URL=https://api.iyzipay.com
-IYZICO_API_KEY=<production API key>
-IYZICO_SECRET_KEY=<production secret key>
+CALISIYO_SUPPORT_EMAIL=calisiyo.destek@gmail.com
+SHOPIER_ACCESS_TOKEN=<Personal Access Token>
+SHOPIER_PRODUCT_ID_2027=<API ürün kimliği>
+SHOPIER_PRODUCT_ID_2028=<API ürün kimliği>
+SHOPIER_PRODUCT_URL_2027=https://www.shopier.com/50041880
+SHOPIER_PRODUCT_URL_2028=https://www.shopier.com/50041981
+SHOPIER_WEBHOOK_SECRETS=<order.created ve refund.updated tokenları, virgülle ayrılmış>
+SHOPIER_PRODUCTS_VALIDATED=true
+SUPABASE_SERVICE_ROLE_KEY=<server-only service role key>
 ```
 
-`SUPABASE_SERVICE_ROLE_KEY` zaten server-only production değişkeni olmalıdır. Değerler eklendikten sonra yeni bir production deployment gerekir.
+Public ürün URL'sindeki sayı API ürün kimliği kabul edilmez. PAT'i yerel `.env.local` içine koyduktan sonra önce:
 
-## 3. İyzico ve site uyumu
+```bash
+npm run shopier:verify
+```
 
-Production öncesinde aşağıdakiler doğrulanmalıdır:
+komutu çalıştırılmalı; yalnız başarılı sonuçtan sonra `SHOPIER_PRODUCTS_VALIDATED=true` yapılmalıdır.
 
-- Ürün ve fiyatlar `/paketler` sayfasında görünür.
-- Gizlilik, KVKK, ön bilgilendirme, mesafeli satış, iptal/iade ve iletişim sayfaları açılır.
-- İletişim ve sözleşmelerde resmi ad, vergi/MERSİS, e-posta, telefon ve adres hatasız görünür.
-- Resmi “iyzico ile Öde”, Visa ve Mastercard logoları footer ve checkout'ta görünür.
-- Site HTTPS kullanır.
-- Aylık ve yıllık fiyat İyzico sayfasına değiştirilmeden aktarılır.
+## 3. Webhooklar
 
-## 4. Sandbox ve production testi
+Production endpoint:
 
-Önce sandbox anahtarlarıyla başarılı, başarısız ve tekrarlanan doğrulama akışları test edilmelidir. Production'a geçerken `IYZICO_ENVIRONMENT`, API URL ve iki anahtar birlikte değiştirilmelidir.
+```text
+POST https://calisiyo-theta.vercel.app/api/billing/shopier/webhook
+```
 
-Doğrulama senaryoları:
+Gerekli olaylar `order.created` ve `refund.updated` olaylarıdır. Önce mevcut kayıtları güvenli biçimde denetle:
 
-1. Ödeme yapılmadan “Ödemeyi doğrula” planı etkinleştirmemelidir.
-2. Ödenen linkin token, conversation id, tutar, para birimi ve satılan adet bilgileri siparişle eşleşmelidir.
-3. Aynı link ikinci kez plan süresi eklememelidir.
-4. Aylık paket 30, yıllık paket 365 gün eklemelidir.
-5. Paralel iki ilk ödeme iki ayrı süre olarak hesaplanmalıdır.
-6. İptal/iade işlemleri sipariş, abonelik ve audit kayıtlarında uzlaştırılmalıdır.
+```bash
+npm run shopier:webhooks
+```
 
-## 5. Açılış kararı
+Eksikler varsa tokenları konsola yazmadan yerel, git-ignore edilmiş dosyaya kaydet:
 
-Checkout yalnız aşağıdakiler tamamlandığında açılmalıdır:
+```bash
+npm run shopier:webhooks -- --create --secret-output .shopier-webhook-tokens.json
+```
 
-- İyzico merchant/Link/API onayı
-- Resmi hukuki ve vergi bilgilerinin doğrulanması
-- Production anahtarları ve destek e-postası
-- Güvenlik concurrency düzeltmeleri ve testleri
-- Bir gerçek düşük tutarlı uçtan uca ödeme ve iade testi
-- Sorumlu kişi tarafından hukuki metinlerin son kontrolü
+Dosyadaki iki token Vercel'de `SHOPIER_WEBHOOK_SECRETS` içine virgülle ayrılarak eklenir; ardından yerel dosya güvenle silinir. Kayıt scripti aynı callback/olay çiftini tekrar oluşturmaz.
+
+## 4. Production kabul testi
+
+1. Ödeme yapılmadan doğrulama Plus erişimi vermemeli.
+2. Webhook imzası bozuk veya eksikse 401 dönmeli ve olay kaydedilmemeli.
+3. Ödenmiş order; ürün, tutar, TRY, adet 1 ve tam normalize e-posta eşleşmesi olmadan etkinleşmemeli.
+4. Aynı Shopier order/webhook ikinci kez süre eklememeli.
+5. `plus_2027` mevcut 19 Ağustos 2027 bitiş politikasını, `plus_2028` tam 6 ay politikasını kullanmalı.
+6. E-posta/ürün/tutar uyuşmazlığı otomatik onay yerine inceleme kuyruğuna düşmeli.
+7. Başarılı tam iade kaydedilmeli; erişim, açık işletme politikası olmadığı için insan incelemesi olmadan azaltılmamalı.
+8. Shopier checkout sayfasına bir gerçek düşük tutarlı uçtan uca ödeme/iade testi yapılmalı.
+
+`plus_2027` için 19 Ağustos 2027 tarihi ürün politikasıdır. Resmi YKS tarihi değişirse backend bitiş tarihi ile müşteri sözleşmeleri aynı yayın değişikliğinde birlikte güncellenmelidir.
 
 Resmi kaynaklar:
 
-- https://docs.iyzico.com/urunler/iyzico-link/iyzico-link-api/
-- https://docs.iyzico.com/en/getting-started/preliminaries/authentication/hmacsha256-auth
-- https://docs.iyzico.com/ek-bilgiler/iyzico-logo-paketi
-- https://www.iyzico.com/destek/yardim-merkezi
+- https://developer.shopier.com/docs/creating-and-using-pats
+- https://developer.shopier.com/reference/get-products
+- https://developer.shopier.com/reference/get-orders
+- https://developer.shopier.com/reference/webhook-configuration
+- https://developer.shopier.com/reference/events-headers-payloads
+- https://developer.shopier.com/reference/the-refund-model

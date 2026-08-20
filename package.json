@@ -6,7 +6,9 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "eslint"
+    "lint": "eslint",
+    "shopier:verify": "node --env-file-if-exists=.env.local scripts/shopier-verify-config.mjs",
+    "shopier:webhooks": "node --env-file-if-exists=.env.local scripts/shopier-webhooks.mjs"
   },
   "dependencies": {
     "@dicebear/core": "10.5.0",
