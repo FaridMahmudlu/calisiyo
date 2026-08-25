@@ -1,8 +1,12 @@
 'use client';
 
 import { useCallback, useEffect, useState } from 'react';
-import { BadgeCheck, CircleDollarSign, Clock3, Copy, Gift, LoaderCircle, ShieldCheck, WalletCards } from 'lucide-react';
+import {
+  BadgeCheck, CircleDollarSign, Clock3, Copy, Gift, LoaderCircle,
+  Send, ShieldCheck, Users, WalletCards,
+} from 'lucide-react';
 import PageHeader from '@/components/ui/PageHeader';
+import { useUser } from '@/app/dashboard/layout';
 import './producer.css';
 
 const money = (minor) => new Intl.NumberFormat('tr-TR', { style: 'currency', currency: 'TRY' }).format(Number(minor || 0) / 100);
@@ -11,16 +15,40 @@ const STATUS = {
   pending: '14 günlük bekleme süresinde', available: 'Ödenebilir', reserved: 'Ödeme için ayrıldı', paid: 'Ödendi',
   cancelled: 'Kazanç dışı', reversed: 'İade nedeniyle geri alındı', review_required: 'İnceleniyor',
 };
+const PLATFORMS = [
+  ['youtube', 'YouTube'],
+  ['instagram', 'Instagram'],
+  ['tiktok', 'TikTok'],
+  ['other', 'Diğer'],
+];
 
 export default function ContentProducerPage() {
+  const { profile } = useUser();
   const [producer, setProducer] = useState(null);
+  const [application, setApplication] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
   const [notice, setNotice] = useState('');
+  const [form, setForm] = useState({
+    platform: 'youtube', profileUrl: '', audienceSize: '', contentFocus: '', motivation: '',
+    preferredPlanCode: profile?.yks_year === 2028 ? 'plus_2028' : 'plus_2027',
+  });
   const load = useCallback(async () => {
     const response = await fetch('/api/content-producer', { cache: 'no-store' });
     const result = await response.json().catch(() => ({}));
     if (!response.ok || !result.ok) throw new Error(result.message || 'Üretici bilgilerin yüklenemedi.');
     setProducer(result.producer);
+    setApplication(result.application || { status: 'none' });
+    if (result.application && !['none', 'withdrawn'].includes(result.application.status)) {
+      setForm({
+        platform: result.application.platform || 'youtube',
+        profileUrl: result.application.profileUrl || '',
+        audienceSize: String(result.application.audienceSize ?? ''),
+        contentFocus: result.application.contentFocus || '',
+        motivation: result.application.motivation || '',
+        preferredPlanCode: result.application.preferredPlanCode || 'plus_2027',
+      });
+    }
   }, []);
   useEffect(() => {
     const timer = window.setTimeout(() => {
@@ -35,8 +63,69 @@ export default function ContentProducerPage() {
     catch { setNotice('Kod kopyalanamadı; seçip manuel olarak kopyalayabilirsin.'); }
   };
 
+  const submitApplication = async (event) => {
+    event.preventDefault();
+    setSaving(true);
+    setNotice('');
+    const response = await fetch('/api/content-producer', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ action: 'submit', ...form, audienceSize: Number(form.audienceSize) }),
+    });
+    const result = await response.json().catch(() => ({}));
+    setSaving(false);
+    if (!response.ok || !result.ok) {
+      setNotice(result.message || 'Başvurun gönderilemedi.');
+      return;
+    }
+    setApplication(result.application);
+    setNotice(result.message);
+  };
+
+  const withdrawApplication = async () => {
+    setSaving(true);
+    setNotice('');
+    const response = await fetch('/api/content-producer', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ action: 'withdraw' }),
+    });
+    const result = await response.json().catch(() => ({}));
+    setSaving(false);
+    if (!response.ok || !result.ok) return setNotice(result.message || 'Başvuru geri çekilemedi.');
+    setApplication(result.application);
+    setNotice(result.message);
+  };
+
   if (loading) return <div className="producer-loading"><LoaderCircle className="is-spinning" /> Üretici panelin hazırlanıyor…</div>;
-  if (!producer || producer.status === 'not_enrolled') return <div className="producer-page"><PageHeader eyebrow="Program" title="İçerik Üretici Programı" description="Bu alan yalnızca programı yönetici tarafından etkinleştirilen hesaplarda açılır." /></div>;
+  if (!producer || producer.status === 'not_enrolled') return <div className="producer-page producer-application-page">
+    <PageHeader eyebrow="İçerik Üretici Programı" title="İçeriğini topluluğa, etkini kazanca dönüştür" description="Calisiyo’yu öğrencilerle buluştur; doğrulanan satışlarını ve kazançlarını şeffaf biçimde takip et." />
+    {notice && <div className="producer-notice" role="status">{notice}<button onClick={() => setNotice('')}>Kapat</button></div>}
+
+    {application?.status === 'pending' ? <section className="producer-application-status is-pending">
+      <span><Clock3 /></span>
+      <div><small>Başvurun alındı</small><h2>İnceleme sırasındasın</h2><p>Profil bağlantın ve içerik alanın yönetici ekibi tarafından inceleniyor. Sonucu bildirimlerinden ve bu sayfadan görebilirsin.</p><em>{application.platform} · {Number(application.audienceSize || 0).toLocaleString('tr-TR')} takipçi/abone</em></div>
+      <button type="button" onClick={withdrawApplication} disabled={saving}>{saving ? 'İşleniyor…' : 'Başvuruyu geri çek'}</button>
+    </section> : <>
+      {application?.status === 'rejected' && <section className="producer-application-status is-rejected"><ShieldCheck /><div><small>Başvurun incelendi</small><h2>Şu anda onaylanmadı</h2><p>{application.reviewNote || 'Bilgilerini güncelleyerek yeniden başvurabilirsin.'}</p></div></section>}
+      <section className="producer-application-intro">
+        <div><span><Gift /> Program avantajları</span><h2>Takipçilerine %20 indirim, sana doğrulanmış satış kazancı</h2><p>Onaylandığında seçilen YKS dönemi için ücretsiz calisiyo plus erişimi ve kişisel Shopier indirim kodun hazırlanır.</p></div>
+        <div className="producer-application-benefits"><article><strong>₺1.000</strong><span>İlk 3 doğrulanmış satışın her biri</span></article><article><strong>₺500</strong><span>4. satıştan itibaren her satış</span></article><article><strong>14 gün</strong><span>İade kontrolünden sonra ödenebilir</span></article></div>
+      </section>
+      <form className="producer-application-form" onSubmit={submitApplication}>
+        <header><div><span>Başvuru formu</span><h2>Seni ve içeriklerini tanıyalım</h2><p>Yalnızca inceleme için gerekli bilgileri istiyoruz. Şifre veya sosyal medya hesabına erişim istemeyiz.</p></div><Users /></header>
+        <fieldset><legend>Ana içerik platformun</legend><div className="producer-choice-grid">{PLATFORMS.map(([value, label]) => <button key={value} type="button" className={form.platform === value ? 'is-selected' : ''} aria-pressed={form.platform === value} onClick={() => setForm((current) => ({ ...current, platform: value }))}>{label}</button>)}</div></fieldset>
+        <div className="producer-form-grid">
+          <label><span>Profil bağlantın</span><input type="url" required maxLength={500} placeholder="https://youtube.com/@kanalin" value={form.profileUrl} onChange={(event) => setForm((current) => ({ ...current, profileUrl: event.target.value }))} /></label>
+          <label><span>Takipçi / abone sayın</span><input type="number" required min="0" max="1000000000" step="1" inputMode="numeric" placeholder="Örn. 12500" value={form.audienceSize} onChange={(event) => setForm((current) => ({ ...current, audienceSize: event.target.value }))} /></label>
+        </div>
+        <label><span>İçerik alanın</span><input required minLength={5} maxLength={300} placeholder="Örn. YKS Matematik, çalışma motivasyonu ve deneme analizi" value={form.contentFocus} onChange={(event) => setForm((current) => ({ ...current, contentFocus: event.target.value }))} /></label>
+        <label><span>Neden programa katılmak istiyorsun?</span><textarea required minLength={20} maxLength={1000} placeholder="Hedef kitleni ve Calisiyo’yu nasıl tanıtacağını kısaca anlat." value={form.motivation} onChange={(event) => setForm((current) => ({ ...current, motivation: event.target.value }))} /></label>
+        <fieldset><legend>Tercih ettiğin ücretsiz Plus dönemi</legend><div className="producer-choice-grid is-plan">{[['plus_2027', 'YKS 2027'], ['plus_2028', 'YKS 2028']].map(([value, label]) => <button key={value} type="button" className={form.preferredPlanCode === value ? 'is-selected' : ''} aria-pressed={form.preferredPlanCode === value} onClick={() => setForm((current) => ({ ...current, preferredPlanCode: value }))}>{label}</button>)}</div></fieldset>
+        <button className="producer-application-submit" disabled={saving}><Send /> {saving ? 'Başvurun gönderiliyor…' : application?.status === 'rejected' ? 'Yeniden başvur' : 'Başvuruyu gönder'}</button>
+        <small className="producer-application-consent">Başvuru otomatik onaylanmaz. Profilin yalnızca program uygunluğu için yönetici tarafından incelenir.</small>
+      </form>
+    </>}
+  </div>;
 
   return <div className="producer-page">
     <PageHeader eyebrow="İçerik Üretici Programı" title="Üret, paylaş, kazancını şeffafça izle" description="Yalnızca doğrulanmış Shopier satışlarından oluşan kazançlarını ve ödeme geçmişini burada görürsün." />

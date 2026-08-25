@@ -294,14 +294,12 @@ export default function DashboardLayout({ children }) {
                 </Link>
               </div>
             )}
-            {contentProducer.status !== 'not_enrolled' && (
-              <div className="nav-section producer-nav-section">
-                {!collapsed && <span className="nav-section-label">Program</span>}
-                <Link href="/dashboard/icerik-ureticisi" title={collapsed ? 'İçerik Üretici Programı' : undefined} className={`nav-link ${pathname === '/dashboard/icerik-ureticisi' ? 'is-active' : ''}`} onClick={() => setSidebarOpen(false)}>
-                  <CircleDollarSign size={19} />{!collapsed && <span>İçerik Üretici Programı</span>}
-                </Link>
-              </div>
-            )}
+            <div className="nav-section producer-nav-section">
+              {!collapsed && <span className="nav-section-label">Program</span>}
+              <Link href="/dashboard/icerik-ureticisi" title={collapsed ? 'İçerik Üretici Programı' : undefined} className={`nav-link ${pathname === '/dashboard/icerik-ureticisi' ? 'is-active' : ''}`} onClick={() => setSidebarOpen(false)}>
+                <CircleDollarSign size={19} />{!collapsed && <span>{contentProducer.status === 'not_enrolled' ? 'İçerik Üreticisi Başvurusu' : 'İçerik Üretici Programı'}</span>}
+              </Link>
+            </div>
           </nav>
 
           <div className="sidebar-account">

@@ -120,12 +120,22 @@ export async function GET(request) {
     if (ledgerError) return Response.json({ ok: false, message: 'Üretici hareketleri yüklenemedi.' }, { status: 502 });
     return Response.json({ ok: true, ledger });
   }
-  const [{ data: producers, error }, { data: users, error: userError }] = await Promise.all([
+  const [
+    { data: producers, error },
+    { data: applications, error: applicationError },
+    { data: users, error: userError },
+  ] = await Promise.all([
     session.supabase.rpc('admin_list_content_producers'),
-    q.length >= 2 ? session.supabase.rpc('admin_list_users', { p_query: q, p_page: 1, p_page_size: 10 }) : Promise.resolve({ data: { items: [] }, error: null }),
+    session.supabase.rpc('admin_list_content_producer_applications'),
+    q.length >= 2 ? session.supabase.rpc('admin_list_users', { p_search: q, p_page: 1, p_page_size: 10 }) : Promise.resolve({ data: { items: [] }, error: null }),
   ]);
-  if (error || userError) return Response.json({ ok: false, message: 'Üretici yönetimi yüklenemedi.' }, { status: 502 });
-  return Response.json({ ok: true, producers: producers || [], users: users?.items || [] });
+  if (error || applicationError || userError) return Response.json({ ok: false, message: 'Üretici yönetimi yüklenemedi.' }, { status: 502 });
+  return Response.json({
+    ok: true,
+    producers: producers || [],
+    applications: applications || [],
+    users: users?.items || [],
+  });
 }
 
 export async function POST(request) {
@@ -137,7 +147,7 @@ export async function POST(request) {
   const action = String(body.action || '');
   try {
     if (action === 'activate') {
-      const { data, error } = await session.supabase.rpc('admin_activate_content_producer', { p_user_id: userId, p_plan_code: body.planCode || 'plus_2027' });
+      const { data, error } = await session.supabase.rpc('admin_activate_content_producer_with_application', { p_user_id: userId, p_plan_code: body.planCode || 'plus_2027' });
       if (error) throw error;
       try {
         const promo = await syncProducerPromo(session, { userId, code: data.code });
@@ -158,6 +168,42 @@ export async function POST(request) {
         console.error('Content producer promo activation sync failed', { code: promoError?.code || promoError?.safeCode || 'unknown' });
         return Response.json({ ok: true, producer: data, message: 'Üretici ve ücretsiz Plus etkinleştirildi. İndirim kodu hazırlanıyor; admin panelinden güvenle tekrar denenebilir.' });
       }
+    }
+    if (action === 'approve_application') {
+      const { data, error } = await session.supabase.rpc('admin_approve_content_producer_application', {
+        p_application_id: body.applicationId,
+        p_plan_code: body.planCode || 'plus_2027',
+      });
+      if (error) throw error;
+      const approvedUserId = data.userId;
+      try {
+        const promo = await syncProducerPromo(session, { userId: approvedUserId, code: data.code });
+        return Response.json({
+          ok: true,
+          producer: promo.producer || data,
+          message: promo.active
+            ? 'Başvuru onaylandı; ücretsiz Plus ve %20 Shopier kodu etkinleştirildi.'
+            : 'Başvuru onaylandı ve ücretsiz Plus etkinleştirildi. Shopier kodu kapsam doğrulamasını bekliyor.',
+        });
+      } catch (promoError) {
+        await session.supabase.rpc('admin_record_content_producer_promo_failure', {
+          p_user_id: approvedUserId,
+          p_code: data.code,
+          p_error_code: safePromoErrorCode(promoError, 'shopier_application_sync_failed'),
+          p_review_required: Boolean(promoError.reviewRequired),
+          p_retry: false,
+        });
+        console.error('Approved producer application promo sync failed', { code: promoError?.code || promoError?.safeCode || 'unknown' });
+        return Response.json({ ok: true, producer: data, message: 'Başvuru onaylandı ve ücretsiz Plus açıldı. İndirim kodu hazırlanıyor.' });
+      }
+    }
+    if (action === 'reject_application') {
+      const { data, error } = await session.supabase.rpc('admin_reject_content_producer_application', {
+        p_application_id: body.applicationId,
+        p_note: String(body.note || ''),
+      });
+      if (error) throw error;
+      return Response.json({ ok: true, application: data, message: 'Başvuru gerekçesiyle birlikte reddedildi.' });
     }
     if (action === 'confirm_code') {
       if (body.scopeConfirmed !== true) return Response.json({ ok: false, message: 'Kodun yalnızca iki calisiyo ürününe uygulandığını Shopier panelinde doğrulamalısın.' }, { status: 400 });

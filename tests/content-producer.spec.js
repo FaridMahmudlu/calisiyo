@@ -32,6 +32,30 @@ test.describe('Content Producer Program security and product contracts', () => {
     expect(migration).not.toContain('grant select on table public.content_producer_code_bindings to authenticated');
   });
 
+  test('producer applications are owner-scoped and approved only through admin RPCs', () => {
+    const migration = read('supabase/migrations/20260825190913_content_producer_applications.sql');
+    expect(migration).toContain('alter table public.content_producer_applications enable row level security;');
+    expect(migration).toContain('revoke all on table public.content_producer_applications from public, anon, authenticated;');
+    expect(migration).toContain('viewer uuid := (select auth.uid())');
+    expect(migration).toContain("role.role in ('admin', 'super_admin')");
+    expect(migration).toContain('admin_approve_content_producer_application');
+    expect(migration).not.toMatch(/grant\s+(?:select|insert|update|delete)[^;]*content_producer_applications[^;]*authenticated/i);
+  });
+
+  test('application entry and admin approval are discoverable and the user search RPC contract matches', () => {
+    const userPage = read('app/dashboard/icerik-ureticisi/page.js');
+    const layout = read('app/dashboard/layout.js');
+    const adminPage = read('app/admin/icerik-ureticileri/page.js');
+    const adminRoute = read('app/api/admin/content-producers/route.js');
+    expect(layout).toContain('İçerik Üreticisi Başvurusu');
+    expect(userPage).toContain('Başvuruyu gönder');
+    expect(userPage).toContain("action: 'submit'");
+    expect(adminPage).toContain('Bekleyen başvurular');
+    expect(adminPage).toContain('Onayla ve programı etkinleştir');
+    expect(adminRoute).toContain("admin_list_users', { p_search: q");
+    expect(adminRoute).not.toContain("admin_list_users', { p_query:");
+  });
+
   test('privileged RPCs authenticate admins and keep financial provider RPCs service-role only', () => {
     const migration = read('supabase/migrations/20260825131940_pricing_and_content_producer_program.sql');
     expect(migration).toContain("r.role in ('admin', 'super_admin')");

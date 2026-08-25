@@ -21,6 +21,8 @@ declare
   producer_user_id uuid;
   admin_email text;
   producer_email text;
+  application jsonb;
+  application_list jsonb;
   activation jsonb;
   rotation jsonb;
   order_row jsonb;
@@ -55,9 +57,49 @@ begin
   end if;
 
   delete from public.user_subscriptions where user_id in (admin_id, producer_user_id);
+  delete from public.content_producer_applications where user_id = producer_user_id;
   delete from public.content_producer_profiles where user_id = producer_user_id;
 
-  activation := public.admin_activate_content_producer(producer_user_id, 'plus_2028');
+  perform set_config('request.jwt.claim.sub', producer_user_id::text, true);
+  perform set_config(
+    'request.jwt.claims',
+    jsonb_build_object('sub', producer_user_id, 'role', 'authenticated')::text,
+    true
+  );
+  application := public.submit_content_producer_application(
+    'youtube',
+    'https://www.youtube.com/@calisiyo-qa',
+    12500,
+    'YKS matematik ve verimli çalışma içerikleri',
+    'Calisiyo öğrencilerine gerçek çalışma deneyimimi anlaşılır şekilde aktarmak istiyorum.',
+    'plus_2028'
+  );
+  if application->>'status' <> 'pending'
+     or application->>'preferredPlanCode' <> 'plus_2028' then
+    raise exception 'Valid producer application was not created';
+  end if;
+
+  perform set_config('request.jwt.claim.sub', admin_id::text, true);
+  perform set_config(
+    'request.jwt.claims',
+    jsonb_build_object('sub', admin_id, 'role', 'service_role')::text,
+    true
+  );
+  application_list := public.admin_list_content_producer_applications();
+  if not exists (
+    select 1
+    from jsonb_array_elements(application_list) item
+    where item->>'id' = application->>'id'
+      and item->>'userId' = producer_user_id::text
+      and item->>'status' = 'pending'
+  ) then
+    raise exception 'Pending producer application was not visible to admin';
+  end if;
+
+  activation := public.admin_approve_content_producer_application(
+    (application->>'id')::uuid,
+    'plus_2028'
+  );
   code_value := activation->>'code';
   if activation->>'status' <> 'active'
      or activation->>'planCode' <> 'plus_2028'
@@ -67,6 +109,14 @@ begin
   end if;
   if exists(select 1 from public.user_roles where user_id = producer_user_id) then
     raise exception 'Producer activation granted an administrative role';
+  end if;
+  if not exists (
+    select 1 from public.content_producer_applications
+    where id = (application->>'id')::uuid
+      and status = 'approved'
+      and reviewed_by = admin_id
+  ) then
+    raise exception 'Approved producer application was not finalized';
   end if;
 
   perform public.admin_confirm_content_producer_code(
