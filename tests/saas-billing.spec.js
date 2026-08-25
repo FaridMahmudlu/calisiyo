@@ -24,9 +24,9 @@ test.describe('SaaS pricing, legal and billing safety', () => {
     await expect(page.getByRole('heading', { name: /İki plan/ })).toBeVisible();
     await expect(page.getByRole('heading', { name: 'calisiyo ücretsiz' })).toBeVisible();
     await expect(page.getByRole('heading', { name: 'calisiyo plus' })).toBeVisible();
-    await expect(page.getByText(/₺2\.000/)).toBeVisible();
+    await expect(page.getByText(/₺2\.500/)).toBeVisible();
     await page.getByRole('button', { name: /YKS 2028/ }).click();
-    await expect(page.getByText(/₺1\.000/)).toBeVisible();
+    await expect(page.getByText(/₺1\.500/)).toBeVisible();
     await expect(page.getByRole('link', { name: 'calisiyo.destek@gmail.com' })).toBeVisible();
     await expect(page.getByText(/Şehit ve gazi yakınlarından/)).toBeVisible();
     await expect(page.getByRole('dialog', { name: 'Çerez tercihleri' })).toBeVisible();

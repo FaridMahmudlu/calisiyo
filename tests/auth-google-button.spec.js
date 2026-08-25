@@ -13,7 +13,7 @@ test.describe('Google Login Button Consistency', () => {
         await expect(socialAuth).toBeVisible();
 
         // Assert that a button with "Google" text or google-identity-button is present and visible
-        const googleBtn = page.locator('.social-auth-button, .google-identity-button');
+        const googleBtn = page.locator('.social-auth-button:visible, .google-identity-button:visible');
         await expect(googleBtn.first()).toBeVisible({ timeout: 5000 });
       }
     });
