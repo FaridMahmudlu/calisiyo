@@ -9,15 +9,16 @@ const root = path.resolve(__dirname, '..');
 async function modules() {
   const core = await import(pathToFileURL(path.join(root, 'lib', 'billing', 'shopier-core.mjs')).href);
   const verification = await import(pathToFileURL(path.join(root, 'lib', 'billing', 'shopier-verification.mjs')).href);
-  return { ...core, ...verification };
+  const producer = await import(pathToFileURL(path.join(root, 'lib', 'billing', 'content-producer.mjs')).href);
+  return { ...core, ...verification, ...producer };
 }
 
 function providerOrder(overrides = {}) {
   return {
     id: 'ord_123', paymentStatus: 'paid', status: 'open', currency: 'TRY',
     dateCreated: '2026-08-20T12:00:00Z',
-    totals: { subtotal: '2000.00', shipping: '0.00', discount: '0.00', total: '2000.00' },
-    lineItems: [{ productId: 'prod_2027', quantity: 1, price: '2000.00', total: '2000.00' }],
+    totals: { subtotal: '2500.00', shipping: '0.00', discount: '0.00', total: '2500.00' },
+    lineItems: [{ productId: 'prod_2027', quantity: 1, price: '2500.00', total: '2500.00' }],
     billingInfo: { email: 'Emir.Kaya@example.com' },
     shippingInfo: { email: 'emir.kaya@example.com' },
     ...overrides,
@@ -59,6 +60,31 @@ test.describe('Shopier server-side billing contracts', () => {
     await expect(slow.listProducts()).rejects.toMatchObject({ code: 'SHOPIER_TIMEOUT' });
   });
 
+  test('client uses official discount-code endpoints without exposing the PAT', async () => {
+    const { createShopierClient } = await modules();
+    const requests = [];
+    const client = createShopierClient({
+      accessToken: 'private-pat',
+      fetchImpl: async (url, options) => {
+        requests.push({ url: String(url), options });
+        return new Response('{}', { status: 200, headers: { 'content-type': 'application/json' } });
+      },
+    });
+    await client.listDiscountCodes({ limit: 10 });
+    await client.getDiscountCode('discount_1');
+    await client.createDiscountCode({ code: 'EMIRKAYA', type: 'percent', percentOff: 20 });
+    await client.updateDiscountCode('discount_1', { isActive: false });
+    await client.listAutomaticDiscounts({ limit: 10 });
+    expect(requests.map((item) => [new URL(item.url).pathname, item.options.method])).toEqual([
+      ['/v1/discounts/codes', 'GET'],
+      ['/v1/discounts/codes/discount_1', 'GET'],
+      ['/v1/discounts/codes', 'POST'],
+      ['/v1/discounts/codes/discount_1', 'PUT'],
+      ['/v1/discounts/automatic', 'GET'],
+    ]);
+    expect(requests.every((item) => !item.url.includes('private-pat'))).toBe(true);
+  });
+
   test('webhook HMAC accepts valid hex/base64 and rejects missing, malformed, or modified bodies', async () => {
     const { verifyShopierWebhookSignature } = await modules();
     const rawBody = Buffer.from('{"id":"ord_123"}');
@@ -74,33 +100,69 @@ test.describe('Shopier server-side billing contracts', () => {
 
   test('authoritative order validation is exact and fail-closed', async () => {
     const { validateShopierOrder } = await modules();
-    const expected = { productId: 'prod_2027', amount: '2000.00', customerEmail: 'emir.kaya@example.com' };
+    const expected = { productId: 'prod_2027', amount: '2500.00', customerEmail: 'emir.kaya@example.com' };
     expect(validateShopierOrder(providerOrder(), expected)).toMatchObject({ ok: true, reason: null });
     expect(validateShopierOrder(providerOrder({ paymentStatus: 'unpaid' }), expected).reason).toBe('payment_not_paid');
     expect(validateShopierOrder(providerOrder({ currency: 'USD' }), expected).reason).toBe('currency_mismatch');
-    expect(validateShopierOrder(providerOrder({ totals: { subtotal: '1999.00', shipping: '0.00', discount: '0.00', total: '1999.00' } }), expected).reason).toBe('amount_mismatch');
-    expect(validateShopierOrder(providerOrder({ lineItems: [{ productId: 'other', quantity: 1, price: '2000.00', total: '2000.00' }] }), expected).reason).toBe('product_mismatch');
-    expect(validateShopierOrder(providerOrder({ lineItems: [{ productId: 'prod_2027', quantity: 2, price: '1000.00', total: '2000.00' }] }), expected).reason).toBe('quantity_mismatch');
+    expect(validateShopierOrder(providerOrder({ totals: { subtotal: '2499.00', shipping: '0.00', discount: '0.00', total: '2499.00' } }), expected).reason).toBe('amount_mismatch');
+    expect(validateShopierOrder(providerOrder({ lineItems: [{ productId: 'other', quantity: 1, price: '2500.00', total: '2500.00' }] }), expected).reason).toBe('product_mismatch');
+    expect(validateShopierOrder(providerOrder({ lineItems: [{ productId: 'prod_2027', quantity: 2, price: '1250.00', total: '2500.00' }] }), expected).reason).toBe('quantity_mismatch');
     expect(validateShopierOrder(providerOrder({ billingInfo: { email: 'other@example.com' }, shippingInfo: { email: 'other@example.com' } }), expected).reason).toBe('customer_email_mismatch');
     expect(validateShopierOrder(providerOrder({ lineItems: [providerOrder().lineItems[0], providerOrder().lineItems[0]] }), expected).reason).toBe('line_item_count_mismatch');
+  });
+
+  test('recognized 20% producer discount passes and unknown or malformed discounts fail closed', async () => {
+    const { validateShopierOrder } = await modules();
+    const discounted = providerOrder({
+      totals: { subtotal: '2500.00', shipping: '0.00', discount: '500.00', total: '2000.00' },
+      discounts: [{ id: 'discount_1', method: 'discountCode' }],
+    });
+    const expected = {
+      productId: 'prod_2027', listAmount: '2500.00', amount: '2000.00',
+      providerDiscountId: 'discount_1', customerEmail: 'emir.kaya@example.com',
+    };
+    expect(validateShopierOrder(discounted, expected)).toMatchObject({ ok: true, reason: null });
+    expect(validateShopierOrder(discounted, { ...expected, providerDiscountId: 'unknown' }).reason).toBe('discount_binding_mismatch');
+    expect(validateShopierOrder({ ...discounted, discounts: [{ id: 'discount_1', method: 'automaticDiscount' }] }, expected).reason).toBe('discount_method_mismatch');
+    expect(validateShopierOrder({ ...discounted, discounts: [{ id: 'discount_1', method: 'discountCode' }, { id: 'discount_2', method: 'discountCode' }] }, expected).reason).toBe('discount_count_mismatch');
+    expect(validateShopierOrder(providerOrder({ totals: { subtotal: '2500.00', shipping: '0.00', discount: '250.00', total: '2250.00' }, discounts: [{ id: 'discount_1', method: 'discountCode' }] }), expected).reason).toBe('amount_mismatch');
+  });
+
+  test('producer business rules keep promo payload, 20% arithmetic and reward tiers exact', async () => {
+    const {
+      isExactProducerDiscount, producerRewardMinor,
+      shopierProducerDiscountPayload, validShopierProducerDiscount,
+    } = await modules();
+    const payload = shopierProducerDiscountPayload('emir2027');
+    expect(payload).toEqual({
+      code: 'EMIR2027', type: 'percent', percentOff: '20', amountMinimum: '0.00',
+      currency: 'TRY', numAvailable: 1000000, expiresAt: '2028-06-25+0300',
+    });
+    expect(validShopierProducerDiscount({ ...payload, id: 'discount_1' }, 'EMIR2027')).toBe(true);
+    expect(isExactProducerDiscount({ listMinor: 250000, paidMinor: 200000, discountMinor: 50000 })).toBe(true);
+    expect(isExactProducerDiscount({ listMinor: 150000, paidMinor: 120000, discountMinor: 30000 })).toBe(true);
+    expect(isExactProducerDiscount({ listMinor: 150000, paidMinor: 119999, discountMinor: 30001 })).toBe(false);
+    expect([1, 2, 3, 4, 5].map(producerRewardMinor)).toEqual([100000, 100000, 100000, 50000, 50000]);
+    expect(producerRewardMinor(0)).toBeNull();
+    expect(() => shopierProducerDiscountPayload('x')).toThrow('invalid_producer_code');
   });
 
   test('both products and refund states preserve exact money semantics', async () => {
     const { validateShopierOrder, validateShopierRefund } = await modules();
     const order2028 = providerOrder({
       id: 'ord_2028',
-      totals: { subtotal: '1000.00', shipping: '0.00', discount: '0.00', total: '1000.00' },
-      lineItems: [{ productId: 'prod_2028', quantity: 1, price: '1000.00', total: '1000.00' }],
+      totals: { subtotal: '1500.00', shipping: '0.00', discount: '0.00', total: '1500.00' },
+      lineItems: [{ productId: 'prod_2028', quantity: 1, price: '1500.00', total: '1500.00' }],
     });
     expect(validateShopierOrder(order2028, {
-      productId: 'prod_2028', amount: 1000, customerEmail: 'emir.kaya@example.com',
+      productId: 'prod_2028', amount: 1500, customerEmail: 'emir.kaya@example.com',
     }).ok).toBe(true);
-    const fullRefund = { id: 'ref_1', orderId: 'ord_123', type: 'full', status: 'succeeded', currency: 'TRY', total: '2000.00' };
-    expect(validateShopierRefund(fullRefund, { amount: 2000 }).ok).toBe(true);
-    expect(validateShopierRefund({ ...fullRefund, status: 'failed' }, { amount: 2000 }).ok).toBe(true);
-    expect(validateShopierRefund({ ...fullRefund, total: '1999.00' }, { amount: 2000 }).reason).toBe('refund_total_mismatch');
-    expect(validateShopierRefund({ ...fullRefund, type: 'partial', total: '2000.01' }, { amount: 2000 }).reason).toBe('refund_amount_exceeds_order');
-    expect(validateShopierRefund({ ...fullRefund, type: 'partial', total: '0.00' }, { amount: 2000 }).reason).toBe('refund_amount_invalid');
+    const fullRefund = { id: 'ref_1', orderId: 'ord_123', type: 'full', status: 'succeeded', currency: 'TRY', total: '2500.00' };
+    expect(validateShopierRefund(fullRefund, { amount: 2500 }).ok).toBe(true);
+    expect(validateShopierRefund({ ...fullRefund, status: 'failed' }, { amount: 2500 }).ok).toBe(true);
+    expect(validateShopierRefund({ ...fullRefund, total: '2499.00' }, { amount: 2500 }).reason).toBe('refund_total_mismatch');
+    expect(validateShopierRefund({ ...fullRefund, type: 'partial', total: '2500.01' }, { amount: 2500 }).reason).toBe('refund_amount_exceeds_order');
+    expect(validateShopierRefund({ ...fullRefund, type: 'partial', total: '0.00' }, { amount: 2500 }).reason).toBe('refund_amount_invalid');
   });
 
   test('active routes contain no client-side secret or iyzico dependency', () => {

@@ -1,0 +1,206 @@
+import { createClient } from '@/lib/supabase/server';
+import { configuredShopierClient, getShopierConfiguration } from '@/lib/billing/providers/shopier';
+import { shopierProducerDiscountPayload, validShopierProducerDiscount } from '@/lib/billing/content-producer.mjs';
+
+async function findShopierDiscount(client, expectedCode) {
+  for (let page = 1; page <= 5; page += 1) {
+    const response = await client.listDiscountCodes({ limit: 50, page, sort: 'dateDesc' });
+    const discounts = Array.isArray(response) ? response : [];
+    const match = discounts.find((discount) => String(discount?.code || '').toUpperCase() === expectedCode);
+    if (match) return match;
+    if (discounts.length < 50) return null;
+  }
+  return null;
+}
+
+async function syncProducerPromo(session, { userId, code, retry = false }) {
+  const config = getShopierConfiguration();
+  if (!config.promoScopeVerified) return { active: false, manualRequired: true, reason: 'scope_not_verified' };
+  const expectedCode = String(code || '').trim().toUpperCase();
+  const client = configuredShopierClient({ timeoutMs: 10_000 });
+  let discount = await findShopierDiscount(client, expectedCode);
+  let created = false;
+  if (discount && !validShopierProducerDiscount(discount, expectedCode)) {
+    const failure = new Error('promo_conflict');
+    failure.safeCode = 'promo_conflict';
+    failure.reviewRequired = true;
+    throw failure;
+  }
+  if (!discount) {
+    try {
+      discount = await client.createDiscountCode(shopierProducerDiscountPayload(expectedCode));
+      created = true;
+    } catch (error) {
+      // A timed-out POST may still have reached Shopier. Read before any retry.
+      discount = await findShopierDiscount(client, expectedCode);
+      if (!discount) throw error;
+    }
+  }
+  if (!discount?.id || !validShopierProducerDiscount(discount, expectedCode)) {
+    const failure = new Error('promo_response_mismatch');
+    failure.safeCode = 'promo_response_mismatch';
+    failure.reviewRequired = true;
+    throw failure;
+  }
+  const { data, error } = await session.supabase.rpc('admin_confirm_content_producer_code', {
+    p_user_id: userId,
+    p_provider_discount_id: String(discount.id),
+    p_scope_confirmed: true,
+    p_sync_action: retry ? 'retry' : (created ? 'created' : 'confirmed'),
+  });
+  if (error) throw error;
+  return { active: true, producer: data, created, providerDiscountId: String(discount.id) };
+}
+
+async function adminSession() {
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return { error: Response.json({ ok: false, message: 'Oturum gerekli.' }, { status: 401 }) };
+  const { data: role } = await supabase.rpc('current_admin_role');
+  if (!['admin', 'super_admin'].includes(role)) return { error: Response.json({ ok: false, message: 'Yönetici yetkisi gerekli.' }, { status: 403 }) };
+  return { supabase, user, role };
+}
+
+export async function GET(request) {
+  const session = await adminSession();
+  if (session.error) return session.error;
+  const params = new URL(request.url).searchParams;
+  const q = params.get('q')?.trim() || '';
+  const ledgerUserId = params.get('ledgerUserId')?.trim() || '';
+  if (ledgerUserId) {
+    if (!/^[0-9a-f-]{36}$/i.test(ledgerUserId)) {
+      return Response.json({ ok: false, message: 'Geçerli bir üretici seçmelisin.' }, { status: 400 });
+    }
+    const { data: ledger, error: ledgerError } = await session.supabase
+      .rpc('admin_content_producer_ledger', { p_user_id: ledgerUserId });
+    if (ledgerError) return Response.json({ ok: false, message: 'Üretici hareketleri yüklenemedi.' }, { status: 502 });
+    return Response.json({ ok: true, ledger });
+  }
+  const [{ data: producers, error }, { data: users, error: userError }] = await Promise.all([
+    session.supabase.rpc('admin_list_content_producers'),
+    q.length >= 2 ? session.supabase.rpc('admin_list_users', { p_query: q, p_page: 1, p_page_size: 10 }) : Promise.resolve({ data: { items: [] }, error: null }),
+  ]);
+  if (error || userError) return Response.json({ ok: false, message: 'Üretici yönetimi yüklenemedi.' }, { status: 502 });
+  return Response.json({ ok: true, producers: producers || [], users: users?.items || [] });
+}
+
+export async function POST(request) {
+  const session = await adminSession();
+  if (session.error) return session.error;
+  let body = {};
+  try { body = await request.json(); } catch {}
+  const userId = String(body.userId || '');
+  const action = String(body.action || '');
+  try {
+    if (action === 'activate') {
+      const { data, error } = await session.supabase.rpc('admin_activate_content_producer', { p_user_id: userId, p_plan_code: body.planCode || 'plus_2027' });
+      if (error) throw error;
+      try {
+        const promo = await syncProducerPromo(session, { userId, code: data.code });
+        return Response.json({
+          ok: true, producer: promo.producer || data,
+          message: promo.active
+            ? 'İçerik üreticisi, ücretsiz Plus grant’i ve %20 Shopier kodu etkinleştirildi.'
+            : 'İçerik üreticisi ve ücretsiz Plus grant’i etkinleştirildi. Shopier kodu manuel kapsam doğrulaması bekliyor.',
+        });
+      } catch (promoError) {
+        await session.supabase.rpc('admin_record_content_producer_promo_failure', {
+          p_user_id: userId,
+          p_code: data.code,
+          p_error_code: String(promoError.safeCode || promoError.code || 'shopier_sync_failed').toLowerCase().replace(/[^a-z0-9_:-]/g, '_').slice(0, 80),
+          p_review_required: Boolean(promoError.reviewRequired),
+          p_retry: false,
+        });
+        console.error('Content producer promo activation sync failed', { code: promoError?.code || promoError?.safeCode || 'unknown' });
+        return Response.json({ ok: true, producer: data, message: 'Üretici ve ücretsiz Plus etkinleştirildi. İndirim kodu hazırlanıyor; admin panelinden güvenle tekrar denenebilir.' });
+      }
+    }
+    if (action === 'confirm_code') {
+      if (body.scopeConfirmed !== true) return Response.json({ ok: false, message: 'Kodun yalnızca iki calisiyo ürününe uygulandığını Shopier panelinde doğrulamalısın.' }, { status: 400 });
+      const providerDiscountId = String(body.providerDiscountId || '').trim();
+      const { data: producerRows, error: producerError } = await session.supabase.rpc('admin_list_content_producers');
+      if (producerError) throw producerError;
+      const expectedProducer = (producerRows || []).find((item) => item.userId === userId);
+      if (!expectedProducer?.code || expectedProducer.code !== String(body.code || '').trim()) {
+        return Response.json({ ok: false, message: 'Üretici kodu güncel kayıtla eşleşmiyor. Sayfayı yenileyip tekrar dene.' }, { status: 409 });
+      }
+      const shopier = configuredShopierClient({ timeoutMs: 10_000 });
+      const discount = await shopier.getDiscountCode(providerDiscountId);
+      const percent = Number(discount?.percentOff);
+      if (!validShopierProducerDiscount(discount, String(body.code || '').toUpperCase()) || percent !== 20) {
+        return Response.json({ ok: false, message: 'Shopier indirim kaydı kod, oran veya para birimiyle eşleşmiyor.' }, { status: 400 });
+      }
+      const { data, error } = await session.supabase.rpc('admin_confirm_content_producer_code', {
+        p_user_id: userId, p_provider_discount_id: providerDiscountId, p_scope_confirmed: true, p_sync_action: 'confirmed',
+      });
+      if (error) throw error;
+      return Response.json({ ok: true, producer: data, message: 'İndirim kodu doğrulandı ve etkinleştirildi.' });
+    }
+    if (action === 'sync_code') {
+      const code = String(body.code || '').trim().toUpperCase();
+      try {
+        const promo = await syncProducerPromo(session, { userId, code, retry: true });
+        if (!promo.active) return Response.json({ ok: false, message: 'Shopier ürün kapsamı henüz güvenli biçimde doğrulanmadı.' }, { status: 409 });
+        return Response.json({ ok: true, producer: promo.producer, message: 'Shopier indirim kodu güvenle senkronize edildi.' });
+      } catch (promoError) {
+        await session.supabase.rpc('admin_record_content_producer_promo_failure', {
+          p_user_id: userId,
+          p_code: code,
+          p_error_code: String(promoError.safeCode || promoError.code || 'shopier_sync_failed').toLowerCase().replace(/[^a-z0-9_:-]/g, '_').slice(0, 80),
+          p_review_required: Boolean(promoError.reviewRequired),
+          p_retry: true,
+        });
+        throw promoError;
+      }
+    }
+    if (action === 'suspend') {
+      const { data, error } = await session.supabase.rpc('admin_suspend_content_producer', { p_user_id: userId, p_reason: String(body.reason || '') });
+      if (error) throw error;
+      return Response.json({ ok: true, producer: data, message: data?.externalDisableRequired ? 'Program askıya alındı. Shopier kodunu panelden de pasifleştir.' : 'Program askıya alındı.' });
+    }
+    if (action === 'rotate_code') {
+      const { data, error } = await session.supabase.rpc('admin_rotate_content_producer_code', {
+        p_user_id: userId, p_reason: String(body.reason || ''),
+      });
+      if (error) throw error;
+      return Response.json({
+        ok: true,
+        producer: data,
+        message: data?.externalDisableRequired
+          ? 'Yeni kod oluşturuldu. Eski Shopier kodunu pasifleştirip yeni kodu doğrulamalısın.'
+          : 'Yeni kod oluşturuldu; Shopier doğrulaması bekleniyor.',
+      });
+    }
+    if (action === 'create_payout') {
+      const { data, error } = await session.supabase.rpc('admin_create_content_producer_payout', { p_user_id: userId, p_note: body.note || null });
+      if (error) throw error;
+      return Response.json({ ok: true, payout: data, message: 'Ödenebilir kazançlar payout için ayrıldı.' });
+    }
+    if (action === 'mark_paid') {
+      const { data, error } = await session.supabase.rpc('admin_mark_content_producer_payout_paid', { p_payout_id: body.payoutId, p_reference: String(body.reference || '') });
+      if (error) throw error;
+      return Response.json({ ok: true, payout: data, message: 'Banka transferi ödendi olarak kaydedildi.' });
+    }
+    if (action === 'adjustment') {
+      const amountMinor = Number(body.amountMinor);
+      if (!Number.isSafeInteger(amountMinor)) {
+        return Response.json({ ok: false, message: 'Geçerli bir düzeltme tutarı girmelisin.' }, { status: 400 });
+      }
+      const { data, error } = await session.supabase.rpc('admin_create_content_producer_adjustment', {
+        p_user_id: userId, p_amount_minor: amountMinor, p_reason: String(body.reason || ''),
+      });
+      if (error) throw error;
+      return Response.json({ ok: true, adjustment: data, message: 'Finansal düzeltme audit kaydıyla eklendi.' });
+    }
+    return Response.json({ ok: false, message: 'Geçersiz işlem.' }, { status: 400 });
+  } catch (error) {
+    console.error('Content producer admin action failed', { action, code: error?.code || 'unknown' });
+    const safeMessages = {
+      '42501': 'Bu işlem için yönetici yetkisi gerekli.',
+      'P0002': 'İçerik üreticisi veya ilgili kayıt bulunamadı.',
+      '22023': 'İşlem bilgileri geçersiz veya mevcut durumla uyumsuz.',
+      '23505': 'Bu işlem daha önce tamamlanmış.',
+    };
+    return Response.json({ ok: false, message: safeMessages[error?.code] || 'İşlem şu anda tamamlanamadı. Lütfen tekrar dene.' }, { status: 400 });
+  }
+}

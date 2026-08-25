@@ -11,7 +11,9 @@ const FILTERS = [
 ];
 const formatMoney = (value, currency = 'TRY') => new Intl.NumberFormat('tr-TR', { style: 'currency', currency }).format(Number(value || 0));
 const formatDate = (value) => value ? new Intl.DateTimeFormat('tr-TR', { dateStyle: 'medium', timeStyle: 'short' }).format(new Date(value)) : '—';
-const periodLabel = (value) => value === 'yks_2027' ? '19 Ağustos 2027’ye kadar' : value === 'six_months' ? '6 ay' : value;
+const periodLabel = (value) => value === 'yks_2027'
+  ? '19 Ağustos 2027’ye kadar'
+  : value === 'yks_2028' ? '25 Haziran 2028’e kadar' : value === 'six_months' ? 'Tarihsel 6 aylık dönem' : value;
 
 export default function AdminPaymentsPage() {
   const supabase = useMemo(() => createClient(), []);

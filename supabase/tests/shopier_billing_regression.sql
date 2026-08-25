@@ -20,9 +20,7 @@ declare
   viewer uuid := (select auth.uid());
   viewer_email text;
   order_number text := 'CAL-19990101-' || upper(substr(replace(gen_random_uuid()::text, '-', ''), 1, 8));
-  second_order_number text := 'CAL-19990102-' || upper(substr(replace(gen_random_uuid()::text, '-', ''), 1, 8));
   created jsonb;
-  second_created jsonb;
   confirmed jsonb;
   duplicate_confirm jsonb;
   first_claim jsonb;
@@ -48,8 +46,8 @@ begin
 
   select period_start, period_end into start_at, end_at
   from public.calculate_purchased_access_period(viewer, 'plus_2028', timestamptz '2026-08-20 12:00:00+03');
-  if end_at <> timestamptz '2027-02-20 12:00:00+03' then
-    raise exception 'plus_2028 is not exactly six calendar months';
+  if end_at <> timestamptz '2028-06-25 23:59:59+03' then
+    raise exception 'plus_2028 no longer uses the fixed YKS 2028 cutoff';
   end if;
 
   insert into public.user_subscriptions(
@@ -74,7 +72,9 @@ begin
     jsonb_build_object(
       'provider', 'shopier', 'providerOrderId', 'qa_order_2027',
       'productId', 'qa_product_2027', 'customerEmail', viewer_email,
-      'currency', 'TRY', 'paymentStatus', 'paid', 'amount', '2000.00', 'quantity', 1
+      'currency', 'TRY', 'paymentStatus', 'paid', 'listAmount', '2500.00',
+      'amount', '2500.00', 'discountAmount', '0.00', 'quantity', 1,
+      'paidAt', '2026-08-20T12:00:00+03'
     )
   );
   if confirmed->>'status' <> 'approved' then raise exception 'Valid Shopier payment was not approved'; end if;
@@ -90,7 +90,9 @@ begin
     jsonb_build_object(
       'provider', 'shopier', 'providerOrderId', 'qa_order_2027',
       'productId', 'qa_product_2027', 'customerEmail', viewer_email,
-      'currency', 'TRY', 'paymentStatus', 'paid', 'amount', '2000.00', 'quantity', 1
+      'currency', 'TRY', 'paymentStatus', 'paid', 'listAmount', '2500.00',
+      'amount', '2500.00', 'discountAmount', '0.00', 'quantity', 1,
+      'paidAt', '2026-08-20T12:00:00+03'
     )
   );
   if not coalesce((duplicate_confirm->>'alreadyProcessed')::boolean, false)
@@ -98,25 +100,19 @@ begin
     raise exception 'Duplicate provider confirmation extended access';
   end if;
 
-  second_created := public.create_shopier_billing_order(
-    viewer, second_order_number, 'plus_2027', 'yks_2027', 'qa_product_2027',
-    'https://www.shopier.com/50041880',
-    '{"on_bilgilendirme":"qa","mesafeli_satis":"qa","iptal_iade":"qa","kvkk":"qa"}'::jsonb,
-    repeat('b', 64), true, true
-  );
+  rejected := false;
   begin
-    perform public.provider_confirm_billing_order(
-      (second_created->>'id')::uuid,
-      'shopier:qa_order_2027',
-      jsonb_build_object(
-        'provider', 'shopier', 'providerOrderId', 'qa_order_2027',
-        'productId', 'qa_product_2027', 'customerEmail', viewer_email,
-        'currency', 'TRY', 'paymentStatus', 'paid', 'amount', '2000.00', 'quantity', 1
-      )
+    perform public.create_shopier_billing_order(
+      viewer,
+      'CAL-19990102-' || upper(substr(replace(gen_random_uuid()::text, '-', ''), 1, 8)),
+      'plus_2027', 'yks_2027', 'qa_product_2027',
+      'https://www.shopier.com/50041880',
+      '{"on_bilgilendirme":"qa","mesafeli_satis":"qa","iptal_iade":"qa","kvkk":"qa"}'::jsonb,
+      repeat('b', 64), true, true
     );
-  exception when unique_violation then rejected := true;
+  exception when check_violation then rejected := true;
   end;
-  if not rejected then raise exception 'One Shopier order activated two internal orders'; end if;
+  if not rejected then raise exception 'Duplicate fixed-term purchase was accepted'; end if;
 
   first_claim := public.claim_shopier_webhook_event(
     'qa_event_' || replace(gen_random_uuid()::text, '-', ''), 'order.created',
@@ -134,14 +130,14 @@ begin
   rejected := false;
   begin
     perform public.reconcile_shopier_refund(
-      (created->>'id')::uuid, 'qa_refund_oversized', 'partial', 'succeeded', 2000.01, 'TRY'
+      (created->>'id')::uuid, 'qa_refund_oversized', 'partial', 'succeeded', 2500.01, 'TRY'
     );
   exception when invalid_parameter_value then rejected := true;
   end;
   if not rejected then raise exception 'Oversized partial refund was accepted'; end if;
 
   failed_refund := public.reconcile_shopier_refund(
-    (created->>'id')::uuid, 'qa_refund_1', 'full', 'failed', 2000, 'TRY'
+    (created->>'id')::uuid, 'qa_refund_1', 'full', 'failed', 2500, 'TRY'
   );
   if failed_refund->>'status' <> 'approved'
      or (select current_period_end from public.user_subscriptions where user_id = viewer) <> subscription_end then
@@ -149,10 +145,10 @@ begin
   end if;
 
   successful_refund := public.reconcile_shopier_refund(
-    (created->>'id')::uuid, 'qa_refund_1', 'full', 'succeeded', 2000, 'TRY'
+    (created->>'id')::uuid, 'qa_refund_1', 'full', 'succeeded', 2500, 'TRY'
   );
   duplicate_refund := public.reconcile_shopier_refund(
-    (created->>'id')::uuid, 'qa_refund_1', 'full', 'succeeded', 2000, 'TRY'
+    (created->>'id')::uuid, 'qa_refund_1', 'full', 'succeeded', 2500, 'TRY'
   );
   if successful_refund->>'status' <> 'refunded'
      or not coalesce((successful_refund->>'requiresReview')::boolean, false)

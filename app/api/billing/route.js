@@ -16,7 +16,7 @@ export async function GET() {
       supabase.rpc('current_plan_details'),
       supabase
         .from('billing_orders')
-        .select('id,order_number,plan_code,billing_period,amount,currency,status,payment_provider,provider_checkout_url,provider_status,payment_claimed_at,verified_at,created_at,decision_note')
+        .select('id,order_number,plan_code,billing_period,amount,list_amount,paid_amount,verified_discount_amount,currency,status,payment_provider,provider_checkout_url,provider_status,payment_claimed_at,verified_at,created_at,decision_note')
         .eq('user_id', user.id)
         .order('created_at', { ascending: false })
         .limit(20),

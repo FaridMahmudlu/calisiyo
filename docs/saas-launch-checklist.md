@@ -8,7 +8,7 @@
 - Vergi kimlik veya MERSİS numarası (uygulanan statüye göre)
 - Shopier hesabında doğrulanmış mağaza/ödeme bilgileri
 - `calisiyo.destek@gmail.com`, telefon ve açık adres
-- Shopier ürün fiyatlarının sırasıyla 2.000 TRY ve 1.000 TRY olması
+- Shopier ürün fiyatlarının sırasıyla 2.500 TRY ve 1.500 TRY olması
 
 ## 2. Server-only production değişkenleri
 
@@ -23,6 +23,7 @@ SHOPIER_PRODUCT_URL_2027=https://www.shopier.com/50041880
 SHOPIER_PRODUCT_URL_2028=https://www.shopier.com/50041981
 SHOPIER_WEBHOOK_SECRETS=<order.created ve refund.updated tokenları, virgülle ayrılmış>
 SHOPIER_PRODUCTS_VALIDATED=true
+SHOPIER_PROMO_SCOPE_VERIFIED=true
 SUPABASE_SERVICE_ROLE_KEY=<server-only service role key>
 ```
 
@@ -62,7 +63,7 @@ Dosyadaki iki token Vercel'de `SHOPIER_WEBHOOK_SECRETS` içine virgülle ayrıla
 2. Webhook imzası bozuk veya eksikse 401 dönmeli ve olay kaydedilmemeli.
 3. Ödenmiş order; ürün, tutar, TRY, adet 1 ve tam normalize e-posta eşleşmesi olmadan etkinleşmemeli.
 4. Aynı Shopier order/webhook ikinci kez süre eklememeli.
-5. `plus_2027` mevcut 19 Ağustos 2027 bitiş politikasını, `plus_2028` tam 6 ay politikasını kullanmalı.
+5. `plus_2027` 19 Ağustos 2027, `plus_2028` 25 Haziran 2028 sabit bitiş politikasını kullanmalı.
 6. E-posta/ürün/tutar uyuşmazlığı otomatik onay yerine inceleme kuyruğuna düşmeli.
 7. Başarılı tam iade kaydedilmeli; erişim, açık işletme politikası olmadığı için insan incelemesi olmadan azaltılmamalı.
 8. Shopier checkout sayfasına bir gerçek düşük tutarlı uçtan uca ödeme/iade testi yapılmalı.

@@ -14,15 +14,15 @@ Bu belge, calisiyo paketlerinin neden bu fiyat ve limitlerle konumlandırıldı�
 
 ## calisiyo konumlandırması
 
-calisiyo canlı öğretmen veya birebir insan koçu satmaz. Temel değer; planlama, çalışma süresi, Pomodoro, konu ve tekrar takibi, deneme analizi, gerçek zamanlı çalışma sınıfları ve kullanıcının kendi verilerinden üretilen ilerleme görünümüdür. Bu nedenle fiyatlar insan destekli koçluk paketlerinden belirgin şekilde düşük, benzer self-servis uygulama aralığıyla uyumlu tutulmuştur.
+calisiyo canlı öğretmen veya birebir insan koçu satmaz. Temel değer; planlama, çalışma süresi, kronometre, konu ve tekrar takibi, deneme analizi, gerçek zamanlı çalışma sınıfları ve kullanıcının kendi verilerinden üretilen ilerleme görünümüdür. Bu nedenle fiyatlar insan destekli koçluk paketlerinden belirgin şekilde düşük tutulmuştur.
 
-| Plan | 30 gün | 365 gün | Yıllık avantaj | Rol |
-| --- | ---: | ---: | ---: | --- |
-| Başlangıç | Ücretsiz | Ücretsiz | — | Ürünü risksiz deneme ve temel çalışma düzenini kurma |
-| Odak | ₺89,90 | ₺899,00 | Yaklaşık %16,7 | Düzenli kullanıcı için geniş limitler ve sınıf özellikleri |
-| Zirve | ₺149,90 | ₺1.499,00 | Yaklaşık %16,7 | Yoğun kullanıcı için en yüksek limitler ve rapor dışa aktarma |
+| Plan | Fiyat | Sabit erişim sonu | Rol |
+| --- | ---: | --- | --- |
+| Başlangıç | Ücretsiz | Süresiz | Ürünü risksiz deneme ve temel çalışma düzenini kurma |
+| calisiyo plus · YKS 2027 | ₺2.500 | 19 Ağustos 2027 | YKS 2027 dönemi için genişletilmiş özellikler |
+| calisiyo plus · YKS 2028 | ₺1.500 | 25 Haziran 2028 | YKS 2028 dönemi için genişletilmiş özellikler |
 
-Yıllık paketler otomatik yenilenmez; 365 günlük ön ödemeli erişimdir. İndirim, aylık fiyatın 12 katına göre hesaplanmıştır.
+Plus paketleri otomatik yenilenmez ve belirtilen YKS dönemi sonuna kadar sabit erişim verir. Geçerli içerik üretici kodları Shopier ödeme ekranında %20 indirim sağlar; nihai tahsilat tutarı Shopier tarafından gösterilir.
 
 ## Karar ilkeleri
 
@@ -36,10 +36,10 @@ Yıllık paketler otomatik yenilenmez; 365 günlük ön ödemeli erişimdir. İn
 ## İzlenecek metrikler
 
 - Ücretsizden ücretliye dönüşüm oranı
-- 30 günlük aktif kullanıcı başına altyapı maliyeti
+- Aktif kullanıcı başına altyapı maliyeti
 - Plan başına limit kullanım yüzdeleri
 - Ödeme başarı, iade ve mükerrer işlem oranı
-- Odak ve Zirve planlarında 30/90 günlük aktif kullanım
+- Plus paketlerinde 30/90 günlük aktif kullanım
 - Destek talebi ve iptal gerekçeleri
 
 Bu belge hukuki veya mali danışmanlık değildir. Vergi, tüketici hukuku ve fiyat gösterimi son açılış öncesinde yetkin bir mali müşavir/hukukçu tarafından doğrulanmalıdır.

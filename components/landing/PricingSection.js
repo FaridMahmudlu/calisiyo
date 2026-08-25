@@ -32,7 +32,7 @@ export default function PricingSection({ standalone = false }) {
               {isPlus && <div className="pricing-period pricing-year-picker" role="group" aria-label="Sınav yılı">
                 {[2027, 2028].map((year) => (
                   <button key={year} type="button" className={targetYear === year ? 'is-active' : ''} onClick={() => setTargetYear(year)}>
-                    YKS {year}{year === 2028 && <small>5+1 ay</small>}
+                    YKS {year}<small>{getVariantForYear(year).duration}</small>
                   </button>
                 ))}
               </div>}
@@ -54,6 +54,7 @@ export default function PricingSection({ standalone = false }) {
           );
         })}
       </div>
+      <p className="pricing-provider-note">Geçerli indirim kodları Shopier ödeme ekranında uygulanır. Nihai ödeme tutarı Shopier ekranında gösterilir.</p>
       <div className="pricing-trust"><PiShieldCheck /><span>Şehit ve gazi yakınlarından ücret tahsil edilmemektedir. Ayrıntılar için <a href="mailto:calisiyo.destek@gmail.com">destek ekibimize</a> ulaşabilirsin.</span></div>
     </section>
   );

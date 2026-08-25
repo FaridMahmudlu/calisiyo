@@ -104,6 +104,7 @@ export async function GET() {
     { data: adminRole, error: roleError },
     { data: liveStreak, error: streakError },
     { data: currentPlan, error: planError },
+    { data: contentProducer, error: producerError },
   ] = await Promise.all([
     supabase.from('gunluk_gorevler').select('tarih,tamamlandi,soru_sayisi').eq('user_id', user.id),
     supabase.from('calisma_suresi').select('tarih,sure_dakika,soru_sayisi').eq('user_id', user.id),
@@ -111,9 +112,10 @@ export async function GET() {
     supabase.rpc('current_admin_role'),
     supabase.rpc('get_live_streak'),
     supabase.rpc('current_plan_details'),
+    supabase.rpc('current_content_producer_summary'),
   ]);
 
-  if (taskError || sessionError || progressError || roleError || streakError || planError) {
+  if (taskError || sessionError || progressError || roleError || streakError || planError || producerError) {
     console.error('Account summary loaded partially', {
       tasks: taskError?.code,
       sessions: sessionError?.code,
@@ -121,6 +123,7 @@ export async function GET() {
       role: roleError?.code,
       streak: streakError?.code,
       plan: planError?.code,
+      producer: producerError?.code,
     });
   }
 
@@ -134,7 +137,8 @@ export async function GET() {
     adminRole: adminRole || null,
     liveStreak: liveStreak || null,
     currentPlan: currentPlan || { code: 'baslangic', name: 'calisiyo ücretsiz', status: 'free', entitlements: {} },
-    partial: Boolean(taskError || sessionError || progressError || roleError || streakError || planError),
+    contentProducer: contentProducer || { active: false, status: 'not_enrolled' },
+    partial: Boolean(taskError || sessionError || progressError || roleError || streakError || planError || producerError),
   });
 }
 

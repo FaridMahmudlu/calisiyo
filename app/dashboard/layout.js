@@ -5,7 +5,7 @@ import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import {
   AlertTriangle, BarChart3, BookOpen, Calendar, CalendarDays,
-  CreditCard, FileText, Flame, Home, Info, LogOut, Menu, PanelLeftClose,
+  CircleDollarSign, CreditCard, FileText, Flame, Home, Info, LogOut, Menu, PanelLeftClose,
   PanelLeftOpen, RotateCcw, Settings, ShieldCheck, Target, Timer, Trophy, UsersRound, X,
 } from 'lucide-react';
 import { createClient } from '@/lib/supabase/client';
@@ -58,6 +58,7 @@ export default function DashboardLayout({ children }) {
   const [profile, setProfile] = useState(null);
   const [adminRole, setAdminRole] = useState(null);
   const [currentPlan, setCurrentPlan] = useState({ code: 'baslangic', name: 'calisiyo ücretsiz', status: 'free', entitlements: {} });
+  const [contentProducer, setContentProducer] = useState({ active: false, status: 'not_enrolled' });
   const [loading, setLoading] = useState(true);
   const [errorState, setErrorState] = useState({ message: '', pathname });
   const [sidebarOpen, setSidebarOpen] = useState(false);
@@ -104,6 +105,7 @@ export default function DashboardLayout({ children }) {
     setProfile(result.profile || null);
     setAdminRole(result.adminRole || null);
     setCurrentPlan(result.currentPlan || { code: 'baslangic', name: 'calisiyo ücretsiz', status: 'free', entitlements: {} });
+    setContentProducer(result.contentProducer || { active: false, status: 'not_enrolled' });
 
     const tasks = result.tasks || [];
     const sessions = result.sessions || [];
@@ -257,7 +259,7 @@ export default function DashboardLayout({ children }) {
   };
 
   return (
-    <UserContext.Provider value={{ user, profile, setProfile, adminRole, currentPlan, error, setError, reloadAccount: loadAccount, stats: liveStats }}>
+    <UserContext.Provider value={{ user, profile, setProfile, adminRole, currentPlan, contentProducer, error, setError, reloadAccount: loadAccount, stats: liveStats }}>
       <div className={`study-layout ${collapsed ? 'is-collapsed' : ''}`} style={{ '--sidebar-width': `${sidebarWidth}px` }}>
         {sidebarOpen && <button className="sidebar-backdrop" aria-label="Menüyü kapat" onClick={() => setSidebarOpen(false)} />}
         <aside className={`study-sidebar ${sidebarOpen ? 'is-open' : ''}`}>
@@ -289,6 +291,14 @@ export default function DashboardLayout({ children }) {
                 {!collapsed && <span className="nav-section-label">Yönetim</span>}
                 <Link href="/admin" title={collapsed ? 'Admin Paneli' : undefined} className="nav-link admin-nav-link" onClick={() => setSidebarOpen(false)}>
                   <ShieldCheck size={19} />{!collapsed && <span>Admin Paneli</span>}
+                </Link>
+              </div>
+            )}
+            {contentProducer.status !== 'not_enrolled' && (
+              <div className="nav-section producer-nav-section">
+                {!collapsed && <span className="nav-section-label">Program</span>}
+                <Link href="/dashboard/icerik-ureticisi" title={collapsed ? 'İçerik Üretici Programı' : undefined} className={`nav-link ${pathname === '/dashboard/icerik-ureticisi' ? 'is-active' : ''}`} onClick={() => setSidebarOpen(false)}>
+                  <CircleDollarSign size={19} />{!collapsed && <span>İçerik Üretici Programı</span>}
                 </Link>
               </div>
             )}

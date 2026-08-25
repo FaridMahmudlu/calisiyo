@@ -8,6 +8,7 @@
     "start": "next start",
     "lint": "eslint",
     "shopier:verify": "node --env-file-if-exists=.env.local scripts/shopier-verify-config.mjs",
+    "shopier:sync-products": "node --env-file-if-exists=.env.local scripts/shopier-sync-products.mjs",
     "shopier:webhooks": "node --env-file-if-exists=.env.local scripts/shopier-webhooks.mjs"
   },
   "dependencies": {

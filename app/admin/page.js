@@ -34,7 +34,7 @@ const ROLE_OPTIONS = [
 const PLAN_OPTIONS = [
   { value: 'baslangic', label: 'calisiyo ücretsiz', description: 'Temel limitler' },
   { value: 'plus_2027', label: 'calisiyo plus · YKS 2027', description: '19 Ağustos 2027’ye kadar' },
-  { value: 'plus_2028', label: 'calisiyo plus · YKS 2028', description: '6 aylık erişim' },
+  { value: 'plus_2028', label: 'calisiyo plus · YKS 2028', description: '25 Haziran 2028’e kadar' },
 ];
 
 const AUDIENCE_OPTIONS = [
