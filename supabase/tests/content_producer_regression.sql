@@ -32,6 +32,7 @@ declare
   new_code_value text;
   reward_row_id uuid;
   payout_rejected boolean := false;
+  reserved_code text;
 begin
   if admin_id is null then raise exception 'Dedicated QA account was not found'; end if;
   select id into producer_user_id
@@ -47,6 +48,11 @@ begin
   insert into public.user_roles(user_id, role, created_by)
   values(admin_id, 'admin', admin_id)
   on conflict(user_id) do update set role = 'admin';
+
+  reserved_code := public.generate_content_producer_code('Official');
+  if reserved_code = 'OFFICIAL' or reserved_code not like 'CAL%' then
+    raise exception 'Reserved official name became a public producer code';
+  end if;
 
   delete from public.user_subscriptions where user_id in (admin_id, producer_user_id);
   delete from public.content_producer_profiles where user_id = producer_user_id;
@@ -121,6 +127,9 @@ begin
      or not exists(select 1 from public.content_producer_code_bindings where provider_discount_id = 'qa_discount_original' and status = 'retired') then
     raise exception 'Promo rotation did not preserve historical binding';
   end if;
+  perform public.admin_record_content_producer_promo_disable(
+    producer_user_id, 'qa_discount_original', 'rotate', true, null
+  );
   perform public.admin_confirm_content_producer_code(
     producer_user_id, 'qa_discount_rotated', true, 'retry'
   );

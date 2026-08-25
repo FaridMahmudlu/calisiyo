@@ -57,6 +57,15 @@ test.describe('Content Producer Program security and product contracts', () => {
     expect(route).toContain("current_admin_role");
     expect(route).not.toMatch(/SUPABASE_SERVICE_ROLE_KEY|SHOPIER_ACCESS_TOKEN/);
     expect(page).not.toMatch(/SUPABASE_SERVICE_ROLE_KEY|SHOPIER_ACCESS_TOKEN|providerOrderId/);
+    expect(route).toContain("deleteDiscountCode(discountId)");
+    expect(route).toContain("error?.status === 404");
+    expect(route).toContain("admin_record_content_producer_promo_disable");
+  });
+
+  test('reserved official names cannot become public producer codes', () => {
+    const migration = read('supabase/migrations/20260825150000_complete_content_producer_promo_lifecycle.sql');
+    expect(migration).toContain("'RESMI','OFFICIAL'");
+    expect(migration).toContain('extensions.gen_random_bytes');
   });
 
   test('rotated codes keep historical attribution inside their verified time window', () => {

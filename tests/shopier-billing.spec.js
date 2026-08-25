@@ -74,12 +74,14 @@ test.describe('Shopier server-side billing contracts', () => {
     await client.getDiscountCode('discount_1');
     await client.createDiscountCode({ code: 'EMIRKAYA', type: 'percent', percentOff: 20 });
     await client.updateDiscountCode('discount_1', { isActive: false });
+    await client.deleteDiscountCode('discount_1');
     await client.listAutomaticDiscounts({ limit: 10 });
     expect(requests.map((item) => [new URL(item.url).pathname, item.options.method])).toEqual([
       ['/v1/discounts/codes', 'GET'],
       ['/v1/discounts/codes/discount_1', 'GET'],
       ['/v1/discounts/codes', 'POST'],
       ['/v1/discounts/codes/discount_1', 'PUT'],
+      ['/v1/discounts/codes/discount_1', 'DELETE'],
       ['/v1/discounts/automatic', 'GET'],
     ]);
     expect(requests.every((item) => !item.url.includes('private-pat'))).toBe(true);

@@ -52,6 +52,50 @@ async function syncProducerPromo(session, { userId, code, retry = false }) {
   return { active: true, producer: data, created, providerDiscountId: String(discount.id) };
 }
 
+function safePromoErrorCode(error, fallback = 'shopier_promo_disable_failed') {
+  return String(error?.safeCode || error?.code || fallback)
+    .toLowerCase()
+    .replace(/[^a-z0-9_:-]/g, '_')
+    .slice(0, 80);
+}
+
+async function auditPromoDisable(session, { userId, providerDiscountId, action, success, errorCode = null }) {
+  const { error } = await session.supabase.rpc('admin_record_content_producer_promo_disable', {
+    p_user_id: userId,
+    p_provider_discount_id: providerDiscountId,
+    p_action: action,
+    p_success: success,
+    p_error_code: errorCode,
+  });
+  if (error) console.error('Content producer promo disable audit failed', { action, code: error.code || 'unknown' });
+}
+
+async function disableProducerPromo(session, { userId, providerDiscountId, action }) {
+  const discountId = String(providerDiscountId || '').trim();
+  if (!discountId) return { required: false, disabled: true };
+  try {
+    await configuredShopierClient({ timeoutMs: 10_000 }).deleteDiscountCode(discountId);
+    await auditPromoDisable(session, {
+      userId, providerDiscountId: discountId, action, success: true,
+    });
+    return { required: true, disabled: true };
+  } catch (error) {
+    // A missing remote code is already in the desired disabled state.
+    if (error?.status === 404) {
+      await auditPromoDisable(session, {
+        userId, providerDiscountId: discountId, action, success: true,
+      });
+      return { required: true, disabled: true, alreadyMissing: true };
+    }
+    const errorCode = safePromoErrorCode(error);
+    await auditPromoDisable(session, {
+      userId, providerDiscountId: discountId, action, success: false, errorCode,
+    });
+    console.error('Content producer promo disable failed', { action, code: errorCode });
+    return { required: true, disabled: false, errorCode };
+  }
+}
+
 async function adminSession() {
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
@@ -156,20 +200,57 @@ export async function POST(request) {
     if (action === 'suspend') {
       const { data, error } = await session.supabase.rpc('admin_suspend_content_producer', { p_user_id: userId, p_reason: String(body.reason || '') });
       if (error) throw error;
-      return Response.json({ ok: true, producer: data, message: data?.externalDisableRequired ? 'Program askıya alındı. Shopier kodunu panelden de pasifleştir.' : 'Program askıya alındı.' });
+      const disabled = await disableProducerPromo(session, {
+        userId, providerDiscountId: data?.providerDiscountId, action: 'suspend',
+      });
+      return Response.json({
+        ok: true,
+        producer: data,
+        promoDisabled: disabled.disabled,
+        manualRequired: !disabled.disabled,
+        message: disabled.disabled
+          ? 'Program askıya alındı; Shopier indirim kodu da otomatik olarak kapatıldı.'
+          : 'Program güvenli biçimde askıya alındı. Shopier bağlantısı tamamlanamadığı için eski kodu Shopier panelinden de silmelisin.',
+      });
     }
     if (action === 'rotate_code') {
       const { data, error } = await session.supabase.rpc('admin_rotate_content_producer_code', {
         p_user_id: userId, p_reason: String(body.reason || ''),
       });
       if (error) throw error;
-      return Response.json({
-        ok: true,
-        producer: data,
-        message: data?.externalDisableRequired
-          ? 'Yeni kod oluşturuldu. Eski Shopier kodunu pasifleştirip yeni kodu doğrulamalısın.'
-          : 'Yeni kod oluşturuldu; Shopier doğrulaması bekleniyor.',
+      const disabled = await disableProducerPromo(session, {
+        userId, providerDiscountId: data?.oldProviderDiscountId, action: 'rotate',
       });
+      if (!disabled.disabled) {
+        return Response.json({
+          ok: true, producer: data, promoDisabled: false, manualRequired: true,
+          message: 'Yeni kod oluşturuldu ancak eski Shopier kodu otomatik kapatılamadı. Yeni kodu etkinleştirmeden önce eski kodu Shopier panelinden silmelisin.',
+        });
+      }
+      try {
+        const promo = await syncProducerPromo(session, { userId, code: data.code });
+        return Response.json({
+          ok: true,
+          producer: promo.producer || data,
+          promoDisabled: true,
+          message: promo.active
+            ? 'Eski kod kapatıldı; yeni %20 Shopier kodu oluşturulup etkinleştirildi.'
+            : 'Eski kod kapatıldı. Yeni kod, Shopier kapsam doğrulamasını bekliyor.',
+        });
+      } catch (promoError) {
+        await session.supabase.rpc('admin_record_content_producer_promo_failure', {
+          p_user_id: userId,
+          p_code: data.code,
+          p_error_code: safePromoErrorCode(promoError, 'shopier_rotation_sync_failed'),
+          p_review_required: Boolean(promoError.reviewRequired),
+          p_retry: false,
+        });
+        console.error('Content producer rotated promo sync failed', { code: promoError?.code || promoError?.safeCode || 'unknown' });
+        return Response.json({
+          ok: true, producer: data, promoDisabled: true,
+          message: 'Eski kod kapatıldı. Yeni indirim kodu hazırlanıyor; admin panelinden güvenle tekrar deneyebilirsin.',
+        });
+      }
     }
     if (action === 'create_payout') {
       const { data, error } = await session.supabase.rpc('admin_create_content_producer_payout', { p_user_id: userId, p_note: body.note || null });
