@@ -36,7 +36,7 @@ export default function IletisimPage() {
             <strong>calisiyo</strong>, YKS hazırlık sürecindeki öğrencilere planlama, odaklanma ve ilerleme takibi sunan dijital eğitim hizmetidir.
           </p>
           <ul>
-            <li><strong>Hizmet Sağlayıcı & Veri Sorumlusu:</strong> {contact.legalName || 'Ücretli satış açılmadan önce resmi unvan ilan edilecektir.'}</li>
+            <li><strong>Hizmet Sağlayıcı & Veri Sorumlusu:</strong> {contact.legalName || 'calisiyo bireysel platform işletmecisi'}</li>
             <li><strong>Proje Adı:</strong> calisiyo – YKS Çalışma Koçu</li>
             <li><strong>Telefon:</strong> <a href={`tel:${contact.phoneHref}`}>{contact.phoneDisplay}</a></li>
             <li><strong>Adres:</strong> {contact.address}</li>

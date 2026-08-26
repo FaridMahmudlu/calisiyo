@@ -14,6 +14,13 @@ async function login(page, next = '') {
 }
 
 test.describe('SaaS pricing, legal and billing safety', () => {
+  test('individual Shopier sellers are gated by payment safety, not company-only fields', () => {
+    const config = fs.readFileSync(path.resolve(__dirname, '..', 'lib', 'billing', 'config.js'), 'utf8');
+    expect(config).not.toContain("missing.push('ticari unvan')");
+    expect(config).not.toContain("missing.push('vergi veya MERSİS numarası')");
+    expect(config).toContain("missing.push(...shopierConfigurationProblems())");
+  });
+
   test('public pricing is responsive, factual and consent-gated', async ({ page }) => {
     const analyticsRequests = [];
     page.on('request', (request) => {
