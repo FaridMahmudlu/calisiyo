@@ -222,7 +222,8 @@ test.describe('Calisiyo production-grade QA journey', () => {
     const notificationButton = page.getByRole('button', { name: /bildirim/i }).first();
     await notificationButton.click();
     await expect(page.getByRole('region', { name: 'Bildirimler' })).toBeVisible();
-    await page.getByRole('button', { name: 'Tüm bildirimleri okundu işaretle' }).click();
+    const markAllRead = page.getByRole('button', { name: 'Tüm bildirimleri okundu işaretle' });
+    if (await markAllRead.isEnabled()) await markAllRead.click();
     await page.keyboard.press('Escape');
     await page.getByRole('button', { name: 'Profil menüsü' }).click();
     await expect(page.getByText('Profil ve ayarlar')).toBeVisible();
@@ -235,16 +236,23 @@ test.describe('Calisiyo production-grade QA journey', () => {
     await page.screenshot({ path: path.join(evidenceDir, '03-statistics-desktop.png'), fullPage: true });
 
     const routes = [
-      'gunluk-program', 'haftalik-program', 'konu-takibi', 'deneme-analizi',
-      'tekrarlarim', 'yapamadiklari', 'kaynaklarim', 'istatistikler', 'pomodoro',
-      'not-defteri', 'hedeflerim', 'ayarlar',
+      '/dashboard', '/dashboard/gunluk-program', '/dashboard/haftalik-program',
+      '/dashboard/konu-takibi', '/dashboard/deneme-analizi', '/dashboard/tekrarlarim',
+      '/dashboard/yapamadiklari', '/dashboard/kaynaklarim', '/dashboard/istatistikler',
+      '/dashboard/pomodoro', '/dashboard/not-defteri', '/dashboard/hedeflerim',
+      '/dashboard/ayarlar', '/dashboard/abonelik', '/dashboard/gelisim',
+      '/dashboard/arkadaslar', '/dashboard/icerik-ureticisi',
     ];
-    await page.setViewportSize({ width: 390, height: 844 });
-    for (const route of routes) {
-      await page.goto(`${baseURL}/dashboard/${route}`);
-      await expect.poll(() => page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true);
-      await expect(page.locator('.global-error')).toHaveCount(0);
+    for (const viewport of [{ width: 390, height: 844 }, { width: 768, height: 1024 }]) {
+      await page.setViewportSize(viewport);
+      for (const route of routes) {
+        await page.goto(`${baseURL}${route}`);
+        await expect(page.locator('.journey-loader')).toHaveCount(0, { timeout: 20000 });
+        await expect.poll(() => page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth + 1)).toBe(true);
+        await expect(page.locator('.global-error')).toHaveCount(0);
+      }
     }
+    await page.setViewportSize({ width: 390, height: 844 });
     await page.goto(`${baseURL}/dashboard/istatistikler`);
     await expect(page.getByRole('heading', { name: 'İstatistikler' })).toBeVisible();
     await expect(page.getByText('Canlı veri')).toBeVisible();

@@ -11,7 +11,7 @@ const expected = [
     url: process.env.SHOPIER_PRODUCT_URL_2027,
   },
   {
-    planCode: 'plus_2028', amount: '1500', currency: 'TRY',
+    planCode: 'plus_2028', amount: '4500', currency: 'TRY',
     id: process.env.SHOPIER_PRODUCT_ID_2028,
     url: process.env.SHOPIER_PRODUCT_URL_2028,
   },
@@ -46,7 +46,7 @@ if (!token) {
     for (const item of expected) {
       const id = String(item.id || '').trim();
       if (!id) { fail(`${item.planCode} ürün kimliği tanımlı değil.`); continue; }
-      if (!isSafeShopierProductUrl(item.url)) { fail(`${item.planCode} checkout URL güvenli değil.`); continue; }
+      if (!isSafeShopierProductUrl(String(item.url || '').trim())) { fail(`${item.planCode} checkout URL güvenli değil.`); continue; }
       const product = products.find((candidate) => String(candidate?.id || '') === id);
       if (!product) { fail(`${item.planCode} ürün kimliği Shopier hesabında bulunamadı.`); continue; }
       const priceData = product.priceData && typeof product.priceData === 'object' ? product.priceData : {};

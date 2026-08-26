@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useState } from 'react';
 import {
   BadgeCheck, CircleDollarSign, Clock3, Copy, Gift, LoaderCircle,
-  Send, ShieldCheck, Users, WalletCards,
+  PencilLine, RefreshCw, Send, ShieldCheck, Users, WalletCards,
 } from 'lucide-react';
 import PageHeader from '@/components/ui/PageHeader';
 import { useUser } from '@/app/dashboard/layout';
@@ -28,6 +28,8 @@ export default function ContentProducerPage() {
   const [application, setApplication] = useState(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [changingCode, setChangingCode] = useState(false);
+  const [codeDraft, setCodeDraft] = useState('');
   const [notice, setNotice] = useState('');
   const [form, setForm] = useState({
     platform: 'youtube', profileUrl: '', audienceSize: '', contentFocus: '', motivation: '',
@@ -61,6 +63,35 @@ export default function ContentProducerPage() {
     if (!producer?.code) return;
     try { await navigator.clipboard.writeText(producer.code); setNotice('İndirim kodun kopyalandı.'); }
     catch { setNotice('Kod kopyalanamadı; seçip manuel olarak kopyalayabilirsin.'); }
+  };
+
+  const changeCode = async (event) => {
+    event.preventDefault();
+    setSaving(true);
+    setNotice('');
+    const response = await fetch('/api/content-producer', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ action: 'change_code', code: codeDraft }),
+    });
+    const result = await response.json().catch(() => ({}));
+    setSaving(false);
+    if (!response.ok || !result.ok) return setNotice(result.message || 'Kodun değiştirilemedi.');
+    setProducer(result.producer || { ...producer, codePreview: codeDraft, selfCodeChangeUsed: true });
+    setChangingCode(false);
+    setNotice(result.message);
+  };
+
+  const retryCodeSync = async () => {
+    setSaving(true);
+    setNotice('');
+    const response = await fetch('/api/content-producer', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ action: 'retry_code_sync' }),
+    });
+    const result = await response.json().catch(() => ({}));
+    setSaving(false);
+    if (result.producer) setProducer(result.producer);
+    setNotice(result.message || (response.ok ? 'İndirim kodun etkinleştirildi.' : 'Kodun henüz etkinleştirilemedi.'));
   };
 
   const submitApplication = async (event) => {
@@ -133,8 +164,17 @@ export default function ContentProducerPage() {
     {producer.status === 'suspended' && <div className="producer-warning"><ShieldCheck /><div><strong>Program erişimin askıda</strong><p>Üretici grant’in ve kod ilişkilendirmen durduruldu. Satın aldığın ücretli plan varsa etkilenmez.</p></div></div>}
     <section className="producer-hero">
       <div><span><BadgeCheck /> İndirim Kodun</span><h2>{producer.code || producer.codePreview || 'Hazırlanıyor'}</h2><p>{producer.code ? 'Takipçilerin bu kodla Shopier ödeme ekranında %20 indirim kazanır.' : 'İndirim kodun hazırlanıyor. Shopier ürün kapsamı güvenli biçimde doğrulanıyor.'}</p><small><Gift /> Ücretsiz {producer.grantPlanCode === 'plus_2028' ? 'YKS 2028' : 'YKS 2027'} Plus · {date(producer.grantEndsAt)} tarihine kadar</small></div>
-      <button onClick={copyCode} disabled={!producer.code}><Copy /> Kodu kopyala</button>
+      <div className="producer-code-actions">
+        <button onClick={copyCode} disabled={!producer.code}><Copy /> Kodu kopyala</button>
+        {!producer.selfCodeChangeUsed && <button onClick={() => { setCodeDraft(''); setChangingCode(true); }}><PencilLine /> Kodunu değiştir</button>}
+        {producer.selfCodeChangeUsed && !producer.code && producer.codePreview && <button onClick={retryCodeSync} disabled={saving}><RefreshCw className={saving ? 'is-spinning' : ''} /> Etkinleştirmeyi tekrar dene</button>}
+      </div>
     </section>
+    {changingCode && <form className="producer-code-form" onSubmit={changeCode}>
+      <div><span>Tek kullanımlık değişiklik</span><h2>Kısa ve hatırlanabilir kodunu seç</h2><p>Örn. ADIN20. Kodunu yalnızca bir kez değiştirebilirsin; 4-20 harf veya rakam kullan.</p></div>
+      <label><span>Yeni indirim kodu</span><input autoComplete="off" inputMode="text" required minLength={4} maxLength={20} pattern="[A-Za-z0-9ÇĞİÖŞÜçğıöşü]+" placeholder="ADIN20" value={codeDraft} onChange={(event) => setCodeDraft(event.target.value.toUpperCase())} /></label>
+      <div><button type="button" onClick={() => setChangingCode(false)} disabled={saving}>Vazgeç</button><button type="submit" disabled={saving}>{saving ? 'Etkinleştiriliyor…' : 'Kodu bir kez değiştir'}</button></div>
+    </form>}
     <section className="producer-model"><div><span>Kazanç modelin</span><h2>Basit, sabit ve denetlenebilir</h2></div><p>İlk 3 doğrulanmış satışında satış başına <strong>₺1.000</strong>, 4. satıştan itibaren satış başına <strong>₺500</strong> kazanırsın. Kazançlar, iade kontrolü için 14 gün bekledikten sonra ödenebilir olur.</p></section>
     <section className="producer-metrics">
       <article><span><CircleDollarSign /></span><small>Ödenebilir kazanç</small><strong>{money(producer.availableMinor)}</strong><p>14 günlük beklemesi biten net ledger tutarı</p></article>

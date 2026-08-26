@@ -11,7 +11,7 @@ test.describe('Content Producer Program security and product contracts', () => {
     const landing = read('components/landing/PricingSection.js');
     const billing = read('app/dashboard/abonelik/page.js');
     expect(plans).toContain("price: 2500");
-    expect(plans).toContain("price: 1500");
+    expect(plans).toContain("price: 4500");
     expect(plans).toContain("period: 'yks_2028'");
     expect(plans).toContain('25 Haziran 2028’e kadar');
     expect([landing, billing].join('\n')).not.toMatch(/5\+1|toplam 6 ay|2\.000|1\.000/);
@@ -76,20 +76,38 @@ test.describe('Content Producer Program security and product contracts', () => {
 
   test('admin route uses a server session and never exposes billing secrets', () => {
     const route = read('app/api/admin/content-producers/route.js');
+    const shopier = read('lib/billing/content-producer-shopier.js');
     const page = read('app/admin/icerik-ureticileri/page.js');
     expect(route).toContain('supabase.auth.getUser()');
     expect(route).toContain("current_admin_role");
     expect(route).not.toMatch(/SUPABASE_SERVICE_ROLE_KEY|SHOPIER_ACCESS_TOKEN/);
     expect(page).not.toMatch(/SUPABASE_SERVICE_ROLE_KEY|SHOPIER_ACCESS_TOKEN|providerOrderId/);
-    expect(route).toContain("deleteDiscountCode(discountId)");
-    expect(route).toContain("error?.status === 404");
+    expect(route).toContain('deleteProducerPromo(discountId)');
+    expect(shopier).toContain('deleteDiscountCode(id)');
+    expect(shopier).toContain("error?.status === 404");
     expect(route).toContain("admin_record_content_producer_promo_disable");
   });
 
   test('reserved official names cannot become public producer codes', () => {
-    const migration = read('supabase/migrations/20260825150000_complete_content_producer_promo_lifecycle.sql');
+    const migration = read('supabase/migrations/20260825195911_content_producer_self_code_and_2028_price.sql');
     expect(migration).toContain("'RESMI','OFFICIAL'");
-    expect(migration).toContain('extensions.gen_random_bytes');
+    expect(migration).toContain("root := left(base, 14) || '20'");
+  });
+
+  test('producer code is short, unique and self-change is allowed exactly once', () => {
+    const migration = read('supabase/migrations/20260825195911_content_producer_self_code_and_2028_price.sql');
+    const route = read('app/api/content-producer/route.js');
+    const page = read('app/dashboard/icerik-ureticisi/page.js');
+    expect(migration).toContain('self_code_change_used boolean not null default false');
+    expect(migration).toContain('pg_advisory_xact_lock');
+    expect(migration).toContain('content_producer_codes c where upper(c.code) = upper(requested_code)');
+    expect(migration).toContain("grant execute on function public.service_confirm_self_content_producer_code(uuid,text)\n  to service_role;");
+    expect(migration).not.toContain('grant execute on function public.service_confirm_self_content_producer_code(uuid,text)\n  to authenticated;');
+    expect(route).toContain("action === 'change_code'");
+    expect(route).toContain("action === 'retry_code_sync'");
+    expect(route).toContain('syncSelfCode({');
+    expect(page).toContain('Etkinleştirmeyi tekrar dene');
+    expect(page).toContain('Kodunu yalnızca bir kez değiştirebilirsin');
   });
 
   test('rotated codes keep historical attribution inside their verified time window', () => {

@@ -32,6 +32,9 @@ declare
   payout jsonb;
   code_value text;
   new_code_value text;
+  self_code_value text := 'QA' || upper(substr(replace(gen_random_uuid()::text, '-', ''), 1, 8)) || '20';
+  self_change jsonb;
+  second_change_rejected boolean := false;
   reward_row_id uuid;
   payout_rejected boolean := false;
   reserved_code text;
@@ -52,7 +55,7 @@ begin
   on conflict(user_id) do update set role = 'admin';
 
   reserved_code := public.generate_content_producer_code('Official');
-  if reserved_code = 'OFFICIAL' or reserved_code not like 'CAL%' then
+  if reserved_code <> 'URETICI20' then
     raise exception 'Reserved official name became a public producer code';
   end if;
 
@@ -137,8 +140,8 @@ begin
     jsonb_build_object(
       'provider','shopier','providerOrderId','qa_producer_order_1',
       'productId','qa_product_2028','customerEmail',admin_email,
-      'currency','TRY','paymentStatus','paid','listAmount','1500.00',
-      'amount','1200.00','discountAmount','300.00','quantity',1,
+      'currency','TRY','paymentStatus','paid','listAmount','4500.00',
+      'amount','3600.00','discountAmount','900.00','quantity',1,
       'providerDiscountId','qa_discount_original','discountMethod','discountCode',
       'paidAt',now()
     )
@@ -148,8 +151,8 @@ begin
   if not exists(
     select 1 from public.content_producer_rewards
     where id = reward_row_id and producer_id = producer_user_id and lifetime_sequence = 1
-      and list_amount_minor = 150000 and paid_amount_minor = 120000
-      and discount_amount_minor = 30000 and reward_amount_minor = 100000
+      and list_amount_minor = 450000 and paid_amount_minor = 360000
+      and discount_amount_minor = 90000 and reward_amount_minor = 100000
       and provider_discount_id = 'qa_discount_original' and status = 'pending'
   ) then raise exception 'First producer reward is incorrect'; end if;
 
@@ -159,8 +162,8 @@ begin
     jsonb_build_object(
       'provider','shopier','providerOrderId','qa_producer_order_1',
       'productId','qa_product_2028','customerEmail',admin_email,
-      'currency','TRY','paymentStatus','paid','listAmount','1500.00',
-      'amount','1200.00','discountAmount','300.00','quantity',1,
+      'currency','TRY','paymentStatus','paid','listAmount','4500.00',
+      'amount','3600.00','discountAmount','900.00','quantity',1,
       'providerDiscountId','qa_discount_original','discountMethod','discountCode',
       'paidAt',now()
     )
@@ -184,6 +187,33 @@ begin
     producer_user_id, 'qa_discount_rotated', true, 'retry'
   );
 
+  perform set_config('request.jwt.claim.sub', producer_user_id::text, true);
+  perform set_config(
+    'request.jwt.claims',
+    jsonb_build_object('sub', producer_user_id, 'role', 'authenticated')::text,
+    true
+  );
+  self_change := public.self_rotate_content_producer_code(self_code_value);
+  if self_change->>'code' <> self_code_value
+     or not (self_change->>'selfCodeChangeUsed')::boolean then
+    raise exception 'Producer could not use the one-time code change';
+  end if;
+  begin
+    perform public.self_rotate_content_producer_code(self_code_value || '2');
+  exception when raise_exception then second_change_rejected := true;
+  end;
+  if not second_change_rejected then
+    raise exception 'Producer changed the discount code more than once';
+  end if;
+
+  perform set_config('request.jwt.claim.sub', admin_id::text, true);
+  perform set_config(
+    'request.jwt.claims',
+    jsonb_build_object('sub', admin_id, 'role', 'service_role')::text,
+    true
+  );
+  perform public.service_confirm_self_content_producer_code(producer_user_id, 'qa_discount_self');
+
   self_order := public.create_shopier_billing_order(
     producer_user_id,
     'CAL-19990202-' || upper(substr(replace(gen_random_uuid()::text, '-', ''), 1, 8)),
@@ -200,7 +230,7 @@ begin
       'productId','qa_product_2027','customerEmail',producer_email,
       'currency','TRY','paymentStatus','paid','listAmount','2500.00',
       'amount','2000.00','discountAmount','500.00','quantity',1,
-      'providerDiscountId','qa_discount_rotated','discountMethod','discountCode',
+      'providerDiscountId','qa_discount_self','discountMethod','discountCode',
       'paidAt',now()
     )
   );
@@ -230,7 +260,7 @@ begin
   );
 
   perform public.reconcile_shopier_refund(
-    (order_row->>'id')::uuid, 'qa_producer_refund_1', 'full', 'succeeded', 1200, 'TRY'
+    (order_row->>'id')::uuid, 'qa_producer_refund_1', 'full', 'succeeded', 3600, 'TRY'
   );
   if not exists(
     select 1 from public.content_producer_adjustments

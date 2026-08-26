@@ -32,7 +32,7 @@ test.describe('Editorial landing page', () => {
     await expect(page.getByRole('link', { name: 'calisiyo.destek@gmail.com' })).toBeVisible();
 
     await page.getByRole('button', { name: /YKS 2028/ }).click();
-    await expect(page.getByText(/1\.500/)).toBeVisible();
+    await expect(page.getByText(/4\.500/)).toBeVisible();
 
     const secondFaq = page.locator('.faq-list details').nth(1);
     await secondFaq.locator('summary').click();

@@ -142,8 +142,8 @@ test.describe('Shopier server-side billing contracts', () => {
     });
     expect(validShopierProducerDiscount({ ...payload, id: 'discount_1' }, 'EMIR2027')).toBe(true);
     expect(isExactProducerDiscount({ listMinor: 250000, paidMinor: 200000, discountMinor: 50000 })).toBe(true);
-    expect(isExactProducerDiscount({ listMinor: 150000, paidMinor: 120000, discountMinor: 30000 })).toBe(true);
-    expect(isExactProducerDiscount({ listMinor: 150000, paidMinor: 119999, discountMinor: 30001 })).toBe(false);
+    expect(isExactProducerDiscount({ listMinor: 450000, paidMinor: 360000, discountMinor: 90000 })).toBe(true);
+    expect(isExactProducerDiscount({ listMinor: 450000, paidMinor: 359999, discountMinor: 90001 })).toBe(false);
     expect([1, 2, 3, 4, 5].map(producerRewardMinor)).toEqual([100000, 100000, 100000, 50000, 50000]);
     expect(producerRewardMinor(0)).toBeNull();
     expect(() => shopierProducerDiscountPayload('x')).toThrow('invalid_producer_code');
@@ -153,11 +153,11 @@ test.describe('Shopier server-side billing contracts', () => {
     const { validateShopierOrder, validateShopierRefund } = await modules();
     const order2028 = providerOrder({
       id: 'ord_2028',
-      totals: { subtotal: '1500.00', shipping: '0.00', discount: '0.00', total: '1500.00' },
-      lineItems: [{ productId: 'prod_2028', quantity: 1, price: '1500.00', total: '1500.00' }],
+      totals: { subtotal: '4500.00', shipping: '0.00', discount: '0.00', total: '4500.00' },
+      lineItems: [{ productId: 'prod_2028', quantity: 1, price: '4500.00', total: '4500.00' }],
     });
     expect(validateShopierOrder(order2028, {
-      productId: 'prod_2028', amount: 1500, customerEmail: 'emir.kaya@example.com',
+      productId: 'prod_2028', amount: 4500, customerEmail: 'emir.kaya@example.com',
     }).ok).toBe(true);
     const fullRefund = { id: 'ref_1', orderId: 'ord_123', type: 'full', status: 'succeeded', currency: 'TRY', total: '2500.00' };
     expect(validateShopierRefund(fullRefund, { amount: 2500 }).ok).toBe(true);

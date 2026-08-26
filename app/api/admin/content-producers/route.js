@@ -1,47 +1,16 @@
 import { createClient } from '@/lib/supabase/server';
 import { configuredShopierClient, getShopierConfiguration } from '@/lib/billing/providers/shopier';
-import { shopierProducerDiscountPayload, validShopierProducerDiscount } from '@/lib/billing/content-producer.mjs';
-
-async function findShopierDiscount(client, expectedCode) {
-  for (let page = 1; page <= 5; page += 1) {
-    const response = await client.listDiscountCodes({ limit: 50, page, sort: 'dateDesc' });
-    const discounts = Array.isArray(response) ? response : [];
-    const match = discounts.find((discount) => String(discount?.code || '').toUpperCase() === expectedCode);
-    if (match) return match;
-    if (discounts.length < 50) return null;
-  }
-  return null;
-}
+import { validShopierProducerDiscount } from '@/lib/billing/content-producer.mjs';
+import {
+  deleteProducerPromo,
+  provisionProducerPromo,
+  safePromoErrorCode,
+} from '@/lib/billing/content-producer-shopier';
 
 async function syncProducerPromo(session, { userId, code, retry = false }) {
   const config = getShopierConfiguration();
   if (!config.promoScopeVerified) return { active: false, manualRequired: true, reason: 'scope_not_verified' };
-  const expectedCode = String(code || '').trim().toUpperCase();
-  const client = configuredShopierClient({ timeoutMs: 10_000 });
-  let discount = await findShopierDiscount(client, expectedCode);
-  let created = false;
-  if (discount && !validShopierProducerDiscount(discount, expectedCode)) {
-    const failure = new Error('promo_conflict');
-    failure.safeCode = 'promo_conflict';
-    failure.reviewRequired = true;
-    throw failure;
-  }
-  if (!discount) {
-    try {
-      discount = await client.createDiscountCode(shopierProducerDiscountPayload(expectedCode));
-      created = true;
-    } catch (error) {
-      // A timed-out POST may still have reached Shopier. Read before any retry.
-      discount = await findShopierDiscount(client, expectedCode);
-      if (!discount) throw error;
-    }
-  }
-  if (!discount?.id || !validShopierProducerDiscount(discount, expectedCode)) {
-    const failure = new Error('promo_response_mismatch');
-    failure.safeCode = 'promo_response_mismatch';
-    failure.reviewRequired = true;
-    throw failure;
-  }
+  const { discount, created } = await provisionProducerPromo(code);
   const { data, error } = await session.supabase.rpc('admin_confirm_content_producer_code', {
     p_user_id: userId,
     p_provider_discount_id: String(discount.id),
@@ -50,13 +19,6 @@ async function syncProducerPromo(session, { userId, code, retry = false }) {
   });
   if (error) throw error;
   return { active: true, producer: data, created, providerDiscountId: String(discount.id) };
-}
-
-function safePromoErrorCode(error, fallback = 'shopier_promo_disable_failed') {
-  return String(error?.safeCode || error?.code || fallback)
-    .toLowerCase()
-    .replace(/[^a-z0-9_:-]/g, '_')
-    .slice(0, 80);
 }
 
 async function auditPromoDisable(session, { userId, providerDiscountId, action, success, errorCode = null }) {
@@ -74,19 +36,12 @@ async function disableProducerPromo(session, { userId, providerDiscountId, actio
   const discountId = String(providerDiscountId || '').trim();
   if (!discountId) return { required: false, disabled: true };
   try {
-    await configuredShopierClient({ timeoutMs: 10_000 }).deleteDiscountCode(discountId);
+    const result = await deleteProducerPromo(discountId);
     await auditPromoDisable(session, {
       userId, providerDiscountId: discountId, action, success: true,
     });
-    return { required: true, disabled: true };
+    return result;
   } catch (error) {
-    // A missing remote code is already in the desired disabled state.
-    if (error?.status === 404) {
-      await auditPromoDisable(session, {
-        userId, providerDiscountId: discountId, action, success: true,
-      });
-      return { required: true, disabled: true, alreadyMissing: true };
-    }
     const errorCode = safePromoErrorCode(error);
     await auditPromoDisable(session, {
       userId, providerDiscountId: discountId, action, success: false, errorCode,
