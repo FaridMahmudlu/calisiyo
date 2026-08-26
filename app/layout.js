@@ -2,13 +2,13 @@ import './globals.css';
 import './public.css';
 import './landing-editorial.css';
 import AnalyticsConsentProvider from '@/components/analytics/AnalyticsConsentProvider';
-import { JetBrains_Mono, Plus_Jakarta_Sans } from 'next/font/google';
+import { JetBrains_Mono, Nunito_Sans } from 'next/font/google';
 
 const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || 'https://calisiyo-theta.vercel.app';
-const plusJakarta = Plus_Jakarta_Sans({
+const nunitoSans = Nunito_Sans({
   subsets: ['latin', 'latin-ext'],
-  weight: ['300', '400', '500', '600', '700', '800'],
-  variable: '--font-plus-jakarta',
+  weight: ['300', '400', '500', '600', '700', '800', '900'],
+  variable: '--font-nunito-sans',
   display: 'swap',
 });
 const jetBrainsMono = JetBrains_Mono({
@@ -88,13 +88,13 @@ export default function RootLayout({ children }) {
   };
 
   return (
-    <html lang="tr">
+    <html lang="tr" className={`${nunitoSans.variable} ${jetBrainsMono.variable}`}>
       <head>
         <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=5" />
         <meta name="theme-color" content="#00a870" />
         <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd).replace(/</g, '\\u003c') }} />
       </head>
-      <body className={`${plusJakarta.variable} ${jetBrainsMono.variable}`}><AnalyticsConsentProvider gaId={gaId}>{children}</AnalyticsConsentProvider></body>
+      <body><AnalyticsConsentProvider gaId={gaId}>{children}</AnalyticsConsentProvider></body>
     </html>
   );
 }
