@@ -42,7 +42,7 @@ test('public auth, protected navigation, daily CRUD and responsive visuals', asy
 
   await page.goto(`${baseURL}/giris`);
   await expect(page.getByRole('heading', { name: 'Tekrar hoş geldin' })).toBeVisible();
-  const googleButton = page.locator('.social-auth-button:visible, .google-identity-button:visible').first();
+  const googleButton = page.getByRole('button', { name: 'Google ile devam et' });
   await expect(googleButton).toBeVisible();
   await expect(page.getByRole('button', { name: /Apple ile devam et/ })).toHaveCount(0);
   await expect(page.getByText('Yakında')).toHaveCount(0);

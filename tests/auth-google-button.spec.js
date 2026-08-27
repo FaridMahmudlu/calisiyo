@@ -12,13 +12,14 @@ test.describe('Google Login Button Consistency', () => {
         const socialAuth = page.locator('.social-auth');
         await expect(socialAuth).toBeVisible();
 
-        // Assert that a button with "Google" text or google-identity-button is present and visible
-        const googleBtn = page.locator('.social-auth-button:visible, .google-identity-button:visible');
-        await expect(googleBtn.first()).toBeVisible({ timeout: 5000 });
+        const googleBtn = page.getByRole('button', { name: 'Google ile devam et' });
+        await expect(googleBtn).toBeVisible({ timeout: 5000 });
+        await expect(page.locator('.google-identity-button')).toHaveCount(0);
+        await expect(page.locator('.social-auth-button-arrow')).toHaveCount(0);
 
         const footprint = await socialAuth.evaluate((container) => {
           const containerBox = container.getBoundingClientRect();
-          const target = [...container.querySelectorAll('.social-auth-button, .google-identity-button')]
+          const target = [...container.querySelectorAll('.social-auth-button')]
             .find((element) => {
               const box = element.getBoundingClientRect();
               const style = window.getComputedStyle(element);
