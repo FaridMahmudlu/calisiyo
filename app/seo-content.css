@@ -126,7 +126,7 @@
 .guide-direct-answer { margin-bottom: 60px; padding: 30px; border: 1px solid #b6ddcd; border-radius: 16px; background: #eef9f4; }
 .guide-direct-answer span { color: #087957; font-size: .6rem; font-weight: 850; letter-spacing: .07em; text-transform: uppercase; }
 .guide-direct-answer p { margin: 10px 0 0; color: #244038; font-size: .92rem; line-height: 1.75; }
-.content-page .guide-section { padding: 54px 0; border-top: 1px solid #dfe7e4; }
+.content-page .guide-section { padding: 54px 0; border-top: 1px solid #dfe7e4; background: transparent; color: inherit; }
 .content-page .guide-section h2, .guide-sources h2 { margin: 0 0 18px; font-size: clamp(1.65rem, 3.2vw, 2.45rem); line-height: 1.15; letter-spacing: -.04em; }
 .content-page .guide-section > p { margin: 0 0 17px; color: #40594f; font-size: .84rem; line-height: 1.82; }
 .guide-checklist { margin: 24px 0 0; padding: 0; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; list-style: none; }
