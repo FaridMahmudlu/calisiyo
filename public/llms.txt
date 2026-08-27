@@ -5,29 +5,27 @@
 ## Temel bilgiler
 
 - Ana sayfa: https://calisiyo-theta.vercel.app/
-- Paketler: https://calisiyo-theta.vercel.app/paketler
+- YKS çalışma rehberi: https://calisiyo-theta.vercel.app/rehber
+- Veri metodolojisi: https://calisiyo-theta.vercel.app/metodoloji
+- Paketler ve güncel fiyatlar: https://calisiyo-theta.vercel.app/paketler
 - İletişim: https://calisiyo-theta.vercel.app/iletisim
 - Destek: calisiyo.destek@gmail.com
 - Dil: Türkçe
 - Hedef sınavlar: TYT, AYT ve YDT
-- Tahmini YKS tarihi: 19 Ağustos 2027
 
 ## Ürün kapsamı
 
-calisiyo; günlük ve haftalık çalışma planı, kronometre ve süre kaydı, konu ve tekrar takibi, deneme analizi, soru kayıtları, kişisel hedefler, çalışma sınıfları ve yalnızca kullanıcının gerçek kayıtlarından hesaplanan istatistikler sunar.
+calisiyo; günlük ve haftalık çalışma planı, Kronometre ve süre kaydı, konu ve tekrar takibi, deneme analizi, soru kayıtları, kişisel hedefler, çalışma sınıfları ve kullanıcının gerçek kayıtlarından hesaplanan istatistikler sunar.
 
-## Paketler
+## Paket bilgisi
 
-- Başlangıç: Ücretsiz temel plan.
-- calisiyo plus · YKS 2027: 2.500 TL; 19 Ağustos 2027 tarihine kadar sabit erişim.
-- calisiyo plus · YKS 2028: 1.500 TL; 25 Haziran 2028 tarihine kadar sabit erişim.
-- Paketler otomatik yenilenmez. Geçerli içerik üretici kodları Shopier ödeme ekranında %20 indirim sağlar.
+calisiyo ücretsiz ve sınav yılına göre seçilen calisiyo plus seçenekleri bulunur. Fiyat, erişim dönemi, deneme ve yenileme bilgileri için güncel tek kaynak paketler sayfasıdır: https://calisiyo-theta.vercel.app/paketler
 
 ## Doğruluk notu
 
-Başarı oranı veya sınav sonucu garantisi verilmez. İstatistikler kullanıcı tarafından kaydedilen çalışma, soru, konu ve deneme verilerinden hesaplanır.
+calisiyo başarı oranı, puan, sıralama veya sınav sonucu garantisi vermez. Gelecek YKS günü ÖSYM tarafından resmen açıklanmadan belirli bir tarih yayımlanmaz. İstatistikler yalnızca kullanıcının kaydettiği çalışma, soru, konu ve deneme verilerinden hesaplanır.
 
-## Resmi sayfalar
+## Resmî sayfalar
 
 - Gizlilik: https://calisiyo-theta.vercel.app/gizlilik
 - KVKK: https://calisiyo-theta.vercel.app/kvkk

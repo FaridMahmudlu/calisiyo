@@ -3,7 +3,8 @@ import { PiArrowLeft, PiCompass } from 'react-icons/pi';
 import BrandLogo from '@/components/brand/BrandLogo';
 
 export const metadata = {
-  title: 'Sayıfa Bulunamadı (404) – calisiyo',
+  title: 'Sayfa Bulunamadı (404) – calisiyo',
+  robots: { index: false, follow: false },
 };
 
 export default function NotFound() {

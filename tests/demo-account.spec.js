@@ -14,7 +14,7 @@ test('realistic demo account renders live dashboard and statistics', async ({ pa
   await page.getByRole('button', { name: 'Giriş Yap' }).click();
   await expect(page).toHaveURL(/\/dashboard$/);
   await expect(page.getByText(demoName).first()).toBeVisible();
-  await expect(page.getByText(/Tahmini 19 Haziran 2027/)).toBeVisible();
+  await expect(page.getByText(/Resmî tarih ÖSYM tarafından henüz açıklanmadı/)).toBeVisible();
   await page.screenshot({ path: path.join(qaDir, 'demo-dashboard-desktop.png'), fullPage: true });
 
   await page.goto(`${baseURL}/dashboard/istatistikler`);

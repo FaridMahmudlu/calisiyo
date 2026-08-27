@@ -14,7 +14,7 @@ export default function PaketlerPage() {
     <main className="story-landing public-pricing-page">
       <nav className="story-nav" aria-label="Ana navigasyon">
         <Link href="/" className="public-brand" aria-label="calisiyo ana sayfa"><BrandLogo priority /></Link>
-        <div className="story-nav-links"><Link href="/#nasil-calisir">Nasıl çalışır?</Link><Link href="/#ozellikler">Özellikler</Link><Link href="/paketler">Paketler</Link></div>
+        <div className="story-nav-links"><Link href="/rehber">Rehber</Link><Link href="/metodoloji">Metodoloji</Link><Link href="/paketler">Paketler</Link></div>
         <div className="landing-auth"><Link href="/giris">Giriş yap</Link><Link className="public-button primary" href="/kayit">Ücretsiz başla</Link></div>
       </nav>
       <div className="package-page-hero section-shell">

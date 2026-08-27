@@ -1,8 +1,7 @@
 import LandingPageNew from '@/components/landing/LandingPageNew';
 import { FAQS } from '@/components/landing/SharedLandingContent';
 import { PLUS_VARIANTS, PUBLIC_PLANS } from '@/lib/billing/plans';
-
-const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || 'https://calisiyo-theta.vercel.app';
+import { SITE } from '@/lib/seo/site';
 
 export const metadata = {
   title: { absolute: 'YKS Çalışma Programı ve Koçu · calisiyo' },
@@ -26,9 +25,9 @@ export default function HomePage() {
     '@graph': [
       {
         '@type': 'WebApplication',
-        '@id': `${SITE_URL}/#application`,
+        '@id': `${SITE.origin}/#application`,
         name: 'calisiyo · YKS Çalışma Koçu',
-        url: SITE_URL,
+        url: SITE.origin,
         description: 'YKS çalışma planı, Kronometre, konu ve tekrar takibi, deneme analizi ve gerçek çalışma istatistiklerini bir araya getiren web uygulaması.',
         applicationCategory: 'EducationalApplication',
         operatingSystem: 'Web',
@@ -47,14 +46,14 @@ export default function HomePage() {
           name: `${plan.name || `calisiyo plus · ${plan.label}`} planı`,
           price: String(plan.price || 0),
           priceCurrency: 'TRY',
-          url: `${SITE_URL}/paketler`,
+          url: `${SITE.origin}/paketler`,
           availability: 'https://schema.org/InStock',
         })),
-        publisher: { '@id': `${SITE_URL}/#organization` },
+        publisher: { '@id': `${SITE.origin}/#organization` },
       },
       {
         '@type': 'FAQPage',
-        '@id': `${SITE_URL}/#faq`,
+        '@id': `${SITE.origin}/#faq`,
         mainEntity: FAQS.map((item) => ({
           '@type': 'Question',
           name: item.question,

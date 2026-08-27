@@ -134,6 +134,8 @@
 .data-band-copy h2 { max-width: 610px; margin: 18px 0 16px; font-size: clamp(2.7rem, 5vw, 4.7rem); line-height: 1.02; letter-spacing: -.06em; }
 .data-band-copy p { max-width: 590px; margin: 0; color: #a9c5bb; font-size: .86rem; line-height: 1.75; }
 .data-band-copy a { margin-top: 24px; color: #74d8b0; display: inline-flex; align-items: center; gap: 7px; font-size: .69rem; font-weight: 800; text-decoration: none; }
+.data-band-links { margin-top: 24px; display: flex; flex-wrap: wrap; gap: 10px 22px; }
+.data-band-links a { margin-top: 0; }
 .data-source-panel { padding: 24px; border: 1px solid #255144; border-radius: 15px; background: #0e382d; }
 .data-source-panel header { padding-bottom: 17px; border-bottom: 1px solid #285346; display: flex; align-items: center; gap: 11px; }
 .data-source-panel header > svg { width: 27px; height: 27px; color: #64d2a6; }

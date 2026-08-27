@@ -1,6 +1,6 @@
-export default function robots() {
-  const baseUrl = process.env.NEXT_PUBLIC_SITE_URL || 'https://calisiyo-theta.vercel.app';
+import { SITE } from '@/lib/seo/site';
 
+export default function robots() {
   return {
     rules: [
       {
@@ -9,7 +9,7 @@ export default function robots() {
         disallow: ['/dashboard/', '/admin/', '/api/', '/auth/', '/hesap-askida', '/profilini-tamamla', '/sifre-yenile'],
       },
     ],
-    sitemap: `${baseUrl}/sitemap.xml`,
-    host: baseUrl,
+    sitemap: `${SITE.origin}/sitemap.xml`,
+    host: SITE.origin,
   };
 }

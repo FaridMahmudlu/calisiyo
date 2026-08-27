@@ -2,6 +2,7 @@ import Link from 'next/link';
 import BrandLogo from '@/components/brand/BrandLogo';
 import PublicFooter from '@/components/landing/PublicFooter';
 import { getLegalBusinessConfig } from '@/lib/billing/config';
+import { SITE } from '@/lib/seo/site';
 
 export const metadata = {
   title: 'İletişim',
@@ -41,7 +42,7 @@ export default function IletisimPage() {
             <li><strong>Telefon:</strong> <a href={`tel:${contact.phoneHref}`}>{contact.phoneDisplay}</a></li>
             <li><strong>Adres:</strong> {contact.address}</li>
             {contact.supportEmail && <li><strong>Resmi İletişim E-posta:</strong> <a href={`mailto:${contact.supportEmail}`}>{contact.supportEmail}</a></li>}
-            <li><strong>Web Sitesi:</strong> <a href="https://calisiyo-theta.vercel.app" target="_blank" rel="noopener noreferrer">https://calisiyo-theta.vercel.app</a></li>
+            <li><strong>Web Sitesi:</strong> <a href={SITE.origin} target="_blank" rel="noopener noreferrer">{SITE.origin}</a></li>
           </ul>
 
           <h2>2. Destek ve Geri Bildirim</h2>

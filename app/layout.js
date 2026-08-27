@@ -1,10 +1,11 @@
 import './globals.css';
 import './public.css';
 import './landing-editorial.css';
+import './seo-content.css';
 import AnalyticsConsentProvider from '@/components/analytics/AnalyticsConsentProvider';
 import { JetBrains_Mono, Nunito_Sans } from 'next/font/google';
+import { SITE } from '@/lib/seo/site';
 
-const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || 'https://calisiyo-theta.vercel.app';
 const nunitoSans = Nunito_Sans({
   subsets: ['latin', 'latin-ext'],
   weight: ['300', '400', '500', '600', '700', '800', '900'],
@@ -19,7 +20,7 @@ const jetBrainsMono = JetBrains_Mono({
 });
 
 export const metadata = {
-  metadataBase: new URL(SITE_URL),
+  metadataBase: new URL(SITE.origin),
   title: { default: 'calisiyo · YKS Çalışma Koçu', template: '%s · calisiyo' },
   description: 'YKS çalışma planını oluştur, Kronometre ile çalış, konu ve deneme takibini gerçek çalışma kayıtlarınla tek yerde yönet.',
   keywords: ['YKS çalışma programı', 'YKS çalışma koçu', 'TYT çalışma programı', 'AYT çalışma programı', 'Kronometre', 'deneme analizi', 'konu takibi'],
@@ -42,7 +43,7 @@ export const metadata = {
   openGraph: {
     title: 'calisiyo · YKS Çalışma Koçu',
     description: 'Planını kur, odaklanarak çalış ve YKS ilerlemeni yalnızca kendi gerçek kayıtlarınla takip et.',
-    url: SITE_URL,
+    url: SITE.origin,
     siteName: 'calisiyo',
     images: [{ url: '/brand/og-image.png', width: 1200, height: 630, alt: 'calisiyo YKS Çalışma Koçu' }],
     locale: 'tr_TR',
@@ -69,20 +70,22 @@ export default function RootLayout({ children }) {
     '@graph': [
       {
         '@type': 'WebSite',
-        '@id': `${SITE_URL}/#website`,
-        url: SITE_URL,
+        '@id': `${SITE.origin}/#website`,
+        url: SITE.origin,
         name: 'calisiyo',
+        alternateName: 'Calisiyo',
         description: 'YKS çalışma planı, Kronometre, konu takibi, deneme analizi ve gerçek çalışma istatistikleri.',
         inLanguage: 'tr-TR',
-        publisher: { '@id': `${SITE_URL}/#organization` },
+        publisher: { '@id': `${SITE.origin}/#organization` },
       },
       {
         '@type': 'Organization',
-        '@id': `${SITE_URL}/#organization`,
+        '@id': `${SITE.origin}/#organization`,
         name: 'calisiyo',
-        url: SITE_URL,
-        logo: { '@type': 'ImageObject', url: `${SITE_URL}/brand/calisiyo-mark-512.png`, width: 512, height: 512 },
-        email: 'calisiyo.destek@gmail.com',
+        alternateName: 'Calisiyo',
+        url: SITE.origin,
+        logo: { '@type': 'ImageObject', url: `${SITE.origin}${SITE.logoPath}`, width: 512, height: 512 },
+        email: SITE.supportEmail,
       },
     ],
   };

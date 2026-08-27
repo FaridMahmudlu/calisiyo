@@ -20,7 +20,7 @@ calisiyo canlı öğretmen veya birebir insan koçu satmaz. Temel değer; planla
 | --- | ---: | --- | --- |
 | Başlangıç | Ücretsiz | Süresiz | Ürünü risksiz deneme ve temel çalışma düzenini kurma |
 | calisiyo plus · YKS 2027 | ₺2.500 | 19 Ağustos 2027 | YKS 2027 dönemi için genişletilmiş özellikler |
-| calisiyo plus · YKS 2028 | ₺1.500 | 25 Haziran 2028 | YKS 2028 dönemi için genişletilmiş özellikler |
+| calisiyo plus · YKS 2028 | ₺4.500 | 25 Haziran 2028 | YKS 2028 dönemi için genişletilmiş özellikler |
 
 Plus paketleri otomatik yenilenmez ve belirtilen YKS dönemi sonuna kadar sabit erişim verir. Geçerli içerik üretici kodları Shopier ödeme ekranında %20 indirim sağlar; nihai tahsilat tutarı Shopier tarafından gösterilir.
 

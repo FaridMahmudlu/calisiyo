@@ -17,8 +17,8 @@ test.describe('requested study feature regressions', () => {
     await login(page);
   });
 
-  test('uses the June 19 YKS date and exposes the motivational goal editor', async ({ page }) => {
-    await expect(page.getByText(/Tahmini 19 Haziran 2027/)).toBeVisible();
+  test('does not guess an unannounced YKS date and exposes the motivational goal editor', async ({ page }) => {
+    await expect(page.getByText(/Resmî tarih ÖSYM tarafından henüz açıklanmadı/)).toBeVisible();
     await page.goto('/dashboard/hedeflerim');
     await page.getByRole('button', { name: 'Hedefleri düzenle' }).click();
     const dialog = page.getByRole('dialog', { name: 'Hedefleri düzenle' });

@@ -379,14 +379,14 @@ export default function DashboardPage() {
         {/* YKS sınavına kalan süre */}
         <div className="card stat-mini-card">
           <div className="stat-mini-header">
-            <span className="stat-mini-title">YKS&apos;ye Kalan Süre</span>
+            <span className="stat-mini-title">{daysLeft == null ? '2027 YKS' : 'YKS’ye Kalan Süre'}</span>
             <div className="badge-icon badge-icon-green">
               <CalendarIcon size={16} color="#10b981" />
             </div>
           </div>
           <div className="stat-mini-body">
             <div className="stat-mini-num font-mono">{daysLeft ?? '—'}</div>
-            <div className="stat-mini-sub">{daysLeft == null ? 'Tahmini tarih geçti' : `Gün · Tahmini ${yksDateLabel()}`}</div>
+            <div className="stat-mini-sub">{daysLeft == null ? 'Resmî tarih ÖSYM tarafından henüz açıklanmadı' : `Gün · ${yksDateLabel()}`}</div>
           </div>
         </div>
 

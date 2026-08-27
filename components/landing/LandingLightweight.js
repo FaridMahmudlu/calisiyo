@@ -72,7 +72,7 @@ export default function LandingLightweight() {
 
       <section className="editorial-hero section-shell">
         <div className="editorial-hero-copy">
-          <span className="editorial-eyebrow"><PiSparkle /> 19 Haziran 2027 YKS</span>
+          <span className="editorial-eyebrow"><PiSparkle /> 2027 YKS hazırlığı</span>
           <h1>YKS hazırlığını tek bir <em>net düzende</em> yönet.</h1>
           <p>Planını kur, odaklanarak çalış ve ilerlemeni yalnızca kendi gerçek kayıtlarınla gör. Gereksiz karmaşa olmadan, her gün ne yapacağını bil.</p>
           <div className="hero-actions"><Link className="public-button primary" href="/kayit">Ücretsiz başla <PiArrowRight /></Link><a className="public-button" href="#paketler">Paketleri gör</a></div>
@@ -92,7 +92,7 @@ export default function LandingLightweight() {
 
       <section className="landing-data-band" id="ozellikler">
         <div className="section-shell data-band-grid">
-          <div className="data-band-copy"><span><PiLockKey /> Gerçek veriden görünür ilerleme</span><h2>Rakamların yalnızca sen çalıştıkça oluşur.</h2><p>Calisiyo; program, Kronometre, soru, konu ve deneme kayıtlarını birlikte değerlendirir. Veri yoksa yapay başarı oranı göstermez.</p><Link href="/kayit">Ücretsiz çalışma alanını aç <PiArrowRight /></Link></div>
+          <div className="data-band-copy"><span><PiLockKey /> Gerçek veriden görünür ilerleme</span><h2>Rakamların yalnızca sen çalıştıkça oluşur.</h2><p>Calisiyo; program, Kronometre, soru, konu ve deneme kayıtlarını birlikte değerlendirir. Veri yoksa yapay başarı oranı göstermez.</p><div className="data-band-links"><Link href="/metodoloji">Nasıl hesaplandığını gör <PiArrowRight /></Link><Link href="/rehber">YKS rehberlerini incele <PiArrowRight /></Link></div></div>
           <div className="data-source-panel" aria-label="İstatistik veri kaynakları"><header><PiTrendUp /><div><strong>İlerlemenin kaynakları</strong><small>Örnek veri akışı</small></div></header>{[[PiClock, 'Çalışma sürelerin'], [PiBookOpenText, 'Çözdüğün sorular'], [PiTarget, 'Deneme sonuçların'], [PiListChecks, 'Tamamladığın görevler']].map(([Icon, label]) => <div key={label}><Icon /><span>{label}</span><PiCheck /></div>)}</div>
         </div>
       </section>

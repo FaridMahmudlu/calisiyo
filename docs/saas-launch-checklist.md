@@ -8,7 +8,7 @@
 - Vergi kimlik veya MERSİS numarası (uygulanan statüye göre)
 - Shopier hesabında doğrulanmış mağaza/ödeme bilgileri
 - `calisiyo.destek@gmail.com`, telefon ve açık adres
-- Shopier ürün fiyatlarının sırasıyla 2.500 TRY ve 1.500 TRY olması
+- Shopier ürün fiyatlarının sırasıyla 2.500 TRY ve 4.500 TRY olması
 
 ## 2. Server-only production değişkenleri
 
@@ -68,7 +68,7 @@ Dosyadaki iki token Vercel'de `SHOPIER_WEBHOOK_SECRETS` içine virgülle ayrıla
 7. Başarılı tam iade kaydedilmeli; erişim, açık işletme politikası olmadığı için insan incelemesi olmadan azaltılmamalı.
 8. Shopier checkout sayfasına bir gerçek düşük tutarlı uçtan uca ödeme/iade testi yapılmalı.
 
-`plus_2027` için 19 Ağustos 2027 tarihi ürün politikasıdır. Resmi YKS tarihi değişirse backend bitiş tarihi ile müşteri sözleşmeleri aynı yayın değişikliğinde birlikte güncellenmelidir.
+`plus_2027` için 19 Ağustos 2027 tarihi yalnızca sabit erişim sonu ürün politikasıdır; resmî YKS sınav tarihi iddiası değildir. ÖSYM takvimi yayımlandığında erişim dönemini değiştirmek istenirse backend ve müşteri sözleşmeleri ayrı bir ürün kararıyla aynı yayında güncellenmelidir.
 
 Resmi kaynaklar:
 

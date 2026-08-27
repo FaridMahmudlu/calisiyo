@@ -66,7 +66,7 @@ export default function AnalyticsConsentProvider({ children, gaId }) {
       {children}
       {analyticsEnabled && gaId && <GoogleAnalytics gaId={gaId} />}
       {consent === 'unset' && (
-        <aside className="cookie-consent" role="dialog" aria-label="Çerez tercihleri" aria-live="polite">
+        <div className="cookie-consent" role="dialog" aria-label="Çerez tercihleri" aria-live="polite">
           <span className="cookie-consent-icon"><Cookie /></span>
           <div>
             <strong>Tercih senin</strong>
@@ -76,7 +76,7 @@ export default function AnalyticsConsentProvider({ children, gaId }) {
             <button onClick={() => choose('rejected')}><ShieldCheck /> Yalnızca zorunlu</button>
             <button className="is-primary" onClick={() => choose('accepted')}>Analitiğe izin ver</button>
           </div>
-        </aside>
+        </div>
       )}
     </>
   );
