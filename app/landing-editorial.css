@@ -90,8 +90,8 @@
 .editorial-landing .pricing-card.is-popular { border-color: #4eb48c; background: #f7fcfa; transform: none; box-shadow: inset 0 4px #00a870; }
 .editorial-landing .pricing-card:hover { transform: translateY(-3px); box-shadow: 0 18px 40px rgba(20,51,41,.08); }
 .editorial-landing .pricing-card-heading p { color: #4f655d; }
-.editorial-landing .pricing-period button { color: #526861; }
-.editorial-landing .pricing-trust { color: #50655e; }
+.editorial-landing .pricing-period button { color: #465e55; }
+.editorial-landing .pricing-trust { color: #465e55; }
 .editorial-landing .public-kicker { color: #06724f; }
 .pricing-premium { width: fit-content; padding: 5px 8px; border-radius: 7px; background: #fff4d7; color: #90600a; display: inline-flex; align-items: center; gap: 5px; font-size: .52rem; font-weight: 850; letter-spacing: .04em; text-transform: uppercase; }
 .pricing-premium svg { width: 12px; }

@@ -72,7 +72,7 @@
 .content-trust-band > div > span,
 .related-guides > header > span,
 .methodology-detail > div > span {
-  color: #07875f;
+  color: #056b4a;
   font-size: .63rem;
   font-weight: 850;
   letter-spacing: .07em;
@@ -120,7 +120,7 @@
 .guide-article-layout { margin-top: 68px; display: grid; grid-template-columns: 220px minmax(0, 760px); justify-content: space-between; gap: 76px; }
 .guide-toc { position: sticky; top: 105px; height: fit-content; padding: 20px 0; border-top: 1px solid #dce6e2; display: grid; gap: 12px; }
 .guide-toc strong { margin-bottom: 4px; color: #294139; font-size: .68rem; }
-.guide-toc a { color: #71827b; font-size: .62rem; line-height: 1.45; text-decoration: none; }
+.guide-toc a { color: #4f675e; font-size: .62rem; line-height: 1.45; text-decoration: none; }
 .guide-toc a:hover { color: #087957; }
 .guide-article-body { min-width: 0; }
 .guide-direct-answer { margin-bottom: 60px; padding: 30px; border: 1px solid #b6ddcd; border-radius: 16px; background: #eef9f4; }
@@ -128,7 +128,7 @@
 .guide-direct-answer p { margin: 10px 0 0; color: #244038; font-size: .92rem; line-height: 1.75; }
 .content-page .guide-section { padding: 54px 0; border-top: 1px solid #dfe7e4; }
 .content-page .guide-section h2, .guide-sources h2 { margin: 0 0 18px; font-size: clamp(1.65rem, 3.2vw, 2.45rem); line-height: 1.15; letter-spacing: -.04em; }
-.content-page .guide-section > p { margin: 0 0 17px; color: #4f665e; font-size: .84rem; line-height: 1.82; }
+.content-page .guide-section > p { margin: 0 0 17px; color: #40594f; font-size: .84rem; line-height: 1.82; }
 .guide-checklist { margin: 24px 0 0; padding: 0; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; list-style: none; }
 .guide-checklist li { padding: 13px 14px; border: 1px solid #e0e9e5; border-radius: 10px; background: #fff; color: #3e574e; display: flex; align-items: flex-start; gap: 9px; font-size: .7rem; line-height: 1.45; }
 .guide-checklist svg { flex: 0 0 auto; color: #00a870; }
@@ -149,7 +149,7 @@
 .guide-sources > p { margin: 0; padding: 16px; border: 1px solid #e0e9e5; border-radius: 11px; background: #fff; display: grid; grid-template-columns: auto 1fr; gap: 11px; }
 .guide-sources svg { color: #07875f; }
 .guide-sources a { color: #087957; font-size: .72rem; font-weight: 800; text-underline-offset: 3px; }
-.guide-sources small { margin-top: 4px; color: #6a7c75; display: block; font-size: .63rem; line-height: 1.5; }
+.guide-sources small { margin-top: 4px; color: #4f675e; display: block; font-size: .63rem; line-height: 1.5; }
 .guide-cta { margin-top: 24px; padding: 34px; border-radius: 16px; background: #0a3025; color: #fff; }
 .guide-cta > div > span { color: #81dfba; font-size: .6rem; font-weight: 850; letter-spacing: .06em; text-transform: uppercase; }
 .guide-cta h2 { margin: 9px 0 7px; font-size: 1.7rem; line-height: 1.12; letter-spacing: -.04em; }

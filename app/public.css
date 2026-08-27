@@ -95,7 +95,7 @@
 .pricing-section { padding: 110px 0 130px; }
 .pricing-section.is-standalone { width: min(1240px, calc(100% - 64px)); margin: 0 auto 120px; }
 .pricing-period { width: fit-content; margin: -20px auto 32px; padding: 4px; border: 1px solid #d9e6e1; border-radius: 12px; background: #f3f8f6; display: flex; gap: 3px; }
-.pricing-period button { min-height: 42px; padding: 0 17px; border: 0; border-radius: 9px; background: transparent; color: #6a7c75; font: inherit; font-size: .69rem; font-weight: 760; cursor: pointer; }
+.pricing-period button { min-height: 42px; padding: 0 17px; border: 0; border-radius: 9px; background: transparent; color: #465e55; font: inherit; font-size: .69rem; font-weight: 760; cursor: pointer; }
 .pricing-period button.is-active { background: #fff; color: #087552; box-shadow: 0 4px 13px rgba(16,37,31,.08); }
 .pricing-period small { margin-left: 7px; padding: 3px 5px; border-radius: 5px; background: #dff6ec; color: #087552; font-size: .52rem; }
 .pricing-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); align-items: stretch; gap: 14px; }
@@ -116,7 +116,7 @@
 .pricing-card li { color: #50675e; display: flex; align-items: flex-start; gap: 8px; font-size: .69rem; line-height: 1.4; }
 .pricing-card li svg { width: 15px; flex: 0 0 auto; color: #00a870; }
 .pricing-card > .public-button { width: 100%; margin-top: auto; }
-.pricing-trust { max-width: 740px; margin: 25px auto 0; color: #687d75; display: flex; align-items: center; justify-content: center; gap: 8px; font-size: .64rem; text-align: center; }
+.pricing-trust { max-width: 740px; margin: 25px auto 0; color: #465e55; display: flex; align-items: center; justify-content: center; gap: 8px; font-size: .64rem; text-align: center; }
 .pricing-provider-note { max-width: 720px; margin: 24px auto 0; color: #65776f; font-size: .64rem; line-height: 1.6; text-align: center; }
 .pricing-trust svg { flex: 0 0 auto; color: #07875f; }
 .pricing-trust a { color: #087552; font-weight: 780; text-underline-offset: 3px; }
@@ -124,7 +124,7 @@
 .pricing-year-picker button { flex: 1; }
 .pricing-facts { margin-top: 30px; padding: 30px; border: 1px solid #dce8e3; border-radius: 18px; background: #f7fbf9; }
 .pricing-facts > header { max-width: 680px; }
-.pricing-facts > header > span { color: #07875f; font-size: .6rem; font-weight: 850; letter-spacing: .06em; text-transform: uppercase; }
+.pricing-facts > header > span { color: #056b4a; font-size: .6rem; font-weight: 850; letter-spacing: .06em; text-transform: uppercase; }
 .pricing-facts h2 { margin: 8px 0 7px; font-size: 1.45rem; letter-spacing: -.035em; }
 .pricing-facts > header p { margin: 0; color: #63776f; font-size: .7rem; line-height: 1.6; }
 .pricing-facts > div { margin-top: 22px; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 9px; }
@@ -132,7 +132,7 @@
 .pricing-facts article > span { color: #087957; font-size: .62rem; font-weight: 800; }
 .pricing-facts article strong { color: #10251f; font-size: 1.3rem; }
 .pricing-facts article p { margin: 0; color: #4d655c; font-size: .68rem; }
-.pricing-facts article small { color: #73847d; font-size: .58rem; }
+.pricing-facts article small { color: #4f675e; font-size: .58rem; }
 .package-page-hero { padding: 175px 0 70px; text-align: center; }
 .package-page-hero .public-kicker { margin-inline: auto; }
 .package-page-hero h1 { margin: 17px auto 13px; font-size: clamp(3rem, 6vw, 5.8rem); line-height: .98; letter-spacing: -.065em; }
