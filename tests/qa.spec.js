@@ -47,7 +47,7 @@ test('public auth, protected navigation, daily CRUD and responsive visuals', asy
   await expect(page.getByRole('button', { name: /Apple ile devam et/ })).toHaveCount(0);
   await expect(page.getByText('Yakında')).toHaveCount(0);
   await page.goto(`${baseURL}/giris`);
-  await page.screenshot({ path: path.join(qaDir, 'giris-desktop.png') });
+  await page.screenshot({ path: path.join(qaDir, 'giris-desktop.png'), caret: 'initial' });
 
   if (!process.env.SIGNUP_EMAIL || !process.env.QA_EMAIL || !process.env.QA_PASSWORD) {
     expect(browserErrors).toEqual([]);

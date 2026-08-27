@@ -137,8 +137,8 @@ export default function SocialAuthButtons({ intent = 'login', onError }) {
       {/* GIS container slot */}
       <div
         ref={googleButtonRef}
-        className="google-identity-button"
-        style={{ display: gisRendered ? 'block' : 'none' }}
+        className={`google-identity-button${gisRendered ? ' is-ready' : ''}`}
+        aria-hidden={!gisRendered}
       />
 
       {/* Standard Google Button (Always visible on first paint & fallback) */}
@@ -149,8 +149,11 @@ export default function SocialAuthButtons({ intent = 'login', onError }) {
           onClick={startStandardGoogleOAuth}
           type="button"
         >
-          <FcGoogle aria-hidden="true" size={20} />
-          <span>{loading ? 'Yönlendiriliyor…' : 'Google ile devam et'}</span>
+          <span className="social-auth-button-icon" aria-hidden="true">
+            <FcGoogle size={22} />
+          </span>
+          <span className="social-auth-button-label">{loading ? 'Yönlendiriliyor…' : 'Google ile devam et'}</span>
+          <span className="social-auth-button-arrow" aria-hidden="true">→</span>
         </button>
       )}
     </div>

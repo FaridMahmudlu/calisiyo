@@ -24,7 +24,10 @@ test.describe('SaaS pricing, legal and billing safety', () => {
   test('public pricing is responsive, factual and consent-gated', async ({ page }) => {
     const analyticsRequests = [];
     page.on('request', (request) => {
-      if (/posthog|google-analytics|googletagmanager/.test(request.url())) analyticsRequests.push(request.url());
+      const hostname = new URL(request.url()).hostname;
+      if (/(^|\.)(posthog\.com|google-analytics\.com|googletagmanager\.com)$/.test(hostname)) {
+        analyticsRequests.push(request.url());
+      }
     });
     await page.setViewportSize({ width: 1440, height: 1000 });
     await page.goto('/paketler');
