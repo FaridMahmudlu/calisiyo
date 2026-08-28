@@ -166,15 +166,15 @@ export default function ClassroomChat({
     const paths = [...new Set((messages || []).map((message) => message.attachmentPath).filter(Boolean))]
       .filter((path) => !signedPathRef.current.has(path));
     if (!paths.length) return undefined;
-    paths.forEach((path) => signedPathRef.current.add(path));
     supabase.storage.from('classroom-attachments').createSignedUrls(paths, 3600).then(({ data, error }) => {
       if (disposed) return;
       if (error) {
-        paths.forEach((path) => signedPathRef.current.delete(path));
         onError('Sohbetteki dosyalar şu anda açılamıyor. Lütfen tekrar dene.');
         return;
       }
-      setSignedUrls((current) => ({ ...current, ...Object.fromEntries((data || []).filter((item) => item.signedUrl).map((item) => [item.path, item.signedUrl])) }));
+      const freshUrls = Object.fromEntries((data || []).filter((item) => item.signedUrl).map((item) => [item.path, item.signedUrl]));
+      Object.keys(freshUrls).forEach((path) => signedPathRef.current.add(path));
+      setSignedUrls((current) => ({ ...current, ...freshUrls }));
     });
     return () => { disposed = true; };
   }, [messages, onError, supabase]);

@@ -27,6 +27,7 @@ test.describe('Classroom media and social regressions', () => {
     expect(chat).toContain('storage/v1/upload/resumable');
     expect(chat).toContain('retryDelays: [0, 1000, 3000, 5000, 10000]');
     expect(chat).toContain(".filter((path) => !signedPathRef.current.has(path))");
+    expect(chat).toContain("Object.keys(freshUrls).forEach((path) => signedPathRef.current.add(path))");
     expect(chat).toContain("from('classroom-attachments').remove([uploadedPath])");
   });
 
