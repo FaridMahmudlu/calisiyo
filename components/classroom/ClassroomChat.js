@@ -9,6 +9,9 @@ import {
 import Modal from '@/components/ui/Modal';
 
 const MAX_FILE_SIZE = 20 * 1024 * 1024;
+const RECORDING_MIME_TYPES = [
+  'audio/webm;codecs=opus', 'audio/ogg;codecs=opus', 'audio/mp4', 'audio/webm', 'audio/ogg',
+];
 const ACCEPTED_TYPES = new Set([
   'image/jpeg', 'image/png', 'image/webp', 'image/gif',
   'audio/mpeg', 'audio/mp4', 'audio/ogg', 'audio/webm', 'audio/wav',
@@ -39,6 +42,20 @@ const messageTypeFor = (file) => {
   return 'file';
 };
 
+const recordedAudioType = (type) => {
+  const normalized = String(type || '').split(';')[0].toLowerCase();
+  return ACCEPTED_TYPES.has(normalized) && normalized.startsWith('audio/') ? normalized : 'audio/webm';
+};
+
+const audioExtension = (type) => ({
+  'audio/mp4': 'm4a',
+  'audio/ogg': 'ogg',
+  'audio/mpeg': 'mp3',
+  'audio/wav': 'wav',
+}[type] || 'webm');
+
+const formatRecordingTime = (seconds) => `${String(Math.floor(seconds / 60)).padStart(2, '0')}:${String(seconds % 60).padStart(2, '0')}`;
+
 export default function ClassroomChat({
   supabase, groupId, userId, isOwner, room, messages,
   viewerIsMuted, onError, onRefresh,
@@ -55,14 +72,38 @@ export default function ClassroomChat({
   const [shareBusy, setShareBusy] = useState(false);
   const [shareFields, setShareFields] = useState({ weekly: true, questions: true, streak: true, level: true });
   const [recording, setRecording] = useState(false);
+  const [recordingSeconds, setRecordingSeconds] = useState(0);
   const fileInputRef = useRef(null);
   const imageInputRef = useRef(null);
   const recorderRef = useRef(null);
   const recorderChunksRef = useRef([]);
+  const recordingStreamRef = useRef(null);
+  const recordingTimerRef = useRef(null);
+  const recordingRequestRef = useRef(false);
+  const messageListRef = useRef(null);
+  const shouldFollowMessagesRef = useRef(true);
   const markedReadRef = useRef(new Set());
   const canChat = !viewerIsMuted && (isOwner || room.membersCanChat);
 
   useEffect(() => () => { if (previewUrl) URL.revokeObjectURL(previewUrl); }, [previewUrl]);
+
+  useEffect(() => () => {
+    if (recordingTimerRef.current) clearInterval(recordingTimerRef.current);
+    const recorder = recorderRef.current;
+    if (recorder && recorder.state !== 'inactive') {
+      recorder.ondataavailable = null;
+      recorder.onstop = null;
+      recorder.onerror = null;
+      recorder.stop();
+    }
+    recordingStreamRef.current?.getTracks?.().forEach((track) => track.stop());
+  }, []);
+
+  useEffect(() => {
+    const list = messageListRef.current;
+    if (!list || !shouldFollowMessagesRef.current) return;
+    list.scrollTo({ top: list.scrollHeight, behavior: 'smooth' });
+  }, [messages]);
 
   useEffect(() => {
     let disposed = false;
@@ -109,7 +150,7 @@ export default function ClassroomChat({
     }
     if (previewUrl) URL.revokeObjectURL(previewUrl);
     setSelectedFile(file);
-    setPreviewUrl(file.type.startsWith('image/') ? URL.createObjectURL(file) : '');
+    setPreviewUrl((file.type.startsWith('image/') || file.type.startsWith('audio/')) ? URL.createObjectURL(file) : '');
   };
 
   const clearFile = () => {
@@ -182,34 +223,66 @@ export default function ClassroomChat({
   };
 
   const startRecording = async () => {
+    if (recordingRequestRef.current || recorderRef.current) return;
     if (!navigator.mediaDevices?.getUserMedia || !globalThis.MediaRecorder) {
       onError('Bu tarayıcı ses kaydını desteklemiyor. Ses dosyası seçerek gönderebilirsin.');
       return;
     }
+    let stream;
+    recordingRequestRef.current = true;
     try {
-      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-      const preferred = ['audio/webm;codecs=opus', 'audio/webm', 'audio/ogg'].find((type) => globalThis.MediaRecorder.isTypeSupported(type));
+      stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      if (selectedFile) clearFile();
+      const supportsType = typeof globalThis.MediaRecorder.isTypeSupported === 'function';
+      const preferred = supportsType ? RECORDING_MIME_TYPES.find((type) => globalThis.MediaRecorder.isTypeSupported(type)) : '';
       const recorder = new globalThis.MediaRecorder(stream, preferred ? { mimeType: preferred } : undefined);
       recorderChunksRef.current = [];
+      recordingStreamRef.current = stream;
       recorder.ondataavailable = (event) => { if (event.data.size) recorderChunksRef.current.push(event.data); };
       recorder.onstop = () => {
-        const type = recorder.mimeType?.split(';')[0] || 'audio/webm';
+        const type = recordedAudioType(recorder.mimeType || recorderChunksRef.current[0]?.type || preferred);
         const blob = new Blob(recorderChunksRef.current, { type });
         stream.getTracks().forEach((track) => track.stop());
-        chooseFile(new globalThis.File([blob], `ses-${Date.now()}.${type.includes('ogg') ? 'ogg' : 'webm'}`, { type }));
+        recordingStreamRef.current = null;
+        recorderRef.current = null;
+        if (recordingTimerRef.current) clearInterval(recordingTimerRef.current);
+        recordingTimerRef.current = null;
+        setRecording(false);
+        if (!blob.size) {
+          onError('Ses kaydı oluşturulamadı. Mikrofonunu kontrol edip tekrar deneyebilirsin.');
+          return;
+        }
+        chooseFile(new globalThis.File([blob], `ses-${Date.now()}.${audioExtension(type)}`, { type }));
       };
-      recorder.start();
+      recorder.onerror = () => {
+        recorder.onstop = null;
+        stream.getTracks().forEach((track) => track.stop());
+        recordingStreamRef.current = null;
+        recorderRef.current = null;
+        if (recordingTimerRef.current) clearInterval(recordingTimerRef.current);
+        recordingTimerRef.current = null;
+        setRecording(false);
+        onError('Ses kaydı sırasında bir sorun oluştu. Lütfen tekrar dene.');
+      };
+      recorder.start(250);
       recorderRef.current = recorder;
+      setRecordingSeconds(0);
       setRecording(true);
+      const startedAt = Date.now();
+      recordingTimerRef.current = setInterval(() => setRecordingSeconds(Math.floor((Date.now() - startedAt) / 1000)), 250);
     } catch {
+      stream?.getTracks?.().forEach((track) => track.stop());
       onError('Mikrofona erişilemedi. Tarayıcı iznini kontrol edebilirsin.');
+    } finally {
+      recordingRequestRef.current = false;
     }
   };
 
   const stopRecording = () => {
-    recorderRef.current?.stop();
-    recorderRef.current = null;
-    setRecording(false);
+    const recorder = recorderRef.current;
+    if (!recorder || recorder.state === 'inactive') return;
+    recorder.requestData?.();
+    recorder.stop();
   };
 
   const openShare = async () => {
@@ -258,33 +331,54 @@ export default function ClassroomChat({
   return (
     <>
       <article className="classroom-chat study-panel">
-        <header><div><span><Send size={15} /> Sınıf sohbeti</span><h2>Canlı paylaşım alanı</h2></div><em>{(messages || []).length} mesaj</em></header>
-        <div className="classroom-message-list" aria-live="polite">
+        <header className="classroom-chat-header"><div><span><Send size={15} /> Sınıf sohbeti</span><h2>Canlı paylaşım alanı</h2></div><em>{(messages || []).length} mesaj</em></header>
+        <div
+          ref={messageListRef}
+          className="classroom-message-list"
+          role="log"
+          aria-label="Sınıf mesajları"
+          aria-live="polite"
+          onScroll={(event) => {
+            const list = event.currentTarget;
+            shouldFollowMessagesRef.current = list.scrollHeight - list.scrollTop - list.clientHeight < 80;
+          }}
+        >
           {(messages || []).length === 0 ? <div className="classroom-chat-empty"><Send size={22} /><strong>İlk mesajı sen bırak</strong><span>Metin, kaynak, görsel, dosya veya ses paylaşabilirsin.</span></div> : messages.map((message) => {
             const mine = message.userId === userId;
             const reply = message.replyToId ? replyLookup.get(message.replyToId) : null;
-            return <article key={message.id} data-message-id={message.id} className={mine ? 'is-me' : ''}>
-              <span className="message-avatar">{String(message.name || 'Ö').charAt(0).toLocaleUpperCase('tr-TR')}</span>
-              <div className="message-content">
-                <strong>{mine ? 'Sen' : message.name}<time>{new Intl.DateTimeFormat('tr-TR', { hour: '2-digit', minute: '2-digit' }).format(new Date(message.createdAt))}</time></strong>
+            return <div key={message.id} role="listitem" data-message-id={message.id} className={`classroom-message ${mine ? 'is-me' : ''}`}>
+              {!mine && <span className="message-avatar" aria-hidden="true">{String(message.name || 'Ö').charAt(0).toLocaleUpperCase('tr-TR')}</span>}
+              <div className="message-bubble">
+                <header className="message-meta">
+                  <strong>{mine ? 'Sen' : message.name}</strong>
+                  <time dateTime={message.createdAt}>{new Intl.DateTimeFormat('tr-TR', { hour: '2-digit', minute: '2-digit' }).format(new Date(message.createdAt))}</time>
+                  {(mine || isOwner) && !message.deletedAt && <div className="message-actions">{mine && message.body && <button type="button" onClick={() => { setEditId(message.id); setEditText(message.body || ''); }} aria-label="Mesajı düzenle"><Pencil size={14} /></button>}<button type="button" onClick={() => deleteMessage(message)} aria-label="Mesajı sil"><Trash2 size={14} /></button></div>}
+                </header>
                 {reply && <small className="message-reply">{reply.name}: {reply.body}</small>}
-                {editId === message.id ? <div className="message-edit"><input value={editText} onChange={(event) => setEditText(event.target.value)} maxLength={1000} autoFocus /><button onClick={() => saveEdit(message.id)} disabled={busy}>Kaydet</button><button onClick={() => setEditId('')}>Vazgeç</button></div> : <>{!message.deletedAt && renderPayload(message)}{message.body && <p>{message.body}</p>}</>}
-                <footer>{message.editedAt && <small>düzenlendi</small>}{mine && !message.deletedAt && <details><summary><CheckCheck size={14} /> {(message.readBy || []).length ? `${message.readBy.length} kişi okudu` : 'Gönderildi'}</summary>{(message.readBy || []).map((reader) => <span key={reader.userId}>{reader.name}</span>)}</details>}</footer>
+                {editId === message.id ? <div className="message-edit"><input value={editText} onChange={(event) => setEditText(event.target.value)} maxLength={1000} autoFocus aria-label="Mesaj metni" /><button type="button" onClick={() => saveEdit(message.id)} disabled={busy}>Kaydet</button><button type="button" onClick={() => setEditId('')}>Vazgeç</button></div> : <>{!message.deletedAt && renderPayload(message)}{message.body && <p className={message.deletedAt ? 'is-deleted' : ''}>{message.body}</p>}</>}
+                <footer className="message-status">{message.editedAt && <small>düzenlendi</small>}{mine && !message.deletedAt && <details><summary><CheckCheck size={14} /> {(message.readBy || []).length ? `${message.readBy.length} kişi okudu` : 'Gönderildi'}</summary>{(message.readBy || []).length > 0 && <div>{message.readBy.map((reader) => <span key={reader.userId}>{reader.name}</span>)}</div>}</details>}</footer>
               </div>
-              {(mine || isOwner) && !message.deletedAt && <div className="message-actions">{mine && <button onClick={() => { setEditId(message.id); setEditText(message.body || ''); }} aria-label="Mesajı düzenle"><Pencil size={14} /></button>}<button onClick={() => deleteMessage(message)} aria-label="Mesajı sil"><Trash2 size={14} /></button></div>}
-            </article>;
+            </div>;
           })}
         </div>
 
-        {selectedFile && <div className="chat-attachment-preview">{previewUrl ? <span style={{ backgroundImage: `url(${previewUrl})` }} /> : messageTypeFor(selectedFile) === 'audio' ? <Mic size={18} /> : <File size={18} />}<div><strong>{selectedFile.name}</strong><small>{formatBytes(selectedFile.size)}</small></div><button onClick={clearFile} aria-label="Eki kaldır"><X size={16} /></button></div>}
+        {recording && <div className="chat-recording-status" role="status"><span aria-hidden="true" /><div><strong>Ses kaydediliyor</strong><small>Bitirdiğinde kaydı dinleyip gönderebilirsin.</small></div><time>{formatRecordingTime(recordingSeconds)}</time></div>}
+        {selectedFile && <div className={`chat-attachment-preview is-${messageTypeFor(selectedFile)}`}>
+          {messageTypeFor(selectedFile) === 'image' && previewUrl ? <span className="attachment-thumbnail" style={{ backgroundImage: `url(${previewUrl})` }} /> : <span className="attachment-icon">{messageTypeFor(selectedFile) === 'audio' ? <Mic size={18} /> : <File size={18} />}</span>}
+          <div className="attachment-info"><strong>{selectedFile.name}</strong><small>{messageTypeFor(selectedFile) === 'audio' ? 'Ses kaydı hazır' : formatBytes(selectedFile.size)}</small>{messageTypeFor(selectedFile) === 'audio' && previewUrl && <audio controls preload="metadata" src={previewUrl} />}</div>
+          <button type="button" onClick={clearFile} disabled={busy} aria-label="Eki kaldır"><X size={16} /></button>
+        </div>}
         <form className="classroom-chat-composer" onSubmit={sendMessage}>
-          <div className="chat-tools">
-            <button type="button" onClick={() => imageInputRef.current?.click()} disabled={!canChat} title="Görsel ekle"><ImageIcon size={17} /></button>
-            <button type="button" onClick={() => fileInputRef.current?.click()} disabled={!canChat} title="Dosya ekle"><Paperclip size={17} /></button>
-            <button type="button" className={recording ? 'is-recording' : ''} onClick={recording ? stopRecording : startRecording} disabled={!canChat} title={recording ? 'Kaydı durdur' : 'Ses kaydet'}>{recording ? <Square size={15} /> : <Mic size={17} />}</button>
-            <button type="button" onClick={openShare} disabled={!canChat} title="Çalışma bilgisi veya kaynak paylaş"><Share2 size={17} /></button>
+          <textarea value={text} onChange={(event) => setText(event.target.value)} onKeyDown={(event) => { if (event.key === 'Enter' && (event.ctrlKey || event.metaKey)) event.currentTarget.form?.requestSubmit(); }} maxLength={1000} rows={1} disabled={!canChat || recording} placeholder={viewerIsMuted ? 'Sohbet erişimin geçici olarak sınırlandı' : recording ? 'Ses kaydı devam ediyor…' : 'Sınıfa mesaj yaz…'} aria-label="Sınıfa mesaj yaz" />
+          <div className="chat-composer-footer">
+            <div className="chat-tools" role="toolbar" aria-label="Mesaj ekleri">
+              <button type="button" onClick={() => imageInputRef.current?.click()} disabled={!canChat || recording || busy} title="Görsel ekle" aria-label="Görsel ekle"><ImageIcon size={18} /></button>
+              <button type="button" onClick={() => fileInputRef.current?.click()} disabled={!canChat || recording || busy} title="Dosya ekle" aria-label="Dosya ekle"><Paperclip size={18} /></button>
+              <button type="button" className={recording ? 'is-recording' : ''} onClick={recording ? stopRecording : startRecording} disabled={!canChat || busy} title={recording ? 'Kaydı bitir' : 'Ses kaydet'} aria-label={recording ? 'Ses kaydını bitir' : 'Ses kaydet'} aria-pressed={recording}>{recording ? <Square size={15} /> : <Mic size={18} />}</button>
+              <button type="button" onClick={openShare} disabled={!canChat || recording || busy} title="Çalışma bilgisi veya kaynak paylaş" aria-label="Çalışma bilgisi veya kaynak paylaş"><Share2 size={18} /></button>
+            </div>
+            <button className="chat-send-button" disabled={recording || busy || (!text.trim() && !selectedFile) || !canChat} aria-label={busy ? 'Mesaj gönderiliyor' : 'Mesajı gönder'}><Send size={17} /><span>{busy ? 'Gönderiliyor…' : 'Gönder'}</span></button>
           </div>
-          <div className="chat-input-row"><textarea value={text} onChange={(event) => setText(event.target.value)} maxLength={1000} rows={1} disabled={!canChat} placeholder={viewerIsMuted ? 'Sohbet erişimin geçici olarak sınırlandı' : 'Sınıfa mesaj yaz…'} /><button disabled={busy || (!text.trim() && !selectedFile) || !canChat}><Send size={17} /><span>{busy ? 'Gönderiliyor…' : 'Gönder'}</span></button></div>
           <input ref={imageInputRef} type="file" accept="image/jpeg,image/png,image/webp,image/gif" hidden onChange={(event) => chooseFile(event.target.files?.[0])} />
           <input ref={fileInputRef} type="file" accept={[...ACCEPTED_TYPES].join(',')} hidden onChange={(event) => chooseFile(event.target.files?.[0])} />
         </form>

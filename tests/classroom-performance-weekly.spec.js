@@ -65,6 +65,15 @@ test.describe('Account, weekly plan and rich classroom contracts', () => {
     expect(classroomChat).toContain("supabase.rpc('share_classroom_profile_card'");
     expect(classroomChat).toContain("supabase.rpc('share_classroom_resource'");
     expect(classroomChat).toContain('globalThis.MediaRecorder');
+    expect(classroomChat).toContain("'audio/mp4'");
+    expect(classroomChat).toContain('recorder.start(250)');
+    expect(classroomChat).toContain('recordingStreamRef.current?.getTracks?.()');
+    expect(classroomChat).toContain('Ses kaydı hazır');
+    expect(classroomChat).toContain('<audio controls preload="metadata" src={previewUrl} />');
+    expect(classroomCss).toContain('.classroom-message-list{height:clamp(360px,38vw,500px)');
+    expect(classroomCss).toContain('display:flex;flex-direction:column;gap:10px');
+    expect(classroomCss).toContain('.message-bubble{min-width:0;max-width:min(78%,560px)');
+    expect(classroomCss).toContain('@media(max-width:420px)');
     expect(classroomPage).toContain("table: 'study_group_message_reads'");
 
     expect(migration).toContain("'classroom-attachments',\n  false");

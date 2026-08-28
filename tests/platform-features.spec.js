@@ -30,6 +30,20 @@ test.describe('XP, social classroom and admin platform features', () => {
   test('student progression and social hub are real, interactive and responsive', async ({ page, browser }) => {
     const failed = [];
     const errors = [];
+    await page.addInitScript(() => {
+      class MockMediaRecorder {
+        static isTypeSupported(type) { return type.startsWith('audio/'); }
+        constructor() { this.mimeType = 'audio/webm;codecs=opus'; this.state = 'inactive'; }
+        start() { this.state = 'recording'; }
+        requestData() { this.ondataavailable?.({ data: new Blob(['calisiyo-voice'], { type: 'audio/webm' }) }); }
+        stop() { this.state = 'inactive'; queueMicrotask(() => this.onstop?.()); }
+      }
+      Object.defineProperty(globalThis, 'MediaRecorder', { configurable: true, value: MockMediaRecorder });
+      Object.defineProperty(navigator, 'mediaDevices', {
+        configurable: true,
+        value: { getUserMedia: async () => ({ getTracks: () => [{ stop() {} }] }) },
+      });
+    });
     page.on('response', (response) => { if (response.status() >= 500) failed.push(`${response.status()} ${response.url()}`); });
     page.on('pageerror', (error) => errors.push(error.message));
 
@@ -117,11 +131,11 @@ test.describe('XP, social classroom and admin platform features', () => {
     const messageText = `Playwright mesajı ${Date.now()}`;
     const editedMessageText = `${messageText} düzenlendi`;
     await page.getByPlaceholder('Sınıfa mesaj yaz…').fill(messageText);
-    await page.getByRole('button', { name: 'Gönder', exact: true }).click();
-    const ownMessage = page.locator('.classroom-message-list article.is-me').filter({ hasText: messageText }).last();
+    await page.getByRole('button', { name: 'Mesajı gönder' }).click();
+    const ownMessage = page.locator('.classroom-message-list .classroom-message.is-me').filter({ hasText: messageText }).last();
     await expect(ownMessage).toBeVisible();
     const messageId = await ownMessage.getAttribute('data-message-id');
-    const stableOwnMessage = page.locator(`.classroom-message-list article[data-message-id="${messageId}"]`);
+    const stableOwnMessage = page.locator(`.classroom-message-list .classroom-message[data-message-id="${messageId}"]`);
     await stableOwnMessage.getByRole('button', { name: 'Mesajı düzenle' }).click();
     await stableOwnMessage.locator('.message-edit input').fill(editedMessageText);
     await stableOwnMessage.getByRole('button', { name: 'Kaydet' }).click();
@@ -135,13 +149,35 @@ test.describe('XP, social classroom and admin platform features', () => {
       buffer: Buffer.from('Calisiyo classroom attachment regression'),
     });
     await expect(page.locator('.chat-attachment-preview')).toContainText(fileName);
-    await page.getByRole('button', { name: 'Gönder', exact: true }).click();
-    const fileMessage = page.locator('.classroom-message-list article.is-me').filter({ hasText: fileName }).last();
+    await page.getByRole('button', { name: 'Mesajı gönder' }).click();
+    const fileMessage = page.locator('.classroom-message-list .classroom-message.is-me').filter({ hasText: fileName }).last();
     await expect(fileMessage.locator('.chat-file')).toBeVisible();
     const fileMessageId = await fileMessage.getAttribute('data-message-id');
-    const stableFileMessage = page.locator(`.classroom-message-list article[data-message-id="${fileMessageId}"]`);
+    const stableFileMessage = page.locator(`.classroom-message-list .classroom-message[data-message-id="${fileMessageId}"]`);
     await stableFileMessage.getByRole('button', { name: 'Mesajı sil' }).click();
     await expect(stableFileMessage).toContainText('Silinen mesaj');
+
+    await page.getByRole('button', { name: 'Ses kaydet' }).click();
+    await expect(page.locator('.chat-recording-status')).toContainText('Ses kaydediliyor');
+    await page.getByRole('button', { name: 'Ses kaydını bitir' }).click();
+    const audioPreview = page.locator('.chat-attachment-preview.is-audio');
+    await expect(audioPreview).toContainText('Ses kaydı hazır');
+    await expect(audioPreview.locator('audio')).toBeVisible();
+    await page.getByRole('button', { name: 'Mesajı gönder' }).click();
+    const audioMessage = page.locator('.classroom-message-list .classroom-message.is-me').filter({ has: page.locator('.chat-audio') }).last();
+    await expect(audioMessage.locator('.chat-audio')).toBeVisible();
+    const audioMessageId = await audioMessage.getAttribute('data-message-id');
+    const stableAudioMessage = page.locator(`.classroom-message-list .classroom-message[data-message-id="${audioMessageId}"]`);
+    await stableAudioMessage.getByRole('button', { name: 'Mesajı sil' }).click();
+    await expect(stableAudioMessage).toContainText('Silinen mesaj');
+
+    const messageBoxes = await page.locator('.classroom-message-list .classroom-message').evaluateAll((nodes) => nodes.map((node) => {
+      const box = node.getBoundingClientRect();
+      return { top: box.top, bottom: box.bottom };
+    }));
+    for (let index = 1; index < messageBoxes.length; index += 1) {
+      expect(messageBoxes[index].top).toBeGreaterThanOrEqual(messageBoxes[index - 1].bottom - 1);
+    }
 
     await page.getByRole('button', { name: 'Sınıfı düzenle' }).click();
     const settingsDialog = page.getByRole('dialog');
