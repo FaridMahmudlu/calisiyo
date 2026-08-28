@@ -204,8 +204,11 @@ export default function FriendsPage() {
     setGroupDescription('Her gün düzenli çalışıp birbirimizi motive ettiğimiz YKS sınıfı.');
     setGroupPassword('');
     setGroupAccess('open');
-    await loadHub({ quiet: true });
-    if (data?.id) router.push(`/dashboard/arkadaslar/${data.id}`);
+    if (data?.id) {
+      router.push(`/dashboard/arkadaslar/${data.id}`);
+      return;
+    }
+    await loadHub({ quiet: true, includeDirectory: false });
   };
 
   const joinPublicGroup = async (group, password = null) => {
@@ -223,8 +226,11 @@ export default function FriendsPage() {
     setModal(null);
     setProtectedGroup(null);
     setJoinPassword('');
-    await loadHub({ quiet: true });
-    if (data?.id) router.push(`/dashboard/arkadaslar/${data.id}`);
+    if (data?.id) {
+      router.push(`/dashboard/arkadaslar/${data.id}`);
+      return;
+    }
+    await loadHub({ quiet: true, includeDirectory: false });
   };
 
   const joinGroup = async (event) => {
@@ -238,8 +244,11 @@ export default function FriendsPage() {
     }
     setModal(null);
     setInviteCode('');
-    await loadHub({ quiet: true });
-    if (data?.id) router.push(`/dashboard/arkadaslar/${data.id}`);
+    if (data?.id) {
+      router.push(`/dashboard/arkadaslar/${data.id}`);
+      return;
+    }
+    await loadHub({ quiet: true, includeDirectory: false });
   };
 
   const copyCode = async () => {
