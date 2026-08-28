@@ -18,6 +18,7 @@ const presenceMigration = read('supabase', 'migrations', '20260828203000_add_cla
 test.describe('Account, weekly plan and rich classroom contracts', () => {
   test('dashboard shell uses one canonical bootstrap and never downloads full activity history', () => {
     expect(accountRoute).toContain("supabase.rpc('get_account_bootstrap')");
+    expect(accountRoute).toMatch(/Promise\.all\(\[[\s\S]*from\('profiles'\)[\s\S]*get_account_bootstrap/);
     expect(accountRoute).not.toContain(".from('gunluk_gorevler')");
     expect(accountRoute).not.toContain(".from('calisma_suresi')");
     expect(dashboardLayout).not.toContain('result.tasks');

@@ -39,11 +39,13 @@ export async function GET() {
   const { data: { user }, error: userError } = await supabase.auth.getUser();
   if (userError || !user) return unauthorized();
 
-  const { data: existingProfile, error: profileReadError } = await supabase
-    .from('profiles')
-    .select('*')
-    .eq('id', user.id)
-    .maybeSingle();
+  const [profileResult, bootstrapResult] = await Promise.all([
+    supabase.from('profiles').select('*').eq('id', user.id).maybeSingle(),
+    supabase.rpc('get_account_bootstrap'),
+  ]);
+  const { data: existingProfile, error: profileReadError } = profileResult;
+  let bootstrap = bootstrapResult.data;
+  let bootstrapError = bootstrapResult.error;
 
   if (profileReadError) {
     console.error('Account profile could not be read', { code: profileReadError.code });
@@ -83,6 +85,10 @@ export async function GET() {
       );
     }
     profile = repairedProfile;
+
+    const refreshedBootstrap = await supabase.rpc('get_account_bootstrap');
+    bootstrap = refreshedBootstrap.data;
+    bootstrapError = refreshedBootstrap.error;
   }
 
   const suspensionActive = profile.account_status === 'suspended'
@@ -96,8 +102,6 @@ export async function GET() {
         : 'Hesabın geçici olarak askıya alındı. Destek ekibiyle iletişime geçebilirsin.',
     }, { status: 403 });
   }
-
-  const { data: bootstrap, error: bootstrapError } = await supabase.rpc('get_account_bootstrap');
 
   if (bootstrapError) {
     console.error('Account summary loaded partially', { bootstrap: bootstrapError.code });
