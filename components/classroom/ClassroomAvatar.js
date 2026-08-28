@@ -19,6 +19,24 @@ const SPRITE_MODELS = {
     src: '/assets/classroom/sprites/student-rust-v1.webp',
     ratio: 1,
   },
+  ece: {
+    label: 'Ece',
+    description: 'Krem kazak, yeşil tonlar ve sıcak bir ifade',
+    src: '/assets/classroom/sprites/student-ece-v1.webp',
+    ratio: 1.5,
+  },
+  selin: {
+    label: 'Selin',
+    description: 'Lila ceket, modern ve kendinden emin',
+    src: '/assets/classroom/sprites/student-selin-v1.webp',
+    ratio: 1.5,
+  },
+  arda: {
+    label: 'Arda',
+    description: 'Mavi gömlek, sportif ve odaklı',
+    src: '/assets/classroom/sprites/student-arda-v1.webp',
+    ratio: 1.5,
+  },
 };
 
 const DIRECTION_FRAME = {

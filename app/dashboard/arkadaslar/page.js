@@ -5,7 +5,7 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import {
   ArrowRight, BookOpenCheck, Check, Clipboard, Crown, DoorOpen, Flame, Goal,
-  LockKeyhole, Medal, Plus, Search, ShieldCheck, Sparkles, Timer, UserPlus,
+  LockKeyhole, Medal, PencilLine, Plus, Search, ShieldCheck, Sparkles, Timer, UserPlus,
   UsersRound, X,
 } from 'lucide-react';
 import { createClient } from '@/lib/supabase/client';
@@ -30,7 +30,7 @@ const friendlyError = (error, fallback) => error?.message?.replace(/^.*?:\s*/, '
 
 export default function FriendsPage() {
   const router = useRouter();
-  const { user, currentPlan } = useUser();
+  const { user, profile, currentPlan } = useUser();
   const supabase = useMemo(() => createClient(), []);
   const [hub, setHub] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -44,6 +44,7 @@ export default function FriendsPage() {
   const [searchResult, setSearchResult] = useState(null);
   const [searching, setSearching] = useState(false);
   const [copied, setCopied] = useState(false);
+  const [editingUsername, setEditingUsername] = useState(false);
   const [modal, setModal] = useState(null);
   const [groupName, setGroupName] = useState('');
   const [groupDescription, setGroupDescription] = useState('Her gün düzenli çalışıp birbirimizi motive ettiğimiz YKS sınıfı.');
@@ -98,15 +99,26 @@ export default function FriendsPage() {
     return () => { supabase.removeChannel(channel); };
   }, [loadHub, supabase, user?.id]);
 
-  const rankedFriends = useMemo(() => [...(hub?.friends || [])]
+  const rankedPeople = useMemo(() => [{
+    friendshipId: 'self',
+    userId: user?.id,
+    name: profile?.full_name || 'Sen',
+    avatarUrl: profile?.avatar_url || null,
+    isSelf: true,
+    ...hub?.metrics,
+  }, ...(hub?.friends || [])]
     .sort((a, b) => {
       const aValue = a[metric];
       const bValue = b[metric];
       if (aValue == null && bValue == null) return a.name.localeCompare(b.name, 'tr');
       if (aValue == null) return 1;
       if (bValue == null) return -1;
-      return Number(bValue) - Number(aValue);
-    }), [hub?.friends, metric]);
+      if (Number(bValue) !== Number(aValue)) return Number(bValue) - Number(aValue);
+      return a.name.localeCompare(b.name, 'tr');
+    })
+    .map((person, index) => ({ ...person, rank: index + 1 })), [hub?.friends, hub?.metrics, metric, profile?.avatar_url, profile?.full_name, user?.id]);
+
+  const selfRank = rankedPeople.find((person) => person.isSelf)?.rank || 1;
 
   const searchStudent = async (event) => {
     event.preventDefault();
@@ -144,6 +156,7 @@ export default function FriendsPage() {
     if (usernameError) return setError(friendlyError(usernameError, 'Kullanıcı adı kaydedilemedi.'));
     setIdentity((current) => ({ ...current, username: data.username }));
     setUsernameDraft(data.username);
+    setEditingUsername(false);
   };
 
   const respond = async (id, response) => {
@@ -293,25 +306,20 @@ export default function FriendsPage() {
               <article><span><ShieldCheck size={18} /></span><div><strong>Özel</strong><small>kontrollü paylaşım</small></div></article>
             </section>
 
-            <section className="social-intro-grid">
-              <article className="friend-code-card study-panel">
-                <div><span><UserPlus size={17} /> Kullanıcı adın</span><strong>@{identity?.username}</strong><p>Arkadaşların seni bu kullanıcı adıyla bulabilir. E-posta adresin görünmez.</p></div>
-                <form className="username-form" onSubmit={saveUsername}><input value={usernameDraft} onChange={(event) => setUsernameDraft(event.target.value.toLowerCase().replace(/[^a-z0-9_]/g, ''))} minLength={3} maxLength={24} aria-label="Kullanıcı adı" /><button disabled={busy === 'username'}>{busy === 'username' ? 'Kaydediliyor…' : 'Kaydet'}</button></form>
-                <button className="legacy-code-copy" onClick={copyCode}>{copied ? <Check size={15} /> : <Clipboard size={15} />}{copied ? 'Kod kopyalandı' : identity?.friendCode || hub.profile.friendCode}</button>
-              </article>
-
-              <article className="friend-search-card study-panel">
-                <div><span><Search size={17} /> Kullanıcı adıyla arkadaş bul</span><p>Arkadaşının @kullanıcı_adı bilgisini yaz.</p></div>
-                <form onSubmit={searchStudent}>
-                  <input value={friendCode} onChange={(event) => setFriendCode(event.target.value.toLowerCase())} placeholder="@kullanici_adi" maxLength={25} />
-                  <button disabled={searching}>{searching ? 'Aranıyor…' : 'Bul'}</button>
-                </form>
-                {searchResult && (
-                  <div className="friend-search-result">
-                    <span className="social-avatar">{initials(searchResult.name)}</span><div><strong>{searchResult.name}</strong><small>@{searchResult.username} · {searchResult.friendshipStatus || 'Yeni bağlantı'}</small></div><button onClick={sendRequest} disabled={busy === 'friend-request' || Boolean(searchResult.friendshipStatus)}>{busy === 'friend-request' ? 'Gönderiliyor…' : 'İstek gönder'}</button>
-                  </div>
-                )}
-              </article>
+            <section className="social-connect-bar study-panel" aria-label="Arkadaş bulma araçları">
+              <div className="social-identity-chip">
+                <span className="social-avatar is-self">{initials(profile?.full_name || 'Sen')}</span>
+                <div><small>Kullanıcı adın</small><strong>@{identity?.username || 'hazırlanıyor'}</strong></div>
+                <button type="button" onClick={() => setEditingUsername((current) => !current)} aria-label="Kullanıcı adını düzenle" title="Kullanıcı adını düzenle"><PencilLine size={16} /></button>
+                <button type="button" onClick={copyCode} aria-label="Arkadaş kodunu kopyala" title={copied ? 'Kod kopyalandı' : 'Arkadaş kodunu kopyala'}>{copied ? <Check size={16} /> : <Clipboard size={16} />}</button>
+              </div>
+              <form className="social-quick-search" onSubmit={searchStudent}>
+                <Search size={17} aria-hidden="true" />
+                <input value={friendCode} onChange={(event) => setFriendCode(event.target.value.toLowerCase())} placeholder="Kullanıcı adıyla arkadaş bul" maxLength={25} aria-label="Kullanıcı adıyla arkadaş bul" />
+                <button disabled={searching}>{searching ? 'Aranıyor…' : 'Bul'}</button>
+              </form>
+              {editingUsername && <form className="username-form compact" onSubmit={saveUsername}><input value={usernameDraft} onChange={(event) => setUsernameDraft(event.target.value.toLowerCase().replace(/[^a-z0-9_]/g, ''))} minLength={3} maxLength={24} aria-label="Yeni kullanıcı adı" /><button disabled={busy === 'username'}>{busy === 'username' ? 'Kaydediliyor…' : 'Kaydet'}</button></form>}
+              {searchResult && <div className="friend-search-result compact"><span className="social-avatar">{initials(searchResult.name)}</span><div><strong>{searchResult.name}</strong><small>@{searchResult.username} · {searchResult.friendshipStatus || 'Yeni bağlantı'}</small></div><button onClick={sendRequest} disabled={busy === 'friend-request' || Boolean(searchResult.friendshipStatus)}>{busy === 'friend-request' ? 'Gönderiliyor…' : 'İstek gönder'}</button></div>}
             </section>
 
             {(hub.incomingRequests || []).length > 0 && (
@@ -333,24 +341,19 @@ export default function FriendsPage() {
             <section className="social-main-grid">
               <article className="leaderboard study-panel">
                 <header><div><span>Arkadaş sıralaması</span><h2>Ritmini birlikte takip et</h2></div><div className="metric-switcher">{METRIC_OPTIONS.map(([key, label, unit, Icon]) => <button key={key} className={metric === key ? 'is-active' : ''} onClick={() => setMetric(key)} title={label}><Icon size={15} /><span>{label}</span></button>)}</div></header>
-                <div className="leaderboard-self">
-                  <span className="social-avatar is-self">S</span><div><strong>Sen</strong><small>Kişisel göstergen</small></div><em>{Number(hub.metrics?.[metric] || 0).toLocaleString('tr-TR')} {activeMetric[2]}</em>
+                <div className="leaderboard-summary"><span><strong>#{selfRank}</strong><small>senin sıran</small></span><span><strong>{rankedPeople.length}</strong><small>katılımcı</small></span><span><strong>{Number(hub.metrics?.[metric] || 0).toLocaleString('tr-TR')}</strong><small>{activeMetric[1].toLocaleLowerCase('tr-TR')}</small></span></div>
+                <div className="leaderboard-list">
+                  {rankedPeople.map((person) => (
+                    <article key={person.friendshipId} className={person.isSelf ? 'is-self' : ''}>
+                      <span className={`rank-number rank-${person.rank}`}>{person.rank <= 3 ? <Medal size={18} /> : person.rank}</span>
+                      {person.avatarUrl ? <span className={`social-avatar has-image ${person.isSelf ? 'is-self' : ''}`} style={{ backgroundImage: `url(${person.avatarUrl})` }} aria-label={`${person.name} profil fotoğrafı`} /> : <span className={`social-avatar ${person.isSelf ? 'is-self' : ''}`}>{initials(person.name)}</span>}
+                      <div><strong>{person.isSelf ? <>{person.name}<i>Sen</i></> : person.name}</strong><small>{person.level ? `Seviye ${person.level}` : person.isSelf ? 'Kişisel göstergen' : 'Paylaşım tercihi sınırlı'}</small></div>
+                      <em>{person[metric] == null ? <><LockKeyhole size={15} /> Gizli</> : `${Number(person[metric]).toLocaleString('tr-TR')} ${activeMetric[2]}`}</em>
+                      {!person.isSelf && <button className="friend-remove" onClick={() => removeFriend(person.friendshipId)} disabled={busy === `remove-${person.friendshipId}`} aria-label={`${person.name} arkadaşını kaldır`}><X size={15} /></button>}
+                    </article>
+                  ))}
                 </div>
-                {(rankedFriends || []).length === 0 ? (
-                  <div className="social-empty"><UsersRound size={28} /><strong>İlk çalışma arkadaşını ekle</strong><span>Kodla arkadaş eklediğinde gerçek çalışma ritminiz burada karşılaştırılır.</span></div>
-                ) : (
-                  <div className="leaderboard-list">
-                    {rankedFriends.map((friend, index) => (
-                      <article key={friend.friendshipId}>
-                        <span className={`rank-number rank-${index + 1}`}>{index < 3 ? <Medal size={18} /> : index + 1}</span>
-                        <span className="social-avatar">{initials(friend.name)}</span>
-                        <div><strong>{friend.name}</strong><small>{friend.level ? `Seviye ${friend.level}` : 'Paylaşım tercihi sınırlı'}</small></div>
-                        <em>{friend[metric] == null ? <LockKeyhole size={15} /> : `${Number(friend[metric]).toLocaleString('tr-TR')} ${activeMetric[2]}`}</em>
-                        <button className="friend-remove" onClick={() => removeFriend(friend.friendshipId)} disabled={busy === `remove-${friend.friendshipId}`} aria-label={`${friend.name} arkadaşını kaldır`}><X size={15} /></button>
-                      </article>
-                    ))}
-                  </div>
-                )}
+                {(hub.friends || []).length === 0 && <div className="leaderboard-invite"><UsersRound size={17} /><span>Karşılaştırma için yukarıdan ilk çalışma arkadaşını ekle.</span></div>}
               </article>
 
               <article className="privacy-panel study-panel">

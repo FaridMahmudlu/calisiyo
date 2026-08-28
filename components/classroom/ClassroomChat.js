@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useMemo, useRef, useState } from 'react';
+import * as tus from 'tus-js-client';
 import {
   BookOpen, Check, CheckCheck, Clock3, Download, ExternalLink, File,
   Flame, Image as ImageIcon, Mic, Paperclip, Pencil, Send, Share2,
@@ -9,6 +10,8 @@ import {
 import Modal from '@/components/ui/Modal';
 
 const MAX_FILE_SIZE = 20 * 1024 * 1024;
+const RESUMABLE_UPLOAD_THRESHOLD = 6 * 1024 * 1024;
+const IMAGE_MAX_EDGE = 1920;
 const RECORDING_MIME_TYPES = [
   'audio/webm;codecs=opus', 'audio/ogg;codecs=opus', 'audio/mp4', 'audio/webm', 'audio/ogg',
 ];
@@ -56,6 +59,55 @@ const audioExtension = (type) => ({
 
 const formatRecordingTime = (seconds) => `${String(Math.floor(seconds / 60)).padStart(2, '0')}:${String(seconds % 60).padStart(2, '0')}`;
 
+const optimizeImage = async (file) => {
+  if (!file?.type?.startsWith('image/') || file.type === 'image/gif') return file;
+  if (typeof globalThis.createImageBitmap !== 'function') return file;
+  const bitmap = await globalThis.createImageBitmap(file);
+  const scale = Math.min(1, IMAGE_MAX_EDGE / Math.max(bitmap.width, bitmap.height));
+  if (scale === 1 && file.size < 900 * 1024) {
+    bitmap.close();
+    return file;
+  }
+  const canvas = document.createElement('canvas');
+  canvas.width = Math.max(1, Math.round(bitmap.width * scale));
+  canvas.height = Math.max(1, Math.round(bitmap.height * scale));
+  canvas.getContext('2d', { alpha: true }).drawImage(bitmap, 0, 0, canvas.width, canvas.height);
+  bitmap.close();
+  const blob = await new Promise((resolve) => canvas.toBlob(resolve, 'image/webp', 0.82));
+  if (!blob || blob.size >= file.size) return file;
+  const baseName = file.name.replace(/\.[^.]+$/, '') || 'gorsel';
+  return new globalThis.File([blob], `${baseName}.webp`, { type: 'image/webp', lastModified: file.lastModified });
+};
+
+const resumableUpload = async ({ supabase, file, path, onProgress }) => {
+  const { data: { session }, error } = await supabase.auth.getSession();
+  if (error || !session?.access_token) throw new Error('Oturum doğrulanamadı. Lütfen tekrar giriş yap.');
+  return new Promise((resolve, reject) => {
+    const upload = new tus.Upload(file, {
+      endpoint: `${process.env.NEXT_PUBLIC_SUPABASE_URL}/storage/v1/upload/resumable`,
+      retryDelays: [0, 1000, 3000, 5000, 10000],
+      headers: {
+        authorization: `Bearer ${session.access_token}`,
+        apikey: process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY,
+        'x-upsert': 'false',
+      },
+      uploadDataDuringCreation: true,
+      removeFingerprintOnSuccess: true,
+      chunkSize: RESUMABLE_UPLOAD_THRESHOLD,
+      metadata: {
+        bucketName: 'classroom-attachments',
+        objectName: path,
+        contentType: file.type,
+        cacheControl: '3600',
+      },
+      onError: reject,
+      onProgress: (sent, total) => onProgress(Math.round((sent / total) * 100)),
+      onSuccess: resolve,
+    });
+    upload.start();
+  });
+};
+
 export default function ClassroomChat({
   supabase, groupId, userId, isOwner, room, messages,
   viewerIsMuted, onError, onRefresh,
@@ -73,6 +125,9 @@ export default function ClassroomChat({
   const [shareFields, setShareFields] = useState({ weekly: true, questions: true, streak: true, level: true });
   const [recording, setRecording] = useState(false);
   const [recordingSeconds, setRecordingSeconds] = useState(0);
+  const [preparingAttachment, setPreparingAttachment] = useState(false);
+  const [uploadProgress, setUploadProgress] = useState(0);
+  const [microphoneHelp, setMicrophoneHelp] = useState('');
   const fileInputRef = useRef(null);
   const imageInputRef = useRef(null);
   const recorderRef = useRef(null);
@@ -83,6 +138,7 @@ export default function ClassroomChat({
   const messageListRef = useRef(null);
   const shouldFollowMessagesRef = useRef(true);
   const markedReadRef = useRef(new Set());
+  const signedPathRef = useRef(new Set());
   const canChat = !viewerIsMuted && (isOwner || room.membersCanChat);
 
   useEffect(() => () => { if (previewUrl) URL.revokeObjectURL(previewUrl); }, [previewUrl]);
@@ -107,15 +163,18 @@ export default function ClassroomChat({
 
   useEffect(() => {
     let disposed = false;
-    const paths = [...new Set((messages || []).map((message) => message.attachmentPath).filter(Boolean))];
+    const paths = [...new Set((messages || []).map((message) => message.attachmentPath).filter(Boolean))]
+      .filter((path) => !signedPathRef.current.has(path));
     if (!paths.length) return undefined;
+    paths.forEach((path) => signedPathRef.current.add(path));
     supabase.storage.from('classroom-attachments').createSignedUrls(paths, 3600).then(({ data, error }) => {
       if (disposed) return;
       if (error) {
+        paths.forEach((path) => signedPathRef.current.delete(path));
         onError('Sohbetteki dosyalar şu anda açılamıyor. Lütfen tekrar dene.');
         return;
       }
-      setSignedUrls(Object.fromEntries((data || []).filter((item) => item.signedUrl).map((item) => [item.path, item.signedUrl])));
+      setSignedUrls((current) => ({ ...current, ...Object.fromEntries((data || []).filter((item) => item.signedUrl).map((item) => [item.path, item.signedUrl])) }));
     });
     return () => { disposed = true; };
   }, [messages, onError, supabase]);
@@ -138,7 +197,7 @@ export default function ClassroomChat({
 
   const replyLookup = useMemo(() => new Map((messages || []).map((message) => [message.id, message])), [messages]);
 
-  const chooseFile = (file) => {
+  const chooseFile = async (file) => {
     if (!file) return;
     if (!ACCEPTED_TYPES.has(file.type)) {
       onError('Bu dosya türü desteklenmiyor. Görsel, ses, PDF veya Office dosyası seçebilirsin.');
@@ -148,15 +207,24 @@ export default function ClassroomChat({
       onError('Dosya 20 MB sınırını aşmamalı.');
       return;
     }
-    if (previewUrl) URL.revokeObjectURL(previewUrl);
-    setSelectedFile(file);
-    setPreviewUrl((file.type.startsWith('image/') || file.type.startsWith('audio/')) ? URL.createObjectURL(file) : '');
+    setPreparingAttachment(true);
+    try {
+      const preparedFile = await optimizeImage(file);
+      if (previewUrl) URL.revokeObjectURL(previewUrl);
+      setSelectedFile(preparedFile);
+      setPreviewUrl((preparedFile.type.startsWith('image/') || preparedFile.type.startsWith('audio/')) ? URL.createObjectURL(preparedFile) : '');
+    } catch {
+      onError('Görsel hazırlanamadı. Farklı bir dosya seçip tekrar deneyebilirsin.');
+    } finally {
+      setPreparingAttachment(false);
+    }
   };
 
   const clearFile = () => {
     if (previewUrl) URL.revokeObjectURL(previewUrl);
     setPreviewUrl('');
     setSelectedFile(null);
+    setUploadProgress(0);
     if (fileInputRef.current) fileInputRef.current.value = '';
     if (imageInputRef.current) imageInputRef.current.value = '';
   };
@@ -166,15 +234,21 @@ export default function ClassroomChat({
     const body = text.trim();
     if ((!body && !selectedFile) || !canChat || busy) return;
     setBusy(true);
+    setUploadProgress(selectedFile ? 1 : 0);
     let uploadedPath = '';
     try {
       if (selectedFile) {
         const unique = globalThis.crypto?.randomUUID?.() || `${Date.now()}-${Math.random().toString(16).slice(2)}`;
         uploadedPath = `${groupId}/${userId}/${unique}-${safeFileName(selectedFile.name)}`;
-        const { error: uploadError } = await supabase.storage
-          .from('classroom-attachments')
-          .upload(uploadedPath, selectedFile, { upsert: false, contentType: selectedFile.type, cacheControl: '3600' });
-        if (uploadError) throw new Error('Dosya sınıf sohbetine yüklenemedi.');
+        if (selectedFile.size > RESUMABLE_UPLOAD_THRESHOLD) {
+          await resumableUpload({ supabase, file: selectedFile, path: uploadedPath, onProgress: setUploadProgress });
+        } else {
+          const { error: uploadError } = await supabase.storage
+            .from('classroom-attachments')
+            .upload(uploadedPath, selectedFile, { upsert: false, contentType: selectedFile.type, cacheControl: '3600' });
+          if (uploadError) throw new Error('Dosya sınıf sohbetine yüklenemedi. İnternet bağlantını kontrol edip tekrar dene.');
+          setUploadProgress(100);
+        }
       }
       const { error } = await supabase.rpc('send_classroom_message_v2', {
         p_group_id: groupId,
@@ -192,7 +266,10 @@ export default function ClassroomChat({
       await onRefresh();
     } catch (sendError) {
       if (uploadedPath) await supabase.storage.from('classroom-attachments').remove([uploadedPath]);
-      onError(sendError.message || 'Mesaj gönderilemedi. Lütfen tekrar dene.');
+      const safeMessage = sendError?.message?.startsWith('Oturum ') || sendError?.message?.startsWith('Dosya ')
+        ? sendError.message
+        : 'Mesaj gönderilemedi. Lütfen tekrar dene.';
+      onError(safeMessage);
     } finally {
       setBusy(false);
     }
@@ -232,6 +309,7 @@ export default function ClassroomChat({
     recordingRequestRef.current = true;
     try {
       stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      setMicrophoneHelp('');
       if (selectedFile) clearFile();
       const supportsType = typeof globalThis.MediaRecorder.isTypeSupported === 'function';
       const preferred = supportsType ? RECORDING_MIME_TYPES.find((type) => globalThis.MediaRecorder.isTypeSupported(type)) : '';
@@ -270,9 +348,20 @@ export default function ClassroomChat({
       setRecording(true);
       const startedAt = Date.now();
       recordingTimerRef.current = setInterval(() => setRecordingSeconds(Math.floor((Date.now() - startedAt) / 1000)), 250);
-    } catch {
+    } catch (recordingError) {
       stream?.getTracks?.().forEach((track) => track.stop());
-      onError('Mikrofona erişilemedi. Tarayıcı iznini kontrol edebilirsin.');
+      const denied = recordingError?.name === 'NotAllowedError' || recordingError?.name === 'SecurityError';
+      const missing = recordingError?.name === 'NotFoundError';
+      const inUse = recordingError?.name === 'NotReadableError';
+      const message = denied
+        ? 'Mikrofon izni kapalı. Adres çubuğundaki kilit simgesinden Mikrofon > İzin ver seçip tekrar dene.'
+        : missing
+          ? 'Bu cihazda kullanılabilir mikrofon bulunamadı.'
+          : inUse
+            ? 'Mikrofon başka bir uygulama tarafından kullanılıyor. Uygulamayı kapatıp tekrar dene.'
+            : 'Mikrofona erişilemedi. Cihaz ve tarayıcı ayarlarını kontrol edip tekrar dene.';
+      setMicrophoneHelp(message);
+      onError(message);
     } finally {
       recordingRequestRef.current = false;
     }
@@ -362,25 +451,26 @@ export default function ClassroomChat({
           })}
         </div>
 
+        {microphoneHelp && <div className="chat-permission-help" role="alert"><Mic size={17} /><span>{microphoneHelp}</span><button type="button" onClick={() => setMicrophoneHelp('')} aria-label="Mikrofon uyarısını kapat"><X size={15} /></button></div>}
         {recording && <div className="chat-recording-status" role="status"><span aria-hidden="true" /><div><strong>Ses kaydediliyor</strong><small>Bitirdiğinde kaydı dinleyip gönderebilirsin.</small></div><time>{formatRecordingTime(recordingSeconds)}</time></div>}
         {selectedFile && <div className={`chat-attachment-preview is-${messageTypeFor(selectedFile)}`}>
           {messageTypeFor(selectedFile) === 'image' && previewUrl ? <span className="attachment-thumbnail" style={{ backgroundImage: `url(${previewUrl})` }} /> : <span className="attachment-icon">{messageTypeFor(selectedFile) === 'audio' ? <Mic size={18} /> : <File size={18} />}</span>}
-          <div className="attachment-info"><strong>{selectedFile.name}</strong><small>{messageTypeFor(selectedFile) === 'audio' ? 'Ses kaydı hazır' : formatBytes(selectedFile.size)}</small>{messageTypeFor(selectedFile) === 'audio' && previewUrl && <audio controls preload="metadata" src={previewUrl} />}</div>
+          <div className="attachment-info"><strong>{selectedFile.name}</strong><small>{busy && uploadProgress ? `Yükleniyor · %${uploadProgress}` : messageTypeFor(selectedFile) === 'audio' ? 'Ses kaydı hazır' : formatBytes(selectedFile.size)}</small>{messageTypeFor(selectedFile) === 'audio' && previewUrl && <audio controls preload="metadata" src={previewUrl} />}</div>
           <button type="button" onClick={clearFile} disabled={busy} aria-label="Eki kaldır"><X size={16} /></button>
         </div>}
         <form className="classroom-chat-composer" onSubmit={sendMessage}>
           <textarea value={text} onChange={(event) => setText(event.target.value)} onKeyDown={(event) => { if (event.key === 'Enter' && (event.ctrlKey || event.metaKey)) event.currentTarget.form?.requestSubmit(); }} maxLength={1000} rows={1} disabled={!canChat || recording} placeholder={viewerIsMuted ? 'Sohbet erişimin geçici olarak sınırlandı' : recording ? 'Ses kaydı devam ediyor…' : 'Sınıfa mesaj yaz…'} aria-label="Sınıfa mesaj yaz" />
           <div className="chat-composer-footer">
             <div className="chat-tools" role="toolbar" aria-label="Mesaj ekleri">
-              <button type="button" onClick={() => imageInputRef.current?.click()} disabled={!canChat || recording || busy} title="Görsel ekle" aria-label="Görsel ekle"><ImageIcon size={18} /></button>
-              <button type="button" onClick={() => fileInputRef.current?.click()} disabled={!canChat || recording || busy} title="Dosya ekle" aria-label="Dosya ekle"><Paperclip size={18} /></button>
+              <button type="button" onClick={() => imageInputRef.current?.click()} disabled={!canChat || recording || busy || preparingAttachment} title="Görsel ekle" aria-label="Görsel ekle"><ImageIcon size={18} /></button>
+              <button type="button" onClick={() => fileInputRef.current?.click()} disabled={!canChat || recording || busy || preparingAttachment} title="Dosya ekle" aria-label="Dosya ekle"><Paperclip size={18} /></button>
               <button type="button" className={recording ? 'is-recording' : ''} onClick={recording ? stopRecording : startRecording} disabled={!canChat || busy} title={recording ? 'Kaydı bitir' : 'Ses kaydet'} aria-label={recording ? 'Ses kaydını bitir' : 'Ses kaydet'} aria-pressed={recording}>{recording ? <Square size={15} /> : <Mic size={18} />}</button>
               <button type="button" onClick={openShare} disabled={!canChat || recording || busy} title="Çalışma bilgisi veya kaynak paylaş" aria-label="Çalışma bilgisi veya kaynak paylaş"><Share2 size={18} /></button>
             </div>
-            <button className="chat-send-button" disabled={recording || busy || (!text.trim() && !selectedFile) || !canChat} aria-label={busy ? 'Mesaj gönderiliyor' : 'Mesajı gönder'}><Send size={17} /><span>{busy ? 'Gönderiliyor…' : 'Gönder'}</span></button>
+            <button className="chat-send-button" disabled={recording || busy || preparingAttachment || (!text.trim() && !selectedFile) || !canChat} aria-label={busy ? 'Mesaj gönderiliyor' : 'Mesajı gönder'}><Send size={17} /><span>{preparingAttachment ? 'Hazırlanıyor…' : busy && uploadProgress ? `%${uploadProgress}` : busy ? 'Gönderiliyor…' : 'Gönder'}</span></button>
           </div>
-          <input ref={imageInputRef} type="file" accept="image/jpeg,image/png,image/webp,image/gif" hidden onChange={(event) => chooseFile(event.target.files?.[0])} />
-          <input ref={fileInputRef} type="file" accept={[...ACCEPTED_TYPES].join(',')} hidden onChange={(event) => chooseFile(event.target.files?.[0])} />
+          <input ref={imageInputRef} type="file" accept="image/jpeg,image/png,image/webp,image/gif" hidden onChange={(event) => void chooseFile(event.target.files?.[0])} />
+          <input ref={fileInputRef} type="file" accept={[...ACCEPTED_TYPES].join(',')} hidden onChange={(event) => void chooseFile(event.target.files?.[0])} />
         </form>
       </article>
 
