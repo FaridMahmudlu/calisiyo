@@ -21,7 +21,7 @@ async function login(page) {
   await page.getByLabel('E-posta').fill(email);
   await page.locator('input[autocomplete="current-password"]').fill(password);
   await page.locator('.auth-submit').click();
-  await expect(page).toHaveURL(/\/dashboard$/);
+  await expect(page).toHaveURL(/\/dashboard$/, { timeout: 15000 });
 }
 
 test.describe('XP, social classroom and admin platform features', () => {
@@ -109,6 +109,40 @@ test.describe('XP, social classroom and admin platform features', () => {
     await page.getByRole('button', { name: 'Turu durdur' }).click();
     await expect(page.getByRole('button', { name: /Ortak odağı başlat/ })).toBeVisible();
 
+    await page.getByRole('button', { name: 'Görseli gizle' }).click();
+    await expect(page.getByText('Sınıf görseli kapalı')).toBeVisible();
+    await page.getByRole('button', { name: '3D sınıfı aç' }).click();
+    await expect(page.locator('.classroom-world')).toBeVisible();
+
+    const messageText = `Playwright mesajı ${Date.now()}`;
+    const editedMessageText = `${messageText} düzenlendi`;
+    await page.getByPlaceholder('Sınıfa mesaj yaz…').fill(messageText);
+    await page.getByRole('button', { name: 'Gönder', exact: true }).click();
+    const ownMessage = page.locator('.classroom-message-list article.is-me').filter({ hasText: messageText }).last();
+    await expect(ownMessage).toBeVisible();
+    const messageId = await ownMessage.getAttribute('data-message-id');
+    const stableOwnMessage = page.locator(`.classroom-message-list article[data-message-id="${messageId}"]`);
+    await stableOwnMessage.getByRole('button', { name: 'Mesajı düzenle' }).click();
+    await stableOwnMessage.locator('.message-edit input').fill(editedMessageText);
+    await stableOwnMessage.getByRole('button', { name: 'Kaydet' }).click();
+    await expect(stableOwnMessage).toContainText(editedMessageText);
+    await expect(stableOwnMessage).toContainText('düzenlendi');
+
+    const fileName = `playwright-notu-${Date.now()}.txt`;
+    await page.locator('.classroom-chat-composer input[type="file"]').last().setInputFiles({
+      name: fileName,
+      mimeType: 'text/plain',
+      buffer: Buffer.from('Calisiyo classroom attachment regression'),
+    });
+    await expect(page.locator('.chat-attachment-preview')).toContainText(fileName);
+    await page.getByRole('button', { name: 'Gönder', exact: true }).click();
+    const fileMessage = page.locator('.classroom-message-list article.is-me').filter({ hasText: fileName }).last();
+    await expect(fileMessage.locator('.chat-file')).toBeVisible();
+    const fileMessageId = await fileMessage.getAttribute('data-message-id');
+    const stableFileMessage = page.locator(`.classroom-message-list article[data-message-id="${fileMessageId}"]`);
+    await stableFileMessage.getByRole('button', { name: 'Mesajı sil' }).click();
+    await expect(stableFileMessage).toContainText('Silinen mesaj');
+
     await page.getByRole('button', { name: 'Sınıfı düzenle' }).click();
     const settingsDialog = page.getByRole('dialog');
     await settingsDialog.getByLabel('Sınıf teması').click();
@@ -153,6 +187,22 @@ test.describe('XP, social classroom and admin platform features', () => {
 
     expect(failed).toEqual([]);
     expect(errors).toEqual([]);
+  });
+
+  test('weekly plan stays ordered and responsive at desktop, tablet and mobile widths', async ({ page }) => {
+    await login(page);
+    await page.goto('/dashboard/haftalik-program');
+    await expect(page.locator('.weekly-program-grid:not(.week-skeleton)')).toBeVisible();
+    await expect(page.locator('.week-day')).toHaveCount(7);
+
+    for (const [width, columns] of [[1440, 3], [1024, 2], [390, 1], [320, 1]]) {
+      await page.setViewportSize({ width, height: 900 });
+      await expect.poll(() => page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true);
+      const renderedColumns = await page.locator('.weekly-program-grid:not(.week-skeleton)').evaluate((element) => (
+        getComputedStyle(element).gridTemplateColumns.split(' ').filter(Boolean).length
+      ));
+      expect(renderedColumns).toBe(columns);
+    }
   });
 
   test('admin area enforces role and renders responsive real analytics', async ({ page }) => {

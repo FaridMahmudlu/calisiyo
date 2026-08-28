@@ -97,48 +97,22 @@ export async function GET() {
     }, { status: 403 });
   }
 
-  const [
-    { data: tasks, error: taskError },
-    { data: sessions, error: sessionError },
-    { data: progress, error: progressError },
-    { data: adminRole, error: roleError },
-    { data: liveStreak, error: streakError },
-    { data: currentPlan, error: planError },
-    { data: contentProducer, error: producerError },
-  ] = await Promise.all([
-    supabase.from('gunluk_gorevler').select('tarih,tamamlandi,soru_sayisi').eq('user_id', user.id),
-    supabase.from('calisma_suresi').select('tarih,sure_dakika,soru_sayisi').eq('user_id', user.id),
-    supabase.rpc('get_my_progress'),
-    supabase.rpc('current_admin_role'),
-    supabase.rpc('get_live_streak'),
-    supabase.rpc('current_plan_details'),
-    supabase.rpc('current_content_producer_summary'),
-  ]);
+  const { data: bootstrap, error: bootstrapError } = await supabase.rpc('get_account_bootstrap');
 
-  if (taskError || sessionError || progressError || roleError || streakError || planError || producerError) {
-    console.error('Account summary loaded partially', {
-      tasks: taskError?.code,
-      sessions: sessionError?.code,
-      progress: progressError?.code,
-      role: roleError?.code,
-      streak: streakError?.code,
-      plan: planError?.code,
-      producer: producerError?.code,
-    });
+  if (bootstrapError) {
+    console.error('Account summary loaded partially', { bootstrap: bootstrapError.code });
   }
 
   return Response.json({
     ok: true,
     user: { id: user.id, email: user.email, user_metadata: user.user_metadata },
     profile,
-    tasks: tasks || [],
-    sessions: sessions || [],
-    progress: progress || null,
-    adminRole: adminRole || null,
-    liveStreak: liveStreak || null,
-    currentPlan: currentPlan || { code: 'baslangic', name: 'calisiyo ücretsiz', status: 'free', entitlements: {} },
-    contentProducer: contentProducer || { active: false, status: 'not_enrolled' },
-    partial: Boolean(taskError || sessionError || progressError || roleError || streakError || planError || producerError),
+    progress: bootstrap?.progress || null,
+    adminRole: bootstrap?.adminRole || null,
+    liveStreak: bootstrap?.liveStreak || null,
+    currentPlan: bootstrap?.currentPlan || { code: 'baslangic', name: 'calisiyo ücretsiz', status: 'free', entitlements: {} },
+    contentProducer: bootstrap?.contentProducer || { active: false, status: 'not_enrolled' },
+    partial: Boolean(bootstrapError),
   });
 }
 

@@ -162,8 +162,22 @@ export default function ClassroomScene({
         onPointerUp={finishDrag}
         onPointerCancel={finishDrag}
       >
-        <div className="classroom-window" aria-hidden="true"><i /><i /><i /></div>
-        <div className="classroom-rug" aria-hidden="true" />
+        <div className="classroom-room-shell" aria-hidden="true">
+          <div className="classroom-ceiling"><i /><i /><i /></div>
+          <div className="classroom-back-wall">
+            <div className="classroom-window"><i /><i /><i /></div>
+            <div className="classroom-wall-shelf"><i /><i /><i /><i /></div>
+            <div className="classroom-wall-clock"><i /></div>
+          </div>
+          <div className="classroom-side-wall is-left" />
+          <div className="classroom-side-wall is-right" />
+          <div className="classroom-floor"><i /><i /><i /><i /><i /><i /></div>
+          <div className="classroom-desk is-one"><i /><b /></div>
+          <div className="classroom-desk is-two"><i /><b /></div>
+          <div className="classroom-desk is-three"><i /><b /></div>
+          <div className="classroom-desk is-four"><i /><b /></div>
+          <div className="classroom-rug" />
+        </div>
 
         {ZONES.map((zone) => {
           const Icon = zone.icon;

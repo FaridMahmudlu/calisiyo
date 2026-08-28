@@ -9,7 +9,7 @@ import {
   PanelLeftOpen, RotateCcw, Settings, ShieldCheck, Target, Timer, Trophy, UsersRound, X,
 } from 'lucide-react';
 import { createClient } from '@/lib/supabase/client';
-import { parseLocalDate, todayStr, toLocalDateKey } from '@/lib/utils/date';
+import { todayStr } from '@/lib/utils/date';
 import { useRealtimeRefresh } from '@/lib/hooks/useRealtimeRefresh';
 import JourneyLoader from '@/components/ui/JourneyLoader';
 import BrandLogo from '@/components/brand/BrandLogo';
@@ -107,34 +107,16 @@ export default function DashboardLayout({ children }) {
     setCurrentPlan(result.currentPlan || { code: 'baslangic', name: 'calisiyo ücretsiz', status: 'free', entitlements: {} });
     setContentProducer(result.contentProducer || { active: false, status: 'not_enrolled' });
 
-    const tasks = result.tasks || [];
-    const sessions = result.sessions || [];
-    const completed = tasks.filter((task) => task.tamamlandi);
-    const questionCount = completed.reduce((sum, task) => sum + (task.soru_sayisi || 0), 0)
-      + sessions.reduce((sum, session) => sum + (session.soru_sayisi || 0), 0);
-    const xpTotal = completed.length * 50 + questionCount * 5;
-    const minutesByDate = sessions.reduce((totals, session) => {
-      totals[session.tarih] = (totals[session.tarih] || 0) + Number(session.sure_dakika || 0);
-      return totals;
-    }, {});
-    const activeDates = new Set(Object.entries(minutesByDate).filter(([, minutes]) => minutes >= 30).map(([date]) => date));
-    let streak = 0;
-    const cursor = parseLocalDate(todayStr());
-    if (!activeDates.has(todayStr())) cursor.setDate(cursor.getDate() - 1);
-    while (activeDates.has(toLocalDateKey(cursor))) {
-      streak += 1;
-      cursor.setDate(cursor.getDate() - 1);
-    }
     const progress = result.progress;
     setStats({
-      level: progress?.level || Math.floor(xpTotal / 250) + 1,
-      xp: progress?.currentLevelXp ?? xpTotal % 250,
-      totalXp: progress?.totalXp ?? xpTotal,
+      level: progress?.level || 1,
+      xp: progress?.currentLevelXp ?? 0,
+      totalXp: progress?.totalXp ?? 0,
       levelTitle: progress?.title || 'Yeni Başlangıç',
-      progressPercent: progress?.progressPercent ?? ((xpTotal % 250) / 250) * 100,
-      xpToNext: progress?.xpToNext ?? (250 - (xpTotal % 250)),
-      streak: result.liveStreak?.streak ?? streak,
-      todayMinutes: result.liveStreak?.todayMinutes ?? minutesByDate[todayStr()] ?? 0,
+      progressPercent: progress?.progressPercent ?? 0,
+      xpToNext: progress?.xpToNext ?? 250,
+      streak: result.liveStreak?.streak ?? 0,
+      todayMinutes: result.liveStreak?.todayMinutes ?? 0,
     });
     setLoading(false);
   }, [router, setError]);

@@ -5,8 +5,8 @@ import Link from 'next/link';
 import { useParams, useRouter } from 'next/navigation';
 import {
   ArrowLeft, ArrowRightLeft, BookOpenCheck, Check, Clipboard, Clock3, Coffee,
-  Flame, Goal, LockKeyhole, LogOut, Palette, PauseCircle,
-  Play, Send, Settings2, ShieldCheck, Sparkles, TimerReset, Trash2, Trophy, UserMinus, UsersRound, Volume2, VolumeX,
+  Eye, EyeOff, Flame, Goal, LockKeyhole, LogOut, Palette, PauseCircle,
+  Play, Settings2, ShieldCheck, Sparkles, TimerReset, Trophy, UserMinus, UsersRound, Volume2, VolumeX,
 } from 'lucide-react';
 import { createClient } from '@/lib/supabase/client';
 import { useUser } from '../../layout';
@@ -16,6 +16,7 @@ import Select from '@/components/ui/Select';
 import AvatarStudio from '@/components/classroom/AvatarStudio';
 import ClassroomAvatar from '@/components/classroom/ClassroomAvatar';
 import ClassroomScene, { REACTION_META } from '@/components/classroom/ClassroomScene';
+import ClassroomChat from '@/components/classroom/ClassroomChat';
 import '../classroom.css';
 
 const STATUS_META = {
@@ -71,8 +72,10 @@ export default function ClassroomPage() {
   const [weeklyGoal, setWeeklyGoal] = useState('1200');
   const [roomDescription, setRoomDescription] = useState('');
   const [roomPermissions, setRoomPermissions] = useState({ focus: true, chat: true, react: true });
-  const [chatText, setChatText] = useState('');
-  const [chatBusy, setChatBusy] = useState(false);
+  const [sceneVisible, setSceneVisible] = useState(() => {
+    if (typeof window === 'undefined' || !groupId) return true;
+    return window.localStorage.getItem(`calisiyo-classroom-scene:${groupId}`) !== 'hidden';
+  });
   const [moderationTarget, setModerationTarget] = useState(null);
   const [moderationReason, setModerationReason] = useState('');
   const [moderationDuration, setModerationDuration] = useState('60');
@@ -83,6 +86,7 @@ export default function ClassroomPage() {
   const focusEditingRef = useRef(false);
   const latestMoveRef = useRef(null);
   const lastLocalMoveAtRef = useRef(0);
+  const presenceSyncFailuresRef = useRef(0);
   const moveTimerRef = useRef(null);
   const serverOffsetRef = useRef(0);
   const focusExpiredRef = useRef(null);
@@ -96,7 +100,7 @@ export default function ClassroomPage() {
     if (!groupId || !userId) return;
     const requestedAt = Date.now();
     if (!quiet) setLoading(true);
-    const { data: roomData, error: roomError } = await supabase.rpc('get_group_room_v3', { p_group_id: groupId });
+    const { data: roomData, error: roomError } = await supabase.rpc('get_group_room_v4', { p_group_id: groupId });
     if (roomError) {
       setError(roomError.message || 'Çalışma sınıfı yüklenemedi.');
     } else {
@@ -132,6 +136,69 @@ export default function ClassroomPage() {
     }
     setLoading(false);
   }, [groupId, supabase, userId]);
+
+  const loadMessages = useCallback(async () => {
+    if (!groupId || !userId) return;
+    const { data: messages, error: messageError } = await supabase.rpc('get_group_messages_v2', { p_group_id: groupId });
+    if (messageError) {
+      setError(messageError.message || 'Sınıf sohbeti yenilenemedi.');
+      return;
+    }
+    setData((current) => current ? { ...current, messages: messages || [] } : current);
+  }, [groupId, supabase, userId]);
+
+  const loadPresenceSnapshot = useCallback(async () => {
+    if (!groupId || !userId) return;
+    const requestedAt = Date.now();
+    const { data: members, error: presenceError } = await supabase.rpc('get_group_presence_snapshot', {
+      p_group_id: groupId,
+    });
+    if (presenceError) {
+      presenceSyncFailuresRef.current += 1;
+      if (presenceSyncFailuresRef.current >= 2) {
+        setError('Sınıftaki canlı konumlar güncellenemedi. Sayfayı yenileyebilirsin.');
+      }
+      return;
+    }
+    presenceSyncFailuresRef.current = 0;
+    setError((current) => current === 'Sınıftaki canlı konumlar güncellenemedi. Sayfayı yenileyebilirsin.' ? '' : current);
+    const snapshot = new Map((members || []).map((member) => [member.userId, member]));
+    const ownPresence = snapshot.get(userId);
+    if (ownPresence && Date.now() - lastLocalMoveAtRef.current >= 1200) {
+      setLocalPosition({
+        x: Number(ownPresence.positionX ?? 50),
+        y: Number(ownPresence.positionY ?? 72),
+        facing: ownPresence.facing || 'east',
+      });
+    }
+    setData((current) => current ? {
+      ...current,
+      members: current.members.map((member) => {
+        const next = snapshot.get(member.userId);
+        if (!next) return member;
+        const protectRecentLocalMove = member.userId === userId && Date.now() - lastLocalMoveAtRef.current < 1200;
+        const protectRecentPresenceMutation = member.userId === userId
+          && (requestedAt < lastPresenceMutationAtRef.current || Date.now() - lastPresenceMutationAtRef.current < 1500);
+        return {
+          ...member,
+          presence: protectRecentPresenceMutation ? member.presence : (next.presence || 'offline'),
+          focusSubject: protectRecentPresenceMutation ? member.focusSubject : (next.focusSubject || null),
+          positionX: protectRecentLocalMove ? member.positionX : Number(next.positionX ?? member.positionX),
+          positionY: protectRecentLocalMove ? member.positionY : Number(next.positionY ?? member.positionY),
+          facing: protectRecentLocalMove ? member.facing : (next.facing || member.facing),
+          presenceUpdatedAt: next.presenceUpdatedAt,
+        };
+      }),
+    } : current);
+  }, [groupId, supabase, userId]);
+
+  const toggleScene = () => {
+    setSceneVisible((current) => {
+      const next = !current;
+      window.localStorage.setItem(`calisiyo-classroom-scene:${groupId}`, next ? 'visible' : 'hidden');
+      return next;
+    });
+  };
 
   const updatePresence = useCallback(async (nextStatus = status, subject = focusSubject, { quiet = false } = {}) => {
     if (!groupId || !userId) return false;
@@ -209,15 +276,37 @@ export default function ClassroomPage() {
     const setupRealtime = async () => {
       await supabase.realtime.setAuth();
       if (disposed) return;
-      channel = supabase.channel(`classroom:${groupId}`, {
-        config: { private: true },
-      })
-        // Never trust member-authored Broadcast/Presence payloads for identity
-        // or UI state. Every live update below is re-read from RLS/RPC-backed
-        // database rows whose user_id is derived from auth.uid().
-        .on('postgres_changes', { event: '*', schema: 'public', table: 'study_presence', filter: `group_id=eq.${groupId}` }, () => loadRoom({ quiet: true }))
+      channel = supabase.channel(`classroom:${groupId}`)
+        // These are RLS-filtered Postgres rows, not member-authored Broadcast
+        // payloads. Movement can therefore update only the matching member
+        // instead of downloading the entire room on every step.
+        .on('postgres_changes', { event: '*', schema: 'public', table: 'study_presence', filter: `group_id=eq.${groupId}` }, (change) => {
+          const row = change.new;
+          if (!row?.user_id) { loadRoom({ quiet: true }); return; }
+          const protectRecentLocalMove = row.user_id === userId && Date.now() - lastLocalMoveAtRef.current < 1200;
+          if (row.user_id === userId && !protectRecentLocalMove) {
+            setLocalPosition({
+              x: Number(row.position_x ?? 50),
+              y: Number(row.position_y ?? 72),
+              facing: row.facing || 'east',
+            });
+          }
+          setData((current) => current ? {
+                ...current,
+                members: current.members.map((member) => member.userId === row.user_id ? {
+                  ...member,
+                  presence: row.status || 'online',
+                  focusSubject: row.focus_subject || null,
+                  positionX: protectRecentLocalMove ? member.positionX : Number(row.position_x ?? member.positionX),
+                  positionY: protectRecentLocalMove ? member.positionY : Number(row.position_y ?? member.positionY),
+                  facing: protectRecentLocalMove ? member.facing : (row.facing || member.facing),
+              presenceUpdatedAt: row.updated_at,
+            } : member),
+          } : current);
+        })
         .on('postgres_changes', { event: '*', schema: 'public', table: 'study_group_reactions', filter: `group_id=eq.${groupId}` }, () => loadRoom({ quiet: true }))
-        .on('postgres_changes', { event: '*', schema: 'public', table: 'study_group_messages', filter: `group_id=eq.${groupId}` }, () => loadRoom({ quiet: true }))
+        .on('postgres_changes', { event: '*', schema: 'public', table: 'study_group_messages', filter: `group_id=eq.${groupId}` }, loadMessages)
+        .on('postgres_changes', { event: '*', schema: 'public', table: 'study_group_message_reads', filter: `group_id=eq.${groupId}` }, loadMessages)
         .on('postgres_changes', { event: '*', schema: 'public', table: 'study_group_members', filter: `group_id=eq.${groupId}` }, () => loadRoom({ quiet: true }))
         .on('postgres_changes', { event: '*', schema: 'public', table: 'study_group_focus_sessions', filter: `group_id=eq.${groupId}` }, () => loadRoom({ quiet: true }))
         .subscribe((connectionStatus) => {
@@ -227,14 +316,39 @@ export default function ClassroomPage() {
         });
     };
     setupRealtime().catch(() => setError('Canlı sınıf bağlantısı kurulamadı. Sayfayı yenileyebilirsin.'));
-    const heartbeat = window.setInterval(() => updatePresence(status, focusSubject, { quiet: true }), 45000);
     return () => {
-      window.clearInterval(heartbeat);
-      if (moveTimerRef.current) window.clearTimeout(moveTimerRef.current);
       disposed = true;
       if (channel) supabase.removeChannel(channel);
     };
-  }, [focusSubject, groupId, loadRoom, status, supabase, updatePresence, userId]);
+  }, [groupId, loadMessages, loadRoom, supabase, userId]);
+
+  useEffect(() => {
+    if (!groupId || !userId) return undefined;
+    const heartbeat = window.setInterval(
+      () => updatePresence(status, focusSubject, { quiet: true }),
+      45000
+    );
+    return () => window.clearInterval(heartbeat);
+  }, [focusSubject, groupId, status, updatePresence, userId]);
+
+  useEffect(() => () => {
+    if (moveTimerRef.current) window.clearTimeout(moveTimerRef.current);
+  }, []);
+
+  useEffect(() => {
+    if (!groupId || !userId) return undefined;
+    const refresh = () => {
+      if (document.visibilityState === 'visible') loadPresenceSnapshot();
+    };
+    const initial = window.setTimeout(refresh, 1200);
+    const timer = window.setInterval(refresh, 3000);
+    document.addEventListener('visibilitychange', refresh);
+    return () => {
+      window.clearTimeout(initial);
+      window.clearInterval(timer);
+      document.removeEventListener('visibilitychange', refresh);
+    };
+  }, [groupId, loadPresenceSnapshot, userId]);
 
   useEffect(() => {
     const tick = () => {
@@ -400,25 +514,6 @@ export default function ClassroomPage() {
   const viewerIsMuted = muteExpiresAt && Date.parse(muteExpiresAt) > clockNow;
   const moderationByUser = new Map((data?.memberModeration || []).map((item) => [item.userId, item]));
 
-  const sendMessage = async (event) => {
-    event.preventDefault();
-    const body = chatText.trim();
-    if (!body) return;
-    setChatBusy(true);
-    const { data: message, error: messageError } = await supabase.rpc('send_classroom_message', { p_group_id: groupId, p_body: body });
-    setChatBusy(false);
-    if (messageError) { setError(messageError.message || 'Mesaj gönderilemedi.'); return; }
-    const enriched = { ...message, name: me?.name || 'Sen' };
-    setChatText('');
-    setData((current) => current ? { ...current, messages: [...(current.messages || []), enriched].slice(-60) } : current);
-  };
-
-  const deleteMessage = async (messageId) => {
-    const { error: deleteError } = await supabase.rpc('delete_classroom_message', { p_message_id: messageId });
-    if (deleteError) { setError(deleteError.message || 'Mesaj silinemedi.'); return; }
-    setData((current) => current ? { ...current, messages: (current.messages || []).filter((item) => item.id !== messageId) } : current);
-  };
-
   const moderateMember = async (action) => {
     if (!moderationTarget) return;
     setModerationBusy(true);
@@ -447,9 +542,10 @@ export default function ClassroomPage() {
                 <span><UsersRound size={16} /> Canlı çalışma sınıfı</span>
                 <h1>{room.name}</h1>
                 <p>{room.description}</p>
-                <small className="classroom-live-summary"><b>{onlineCount}</b> kişi burada · {members.length}/{room.maxMembers} üye · Private realtime bağlı</small>
+                <small className="classroom-live-summary"><b>{onlineCount}</b> kişi burada · {members.length}/{room.maxMembers} üye · Mesajlar ve konumlar canlı güncellenir</small>
               </div>
               <div className="classroom-header-actions">
+                <button onClick={toggleScene}>{sceneVisible ? <EyeOff size={16} /> : <Eye size={16} />} {sceneVisible ? 'Görseli gizle' : 'Görseli aç'}</button>
                 {room.inviteCode && <button onClick={copyInvite}><Clipboard size={16} /> {copied ? 'Kod kopyalandı' : room.inviteCode}</button>}
                 {isOwner && <button onClick={() => setRoomSettingsOpen(true)}><Settings2 size={16} /> Sınıfı düzenle</button>}
                 <button className="leave-room-button" onClick={() => setLeaveOpen(true)}><LogOut size={16} /> {isOwner ? 'Sınıfı kapat' : 'Sınıftan ayrıl'}</button>
@@ -457,8 +553,8 @@ export default function ClassroomPage() {
             </header>
             {viewerIsMuted && <div className="classroom-muted-banner"><VolumeX size={17} /><div><strong>Sınıf iletişimin geçici olarak sınırlandı</strong><span>{room.viewerMuteReason || room.globalMuteReason || 'Moderasiya kararı'} · {new Intl.DateTimeFormat('tr-TR', { dateStyle: 'short', timeStyle: 'short' }).format(new Date(muteExpiresAt))} tarihine kadar</span></div></div>}
 
-            <section className="classroom-overview-grid">
-              <ClassroomScene
+            <section className={`classroom-overview-grid${sceneVisible ? '' : ' is-scene-hidden'}`}>
+              {sceneVisible ? <ClassroomScene
                 room={room}
                 members={members}
                 userId={userId}
@@ -467,7 +563,7 @@ export default function ClassroomPage() {
                 onMove={moveCharacter}
                 onEnterZone={enterZone}
                 onOpenAvatar={() => setAvatarOpen(true)}
-              />
+              /> : <article className="classroom-scene-collapsed study-panel"><EyeOff size={24} /><div><strong>Sınıf görseli kapalı</strong><span>Odak, sohbet ve diğer araçları daha kompakt kullanmaya devam edebilirsin.</span></div><button onClick={toggleScene}><Eye size={16} /> 3D sınıfı aç</button></article>}
 
               <aside className="classroom-cockpit">
                 <article className={`shared-focus-card study-panel ${data.focusSession ? 'is-active' : ''}`}>
@@ -514,15 +610,17 @@ export default function ClassroomPage() {
             </section>
 
             <section className="classroom-community-grid">
-              <article className="classroom-chat study-panel">
-                <header><div><span><Volume2 size={15} /> Sınıf sohbeti</span><h2>Odak bozmayan kısa iletişim</h2></div><em>{(data.messages || []).length} mesaj</em></header>
-                <div className="classroom-message-list" aria-live="polite">
-                  {(data.messages || []).length === 0 ? <div className="classroom-chat-empty"><Send size={22} /><strong>İlk mesajı sen bırak</strong><span>Ders, kaynak veya mola planını sınıfınla paylaş.</span></div> : (data.messages || []).map((message) => (
-                    <article key={message.id} className={message.userId === userId ? 'is-me' : ''}><span>{String(message.name || 'Ö').charAt(0).toLocaleUpperCase('tr-TR')}</span><div><strong>{message.userId === userId ? 'Sen' : message.name}<time>{new Intl.DateTimeFormat('tr-TR', { hour: '2-digit', minute: '2-digit' }).format(new Date(message.createdAt))}</time></strong><p>{message.body}</p></div>{(message.userId === userId || isOwner) && !message.deletedAt && <button onClick={() => deleteMessage(message.id)} aria-label="Mesajı sil"><Trash2 size={14} /></button>}</article>
-                  ))}
-                </div>
-                <form onSubmit={sendMessage}><input value={chatText} onChange={(event) => setChatText(event.target.value)} maxLength={400} disabled={viewerIsMuted || (!isOwner && !room.membersCanChat)} placeholder={viewerIsMuted ? 'Sohbet erişimin geçici olarak sınırlandı' : 'Sınıfa kısa bir mesaj yaz…'} /><button disabled={chatBusy || !chatText.trim() || viewerIsMuted || (!isOwner && !room.membersCanChat)}><Send size={16} /> Gönder</button></form>
-              </article>
+              <ClassroomChat
+                supabase={supabase}
+                groupId={groupId}
+                userId={userId}
+                isOwner={isOwner}
+                room={room}
+                messages={data.messages || []}
+                viewerIsMuted={viewerIsMuted}
+                onError={setError}
+                onRefresh={loadMessages}
+              />
 
               <article className="classroom-members-panel study-panel">
                 <header><div><span><ShieldCheck size={15} /> Üyeler</span><h2>{isOwner ? 'Sınıfını güvenle yönet' : 'Sınıf arkadaşların'}</h2></div><em>{members.length}/{room.maxMembers}</em></header>

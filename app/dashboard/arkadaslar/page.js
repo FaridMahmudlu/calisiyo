@@ -57,24 +57,30 @@ export default function FriendsPage() {
   const [protectedGroup, setProtectedGroup] = useState(null);
   const [joinPassword, setJoinPassword] = useState('');
 
-  const loadHub = useCallback(async ({ quiet = false } = {}) => {
+  const loadHub = useCallback(async ({ quiet = false, includeDirectory = true } = {}) => {
     if (!user?.id) return;
     if (!quiet) setLoading(true);
-    const [hubResult, identityResult, directoryResult] = await Promise.all([
+    const [hubResult, identityResult] = await Promise.all([
       supabase.rpc('get_social_hub'),
       supabase.rpc('get_my_social_identity'),
-      supabase.rpc('list_public_study_groups'),
     ]);
-    if (hubResult.error || identityResult.error || directoryResult.error) {
+    if (hubResult.error || identityResult.error) {
       setError('Arkadaşlık merkezi şu anda yüklenemiyor. Lütfen tekrar dene.');
     } else {
       setHub(hubResult.data);
       setIdentity(identityResult.data);
       setUsernameDraft(identityResult.data?.username || '');
-      setPublicGroups(directoryResult.data || []);
       setError('');
     }
     setLoading(false);
+
+    if (!includeDirectory) return;
+    const directoryResult = await supabase.rpc('list_public_study_groups');
+    if (directoryResult.error) {
+      setError('Herkese açık sınıflar şu anda yenilenemiyor. Mevcut sınıflarını kullanmaya devam edebilirsin.');
+      return;
+    }
+    setPublicGroups(directoryResult.data || []);
   }, [supabase, user?.id]);
 
   useEffect(() => {
@@ -85,9 +91,9 @@ export default function FriendsPage() {
   useEffect(() => {
     if (!user?.id) return undefined;
     const channel = supabase.channel(`social-hub-${user.id}`)
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'friendships' }, () => loadHub({ quiet: true }))
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'study_group_members' }, () => loadHub({ quiet: true }))
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'study_presence' }, () => loadHub({ quiet: true }))
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'friendships' }, () => loadHub({ quiet: true, includeDirectory: false }))
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'study_group_members' }, () => loadHub({ quiet: true, includeDirectory: false }))
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'study_presence' }, () => loadHub({ quiet: true, includeDirectory: false }))
       .subscribe();
     return () => { supabase.removeChannel(channel); };
   }, [loadHub, supabase, user?.id]);
