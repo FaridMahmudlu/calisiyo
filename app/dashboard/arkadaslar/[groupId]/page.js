@@ -17,6 +17,7 @@ import AvatarStudio from '@/components/classroom/AvatarStudio';
 import ClassroomAvatar from '@/components/classroom/ClassroomAvatar';
 import ClassroomScene, { REACTION_META } from '@/components/classroom/ClassroomScene';
 import ClassroomChat from '@/components/classroom/ClassroomChat';
+import ClassroomBoard from '@/components/classroom/ClassroomBoard';
 import '../classroom.css';
 
 const STATUS_META = {
@@ -81,6 +82,9 @@ export default function ClassroomPage() {
   const [moderationDuration, setModerationDuration] = useState('60');
   const [moderationBusy, setModerationBusy] = useState(false);
   const [ownershipConfirm, setOwnershipConfirm] = useState(false);
+  const [board, setBoard] = useState({ text: '', strokes: [], version: 0 });
+  const [boardOpen, setBoardOpen] = useState(false);
+  const [boardBusy, setBoardBusy] = useState(false);
   const presenceStartedRef = useRef(false);
   const lastPresenceMutationAtRef = useRef(0);
   const focusEditingRef = useRef(false);
@@ -192,6 +196,23 @@ export default function ClassroomPage() {
     } : current);
   }, [groupId, supabase, userId]);
 
+  const loadInteractions = useCallback(async () => {
+    if (!groupId || !userId) return;
+    const { data: interaction, error: interactionError } = await supabase.rpc('get_classroom_interaction_state', {
+      p_group_id: groupId,
+    });
+    if (interactionError) {
+      setError('Sınıf etkileşimleri güncellenemedi. Lütfen tekrar deneyin.');
+      return;
+    }
+    setBoard(interaction?.board || { text: '', strokes: [], version: 0 });
+    const poses = new Map((interaction?.poses || []).map((item) => [item.userId, item]));
+    setData((current) => current ? {
+      ...current,
+      members: current.members.map((member) => ({ ...member, ...(poses.get(member.userId) || {}) })),
+    } : current);
+  }, [groupId, supabase, userId]);
+
   const toggleScene = () => {
     setSceneVisible((current) => {
       const next = !current;
@@ -236,6 +257,12 @@ export default function ClassroomPage() {
     if (!moveError && moved?.throttled) {
       setLocalPosition({ x: Number(moved.x), y: Number(moved.y), facing: moved.facing || 'east' });
     }
+    if (!moveError) setData((current) => current ? {
+      ...current,
+      members: current.members.map((member) => member.userId === userId
+        ? { ...member, pose: 'standing', seatId: null }
+        : member),
+    } : current);
   }, [groupId, supabase, userId]);
 
   const moveCharacter = useCallback((next, { immediate = false } = {}) => {
@@ -258,6 +285,12 @@ export default function ClassroomPage() {
     const timer = window.setTimeout(loadRoom, 0);
     return () => window.clearTimeout(timer);
   }, [loadRoom]);
+
+  useEffect(() => {
+    if (!data?.room?.id) return;
+    const timer = window.setTimeout(loadInteractions, 0);
+    return () => window.clearTimeout(timer);
+  }, [data?.room?.id, loadInteractions]);
 
   useEffect(() => {
     if (!data?.room?.id || presenceStartedRef.current) return;
@@ -300,6 +333,8 @@ export default function ClassroomPage() {
                   positionX: protectRecentLocalMove ? member.positionX : Number(row.position_x ?? member.positionX),
                   positionY: protectRecentLocalMove ? member.positionY : Number(row.position_y ?? member.positionY),
                   facing: protectRecentLocalMove ? member.facing : (row.facing || member.facing),
+                  pose: row.pose || member.pose || 'standing',
+                  seatId: row.seat_id || null,
               presenceUpdatedAt: row.updated_at,
             } : member),
           } : current);
@@ -309,6 +344,7 @@ export default function ClassroomPage() {
         .on('postgres_changes', { event: '*', schema: 'public', table: 'study_group_message_reads', filter: `group_id=eq.${groupId}` }, loadMessages)
         .on('postgres_changes', { event: '*', schema: 'public', table: 'study_group_members', filter: `group_id=eq.${groupId}` }, () => loadRoom({ quiet: true }))
         .on('postgres_changes', { event: '*', schema: 'public', table: 'study_group_focus_sessions', filter: `group_id=eq.${groupId}` }, () => loadRoom({ quiet: true }))
+        .on('postgres_changes', { event: '*', schema: 'public', table: 'study_group_boards', filter: `group_id=eq.${groupId}` }, loadInteractions)
         .subscribe((connectionStatus) => {
           if (connectionStatus === 'SUBSCRIBED' && !disposed) {
             loadRoom({ quiet: true });
@@ -320,7 +356,7 @@ export default function ClassroomPage() {
       disposed = true;
       if (channel) supabase.removeChannel(channel);
     };
-  }, [groupId, loadMessages, loadRoom, supabase, userId]);
+  }, [groupId, loadInteractions, loadMessages, loadRoom, supabase, userId]);
 
   useEffect(() => {
     if (!groupId || !userId) return undefined;
@@ -403,6 +439,71 @@ export default function ClassroomPage() {
     setStatus(zone.status);
     await updatePresence(zone.status, focusSubject, { quiet: true });
     showNotice(`${zone.label} alanına geçtin.`);
+  };
+
+  const setPose = async (pose, seat = null) => {
+    const { data: changed, error: poseError } = await supabase.rpc('set_classroom_pose', {
+      p_group_id: groupId,
+      p_pose: pose,
+      p_seat_id: seat?.id || null,
+    });
+    if (poseError) {
+      setError(poseError.code === '23505' ? 'Bu sırada başka bir öğrenci oturuyor.' : (poseError.message || 'Karakter duruşun güncellenemedi.'));
+      return false;
+    }
+    if (changed?.x != null && changed?.y != null) {
+      const nextPosition = { x: Number(changed.x), y: Number(changed.y), facing: changed.facing || 'north' };
+      lastLocalMoveAtRef.current = Date.now();
+      setLocalPosition(nextPosition);
+    }
+    setData((current) => current ? {
+      ...current,
+      members: current.members.map((member) => member.userId === userId ? {
+        ...member,
+        pose: changed?.pose || pose,
+        seatId: changed?.seatId || null,
+        positionX: changed?.x ?? member.positionX,
+        positionY: changed?.y ?? member.positionY,
+        facing: changed?.facing || member.facing,
+      } : member),
+    } : current);
+    return true;
+  };
+
+  const sitAtSeat = async (seat) => {
+    if (await setPose('sitting', seat)) showNotice(`${seat.label} sırasına oturdun.`);
+  };
+
+  const standUp = async () => {
+    if (await setPose('standing')) showNotice('Ayağa kalktın.');
+  };
+
+  const sceneAction = async (action) => {
+    if (action === 'jump' && me?.pose === 'sitting') return;
+    await sendReaction(action);
+  };
+
+  const runBoardMutation = async (rpc, payload = {}) => {
+    setBoardBusy(true);
+    const { data: updated, error: boardError } = await supabase.rpc(rpc, { p_group_id: groupId, ...payload });
+    setBoardBusy(false);
+    if (boardError) {
+      setError(boardError.message || 'Sınıf tahtası güncellenemedi.');
+      return null;
+    }
+    if (updated) setBoard(updated);
+    return updated;
+  };
+
+  const saveBoardText = async (text) => {
+    if (await runBoardMutation('save_classroom_board_text', { p_text: text })) showNotice('Tahta notu kaydedildi.');
+  };
+
+  const appendBoardStroke = (stroke) => runBoardMutation('append_classroom_board_stroke', { p_stroke: stroke });
+  const undoBoardStroke = () => runBoardMutation('undo_classroom_board_stroke');
+  const clearBoard = async () => {
+    if (!window.confirm('Tahtadaki tüm not ve çizimleri temizlemek istiyor musun?')) return;
+    if (await runBoardMutation('clear_classroom_board')) showNotice('Sınıf tahtası temizlendi.');
   };
 
   const copyInvite = async () => {
@@ -563,6 +664,11 @@ export default function ClassroomPage() {
                 onMove={moveCharacter}
                 onEnterZone={enterZone}
                 onOpenAvatar={() => setAvatarOpen(true)}
+                onOpenBoard={() => setBoardOpen(true)}
+                onSit={sitAtSeat}
+                onStand={standUp}
+                onAction={sceneAction}
+                board={board}
               /> : <article className="classroom-scene-collapsed study-panel"><EyeOff size={24} /><div><strong>Sınıf görseli kapalı</strong><span>Odak, sohbet ve diğer araçları daha kompakt kullanmaya devam edebilirsin.</span></div><button onClick={toggleScene}><Eye size={16} /> 3D sınıfı aç</button></article>}
 
               <aside className="classroom-cockpit">
@@ -659,6 +765,18 @@ export default function ClassroomPage() {
       </DataState>
 
       {avatarOpen && <AvatarStudio open onClose={() => setAvatarOpen(false)} initialAvatar={{ model: me?.avatarModel }} name={me?.name || 'Sen'} onSave={saveAvatar} busy={avatarBusy} />}
+
+      <ClassroomBoard
+        open={boardOpen}
+        board={board}
+        isOwner={isOwner}
+        busy={boardBusy}
+        onClose={() => setBoardOpen(false)}
+        onSaveText={saveBoardText}
+        onAppendStroke={appendBoardStroke}
+        onUndo={undoBoardStroke}
+        onClear={clearBoard}
+      />
 
       <Modal open={roomSettingsOpen} onClose={() => setRoomSettingsOpen(false)} title="Sınıf atmosferini düzenle" description="Bu ayarlar tüm sınıf üyelerinin gördüğü ortak alanı değiştirir.">
         <form className="room-settings-form" onSubmit={saveRoomSettings}>

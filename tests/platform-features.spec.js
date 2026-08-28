@@ -32,11 +32,10 @@ test.describe('XP, social classroom and admin platform features', () => {
     const errors = [];
     await page.addInitScript(() => {
       class MockMediaRecorder {
-        static isTypeSupported(type) { return type.startsWith('audio/'); }
-        constructor() { this.mimeType = 'audio/webm;codecs=opus'; this.state = 'inactive'; }
+        static isTypeSupported(type) { return type === 'audio/mp4'; }
+        constructor() { this.mimeType = 'audio/mp4'; this.state = 'inactive'; }
         start() { this.state = 'recording'; }
-        requestData() { this.ondataavailable?.({ data: new Blob(['calisiyo-voice'], { type: 'audio/webm' }) }); }
-        stop() { this.state = 'inactive'; queueMicrotask(() => this.onstop?.()); }
+        stop() { this.state = 'inactive'; queueMicrotask(() => { this.ondataavailable?.({ data: new Blob(['calisiyo-voice'], { type: 'audio/mp4' }) }); this.onstop?.(); }); }
       }
       Object.defineProperty(globalThis, 'MediaRecorder', { configurable: true, value: MockMediaRecorder });
       Object.defineProperty(navigator, 'mediaDevices', {
@@ -58,7 +57,7 @@ test.describe('XP, social classroom and admin platform features', () => {
     await capture(page, 'progression-desktop');
 
     await page.goto('/dashboard/arkadaslar');
-    await expect(page.locator('.friend-code-card')).toContainText(/CAL-[A-Z0-9]{10}/);
+    await expect(page.locator('.social-identity-chip strong')).toContainText(/^@[a-z0-9_]{3,24}$/);
     await expect(page.getByText('Neyi paylaşacağını sen seç')).toBeVisible();
     await expect(page.getByText('Deneme netleri hiçbir zaman sosyal profiline eklenmez.')).toBeVisible();
     await capture(page, 'social-hub-desktop');
@@ -162,10 +161,10 @@ test.describe('XP, social classroom and admin platform features', () => {
     await page.getByRole('button', { name: 'Ses kaydını bitir' }).click();
     const audioPreview = page.locator('.chat-attachment-preview.is-audio');
     await expect(audioPreview).toContainText('Ses kaydı hazır');
-    await expect(audioPreview.locator('audio')).toBeVisible();
+    await expect(audioPreview.locator('.voice-player')).toBeVisible();
     await page.getByRole('button', { name: 'Mesajı gönder' }).click();
-    const audioMessage = page.locator('.classroom-message-list .classroom-message.is-me').filter({ has: page.locator('.chat-audio') }).last();
-    await expect(audioMessage.locator('.chat-audio')).toBeVisible();
+    const audioMessage = page.locator('.classroom-message-list .classroom-message.is-me').filter({ has: page.locator('.voice-player') }).last();
+    await expect(audioMessage.locator('.voice-player')).toBeVisible();
     const audioMessageId = await audioMessage.getAttribute('data-message-id');
     const stableAudioMessage = page.locator(`.classroom-message-list .classroom-message[data-message-id="${audioMessageId}"]`);
     await stableAudioMessage.getByRole('button', { name: 'Mesajı sil' }).click();
@@ -212,7 +211,7 @@ test.describe('XP, social classroom and admin platform features', () => {
     await page.setViewportSize({ width: 390, height: 844 });
     for (const [route, name, readySelector] of [
       ['/dashboard/gelisim', 'progression-mobile', '.progression-hero'],
-      ['/dashboard/arkadaslar', 'social-hub-mobile', '.friend-code-card'],
+      ['/dashboard/arkadaslar', 'social-hub-mobile', '.social-connect-bar'],
     ]) {
       await page.goto(route);
       await expect(page.locator(readySelector)).toBeVisible();

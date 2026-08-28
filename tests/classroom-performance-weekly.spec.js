@@ -14,6 +14,10 @@ const classroomChat = read('components', 'classroom', 'ClassroomChat.js');
 const classroomCss = read('app', 'dashboard', 'arkadaslar', 'classroom.css');
 const migration = read('supabase', 'migrations', '20260827190131_optimize_account_and_rich_classroom_chat.sql');
 const presenceMigration = read('supabase', 'migrations', '20260828203000_add_classroom_presence_snapshot.sql');
+const interactionMigration = read('supabase', 'migrations', '20260828200414_classroom_interactions.sql');
+const board = read('components', 'classroom', 'ClassroomBoard.js');
+const voicePlayer = read('components', 'classroom', 'VoiceMessagePlayer.js');
+const nextConfig = read('next.config.mjs');
 
 test.describe('Account, weekly plan and rich classroom contracts', () => {
   test('dashboard shell uses one canonical bootstrap and never downloads full activity history', () => {
@@ -47,11 +51,20 @@ test.describe('Account, weekly plan and rich classroom contracts', () => {
     expect(classroomPage).toContain("supabase.rpc('get_group_presence_snapshot'");
     expect(classroomPage).toContain("document.visibilityState === 'visible'");
     expect(classroomPage).toContain("supabase.rpc('get_group_messages_v2'");
-    expect(classroomPage).toContain('}, [groupId, loadMessages, loadRoom, supabase, userId]);');
+    expect(classroomPage).toContain("table: 'study_group_boards'");
     expect(classroomScene).toContain('classroom-room-shell');
     expect(classroomScene).toContain('classroom-back-wall');
     expect(classroomScene).toContain('classroom-floor');
     expect(classroomCss).toContain('perspective:900px');
+    expect(classroomScene).toContain('resolveClassroomMovement');
+    expect(classroomScene).toContain('isClassroomPositionBlocked');
+    expect(classroomScene).toContain('classroom-action-dock');
+    expect(classroomPage).toContain("supabase.rpc('set_classroom_pose'");
+    expect(board).toContain('onAppendStroke');
+    expect(board).toContain('viewBox="0 0 1000 560"');
+    expect(interactionMigration).toMatch(/get_classroom_interaction_state[\s\S]*is_study_group_member\(p_group_id\)/);
+    expect(interactionMigration).toMatch(/set_classroom_pose[\s\S]*can_use_group_feature\(p_group_id, 'movement'\)/);
+    expect(interactionMigration).toMatch(/append_classroom_board_stroke[\s\S]*jsonb_array_length[\s\S]*grant execute/);
     expect(presenceMigration).toMatch(/get_group_presence_snapshot[\s\S]*auth\.uid\(\)[\s\S]*is_study_group_member\(p_group_id\)/);
     expect(presenceMigration).toMatch(/revoke all[\s\S]*grant execute[\s\S]*to authenticated/);
   });
@@ -66,10 +79,15 @@ test.describe('Account, weekly plan and rich classroom contracts', () => {
     expect(classroomChat).toContain("supabase.rpc('share_classroom_resource'");
     expect(classroomChat).toContain('globalThis.MediaRecorder');
     expect(classroomChat).toContain("'audio/mp4'");
-    expect(classroomChat).toContain('recorder.start(250)');
+    expect(classroomChat).toContain('recorder.start()');
+    expect(classroomChat).toContain('fixWebmDuration(rawBlob, recordedFor');
     expect(classroomChat).toContain('recordingStreamRef.current?.getTracks?.()');
     expect(classroomChat).toContain('Ses kaydı hazır');
-    expect(classroomChat).toContain('<audio controls preload="metadata" src={previewUrl} />');
+    expect(classroomChat).toContain('<VoiceMessagePlayer');
+    expect(voicePlayer).toContain('playbackRate');
+    expect(voicePlayer).toContain('type="range"');
+    expect(voicePlayer).toContain('recoverLegacyWebmDuration');
+    expect(nextConfig).toContain("media-src 'self' blob: https://*.supabase.co");
     expect(classroomCss).toContain('.classroom-message-list{height:clamp(360px,38vw,500px)');
     expect(classroomCss).toContain('display:flex;flex-direction:column;gap:10px');
     expect(classroomCss).toContain('.message-bubble{min-width:0;max-width:min(78%,560px)');

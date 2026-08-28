@@ -2,8 +2,8 @@
 
 import { useEffect, useMemo, useRef, useState } from 'react';
 import {
-  BookOpenCheck, Coffee, Crown, Hand, Keyboard, LibraryBig,
-  MessageCircleQuestion, MousePointer2, Move, Sparkles,
+  Armchair, BookOpenCheck, Coffee, Crown, Hand, Keyboard, LibraryBig,
+  MessageCircleQuestion, MousePointer2, Move, PenLine, PersonStanding, Sparkles,
 } from 'lucide-react';
 import ClassroomAvatar from './ClassroomAvatar';
 
@@ -14,6 +14,7 @@ export const REACTION_META = {
   clap: { label: 'Harika!', icon: Sparkles },
   goal: { label: 'Devam!', icon: Crown },
   wave: { label: 'Buradayım', icon: Move },
+  jump: { label: 'Zıpladı', icon: PersonStanding },
 };
 
 const STATUS_LABEL = {
@@ -29,7 +30,43 @@ const ZONES = [
   { id: 'break', label: 'Mola köşesi', hint: 'Kısa bir nefes', x: 82, y: 78, icon: Coffee, status: 'break' },
 ];
 
+export const CLASSROOM_SEATS = [
+  { id: 'desk_1', label: 'Ön sol sıra', x: 32, y: 52, deskX: 32, deskY: 41 },
+  { id: 'desk_2', label: 'Ön sağ sıra', x: 66, y: 53, deskX: 66, deskY: 43 },
+  { id: 'desk_3', label: 'Arka sol sıra', x: 27, y: 83, deskX: 27, deskY: 72 },
+  { id: 'desk_4', label: 'Arka sağ sıra', x: 70, y: 81, deskX: 70, deskY: 69 },
+];
+
+const OBSTACLES = CLASSROOM_SEATS.map((seat) => ({
+  left: seat.deskX - 8,
+  right: seat.deskX + 8,
+  top: seat.deskY - 6,
+  bottom: seat.deskY + 7,
+}));
+
 const clamp = (value, min, max) => Math.min(max, Math.max(min, value));
+
+export const isClassroomPositionBlocked = ({ x, y }) => OBSTACLES.some((item) => (
+  x >= item.left - 2.5 && x <= item.right + 2.5 && y >= item.top - 3 && y <= item.bottom + 3
+));
+
+export const resolveClassroomMovement = (from, target) => {
+  const start = { x: Number(from?.x ?? 50), y: Number(from?.y ?? 72) };
+  const end = { x: clamp(Number(target?.x ?? start.x), 4, 96), y: clamp(Number(target?.y ?? start.y), 8, 92) };
+  const distance = Math.max(Math.abs(end.x - start.x), Math.abs(end.y - start.y));
+  const steps = Math.max(1, Math.ceil(distance / 1.5));
+  let current = start;
+  for (let index = 1; index <= steps; index += 1) {
+    const candidate = {
+      x: start.x + ((end.x - start.x) * index) / steps,
+      y: start.y + ((end.y - start.y) * index) / steps,
+    };
+    if (!isClassroomPositionBlocked(candidate)) current = candidate;
+    else if (!isClassroomPositionBlocked({ x: candidate.x, y: current.y })) current = { x: candidate.x, y: current.y };
+    else if (!isClassroomPositionBlocked({ x: current.x, y: candidate.y })) current = { x: current.x, y: candidate.y };
+  }
+  return { x: clamp(current.x, 4, 96), y: clamp(current.y, 8, 92) };
+};
 
 export default function ClassroomScene({
   room,
@@ -40,6 +77,11 @@ export default function ClassroomScene({
   onMove,
   onEnterZone,
   onOpenAvatar,
+  onOpenBoard,
+  onSit,
+  onStand,
+  onAction,
+  board,
 }) {
   const playfieldRef = useRef(null);
   const dragRef = useRef(false);
@@ -48,6 +90,7 @@ export default function ClassroomScene({
   const [focused, setFocused] = useState(false);
   const [moving, setMoving] = useState(false);
   const [reactionNow, setReactionNow] = useState(() => Date.now());
+  const me = members.find((member) => member.userId === userId);
 
   useEffect(() => {
     const timer = window.setInterval(() => setReactionNow(Date.now()), 1000);
@@ -89,8 +132,9 @@ export default function ClassroomScene({
   };
 
   const moveFromPointer = (event, immediate = false) => {
-    const next = getPosition(event);
-    if (!next) return;
+    const target = getPosition(event);
+    if (!target) return;
+    const next = resolveClassroomMovement(localPosition, target);
     const facing = facingForDelta(next.x - Number(localPosition?.x ?? 50), next.y - Number(localPosition?.y ?? 72), localPosition?.facing);
     markMoving();
     onMove({ ...next, facing }, { immediate });
@@ -132,8 +176,10 @@ export default function ClassroomScene({
     const delta = directions[event.key];
     if (!delta) return;
     event.preventDefault();
-    const x = clamp(Number(localPosition?.x ?? 50) + delta[0], 4, 96);
-    const y = clamp(Number(localPosition?.y ?? 72) + delta[1], 8, 92);
+    const { x, y } = resolveClassroomMovement(localPosition, {
+      x: Number(localPosition?.x ?? 50) + delta[0],
+      y: Number(localPosition?.y ?? 72) + delta[1],
+    });
     markMoving();
     onMove({ x, y, facing: facingForDelta(delta[0], delta[1], localPosition?.facing) });
   };
@@ -141,10 +187,11 @@ export default function ClassroomScene({
   return (
     <article className={`classroom-world study-panel theme-${room.theme || 'sunny'}`}>
       <header className="classroom-world-header">
-        <div className="classroom-blackboard">
+        <button type="button" className="classroom-blackboard" onClick={onOpenBoard}>
           <span>{room.name}</span>
-          <small>{room.motto}</small>
-        </div>
+          <small>{board?.text || room.motto}</small>
+          <em><PenLine size={13} /> Tahtayı aç</em>
+        </button>
         <div className="movement-help"><MousePointer2 size={14} /><span>Tıkla veya sürükle</span><Keyboard size={14} /><span>WASD / oklar</span></div>
       </header>
 
@@ -178,6 +225,20 @@ export default function ClassroomScene({
           <div className="classroom-desk is-four"><i /><b /></div>
           <div className="classroom-rug" />
         </div>
+
+        {CLASSROOM_SEATS.map((seat) => {
+          const occupied = members.some((member) => member.pose === 'sitting' && member.seatId === seat.id && member.userId !== userId);
+          return <button
+            type="button"
+            key={seat.id}
+            className={`classroom-seat seat-${seat.id}${occupied ? ' is-occupied' : ''}`}
+            style={{ '--seat-x': `${seat.x}%`, '--seat-y': `${seat.y}%` }}
+            onPointerDown={(event) => event.stopPropagation()}
+            onClick={() => !occupied && onSit(seat)}
+            disabled={occupied}
+            aria-label={occupied ? `${seat.label} dolu` : `${seat.label} sırasına otur`}
+          ><Armchair size={15} /><span>{occupied ? 'Dolu' : 'Otur'}</span></button>;
+        })}
 
         {ZONES.map((zone) => {
           const Icon = zone.icon;
@@ -216,7 +277,7 @@ export default function ClassroomScene({
             <div
               key={member.userId}
               data-player-id={member.userId}
-              className={`classroom-character is-${member.presence} ${isMe ? 'is-me' : ''} is-facing-${position.facing}`}
+              className={`classroom-character is-${member.presence} ${isMe ? 'is-me' : ''} is-facing-${position.facing} is-pose-${member.pose || 'standing'}${reaction?.reaction === 'jump' ? ' is-jumping' : ''}${reaction?.reaction === 'wave' || reaction?.reaction === 'hello' ? ' is-waving' : ''}`}
               style={{ '--player-x': `${position.x}%`, '--player-y': `${position.y}%`, zIndex: Math.round(Number(position.y || 50)) + 20 }}
             >
               {reactionMeta && <span className="character-reaction"><ReactionIcon size={14} />{reactionMeta.label}</span>}
@@ -236,6 +297,13 @@ export default function ClassroomScene({
             </div>
           );
         })}
+
+        <nav className="classroom-action-dock" aria-label="Karakter ve sınıf eylemleri" onPointerDown={(event) => event.stopPropagation()}>
+          <button type="button" onClick={onOpenBoard}><PenLine size={16} /><span>Tahta</span></button>
+          <button type="button" onClick={() => onAction('jump')} disabled={me?.pose === 'sitting'}><PersonStanding size={16} /><span>Zıpla</span></button>
+          <button type="button" onClick={() => onAction('wave')}><Hand size={16} /><span>Selamla</span></button>
+          {me?.pose === 'sitting' && <button type="button" onClick={onStand}><Move size={16} /><span>Ayağa kalk</span></button>}
+        </nav>
       </div>
 
       <footer className="classroom-world-footer">

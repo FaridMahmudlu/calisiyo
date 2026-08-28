@@ -2,12 +2,14 @@
 
 import { useEffect, useMemo, useRef, useState } from 'react';
 import * as tus from 'tus-js-client';
+import { fixWebmDuration } from '@fix-webm-duration/fix';
 import {
   BookOpen, Check, CheckCheck, Clock3, Download, ExternalLink, File,
   Flame, Image as ImageIcon, Mic, Paperclip, Pencil, Send, Share2,
   Square, Trash2, Trophy, X,
 } from 'lucide-react';
 import Modal from '@/components/ui/Modal';
+import VoiceMessagePlayer from './VoiceMessagePlayer';
 
 const MAX_FILE_SIZE = 20 * 1024 * 1024;
 const RESUMABLE_UPLOAD_THRESHOLD = 6 * 1024 * 1024;
@@ -135,13 +137,17 @@ export default function ClassroomChat({
   const recordingStreamRef = useRef(null);
   const recordingTimerRef = useRef(null);
   const recordingRequestRef = useRef(false);
+  const recordingStartedAtRef = useRef(0);
+  const previewUrlRef = useRef('');
   const messageListRef = useRef(null);
   const shouldFollowMessagesRef = useRef(true);
   const markedReadRef = useRef(new Set());
   const signedPathRef = useRef(new Set());
   const canChat = !viewerIsMuted && (isOwner || room.membersCanChat);
 
-  useEffect(() => () => { if (previewUrl) URL.revokeObjectURL(previewUrl); }, [previewUrl]);
+  useEffect(() => () => {
+    if (previewUrlRef.current) URL.revokeObjectURL(previewUrlRef.current);
+  }, []);
 
   useEffect(() => () => {
     if (recordingTimerRef.current) clearInterval(recordingTimerRef.current);
@@ -210,9 +216,13 @@ export default function ClassroomChat({
     setPreparingAttachment(true);
     try {
       const preparedFile = await optimizeImage(file);
-      if (previewUrl) URL.revokeObjectURL(previewUrl);
+      if (previewUrlRef.current) URL.revokeObjectURL(previewUrlRef.current);
+      const nextPreview = (preparedFile.type.startsWith('image/') || preparedFile.type.startsWith('audio/'))
+        ? URL.createObjectURL(preparedFile)
+        : '';
+      previewUrlRef.current = nextPreview;
       setSelectedFile(preparedFile);
-      setPreviewUrl((preparedFile.type.startsWith('image/') || preparedFile.type.startsWith('audio/')) ? URL.createObjectURL(preparedFile) : '');
+      setPreviewUrl(nextPreview);
     } catch {
       onError('Görsel hazırlanamadı. Farklı bir dosya seçip tekrar deneyebilirsin.');
     } finally {
@@ -221,12 +231,27 @@ export default function ClassroomChat({
   };
 
   const clearFile = () => {
-    if (previewUrl) URL.revokeObjectURL(previewUrl);
+    if (previewUrlRef.current) URL.revokeObjectURL(previewUrlRef.current);
+    previewUrlRef.current = '';
     setPreviewUrl('');
     setSelectedFile(null);
     setUploadProgress(0);
     if (fileInputRef.current) fileInputRef.current.value = '';
     if (imageInputRef.current) imageInputRef.current.value = '';
+  };
+
+  const refreshAttachmentUrl = async (path) => {
+    if (!path) return;
+    signedPathRef.current.delete(path);
+    const { data, error: signedError } = await supabase.storage
+      .from('classroom-attachments')
+      .createSignedUrl(path, 3600);
+    if (signedError || !data?.signedUrl) {
+      onError('Ses kaydı şu anda açılamıyor. Bağlantını kontrol edip tekrar dene.');
+      return;
+    }
+    signedPathRef.current.add(path);
+    setSignedUrls((current) => ({ ...current, [path]: data.signedUrl }));
   };
 
   const sendMessage = async (event) => {
@@ -308,7 +333,9 @@ export default function ClassroomChat({
     let stream;
     recordingRequestRef.current = true;
     try {
-      stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      stream = await navigator.mediaDevices.getUserMedia({
+        audio: { echoCancellation: true, noiseSuppression: true, autoGainControl: true, channelCount: 1 },
+      });
       setMicrophoneHelp('');
       if (selectedFile) clearFile();
       const supportsType = typeof globalThis.MediaRecorder.isTypeSupported === 'function';
@@ -317,20 +344,28 @@ export default function ClassroomChat({
       recorderChunksRef.current = [];
       recordingStreamRef.current = stream;
       recorder.ondataavailable = (event) => { if (event.data.size) recorderChunksRef.current.push(event.data); };
-      recorder.onstop = () => {
+      recorder.onstop = async () => {
         const type = recordedAudioType(recorder.mimeType || recorderChunksRef.current[0]?.type || preferred);
-        const blob = new Blob(recorderChunksRef.current, { type });
+        const rawBlob = new Blob(recorderChunksRef.current, { type });
+        const recordedFor = Math.max(250, Math.round(performance.now() - recordingStartedAtRef.current));
         stream.getTracks().forEach((track) => track.stop());
         recordingStreamRef.current = null;
         recorderRef.current = null;
         if (recordingTimerRef.current) clearInterval(recordingTimerRef.current);
         recordingTimerRef.current = null;
         setRecording(false);
-        if (!blob.size) {
+        if (!rawBlob.size) {
           onError('Ses kaydı oluşturulamadı. Mikrofonunu kontrol edip tekrar deneyebilirsin.');
           return;
         }
-        chooseFile(new globalThis.File([blob], `ses-${Date.now()}.${audioExtension(type)}`, { type }));
+        try {
+          const playableBlob = type === 'audio/webm'
+            ? await fixWebmDuration(rawBlob, recordedFor, { logger: false })
+            : rawBlob;
+          await chooseFile(new globalThis.File([playableBlob], `ses-${Date.now()}.${audioExtension(type)}`, { type }));
+        } catch {
+          onError('Ses kaydı oynatılabilir biçime dönüştürülemedi. Lütfen tekrar kaydet.');
+        }
       };
       recorder.onerror = () => {
         recorder.onstop = null;
@@ -342,8 +377,9 @@ export default function ClassroomChat({
         setRecording(false);
         onError('Ses kaydı sırasında bir sorun oluştu. Lütfen tekrar dene.');
       };
-      recorder.start(250);
+      recorder.start();
       recorderRef.current = recorder;
+      recordingStartedAtRef.current = performance.now();
       setRecordingSeconds(0);
       setRecording(true);
       const startedAt = Date.now();
@@ -370,7 +406,6 @@ export default function ClassroomChat({
   const stopRecording = () => {
     const recorder = recorderRef.current;
     if (!recorder || recorder.state === 'inactive') return;
-    recorder.requestData?.();
     recorder.stop();
   };
 
@@ -410,7 +445,9 @@ export default function ClassroomChat({
   const renderPayload = (message) => {
     const url = signedUrls[message.attachmentPath];
     if (message.messageType === 'image') return <a className="chat-image" href={url || '#'} target="_blank" rel="noreferrer" style={url ? { backgroundImage: `url(${url})` } : undefined}><span>{url ? 'Görseli aç' : 'Görsel hazırlanıyor…'}</span></a>;
-    if (message.messageType === 'audio') return url ? <audio className="chat-audio" controls preload="metadata" src={url} /> : <span className="chat-file-loading">Ses hazırlanıyor…</span>;
+    if (message.messageType === 'audio') return url
+      ? <VoiceMessagePlayer src={url} fileName={message.attachmentName || 'Ses kaydı.webm'} onSourceError={() => refreshAttachmentUrl(message.attachmentPath)} />
+      : <span className="chat-file-loading">Ses hazırlanıyor…</span>;
     if (message.messageType === 'file') return <a className="chat-file" href={url || '#'} target="_blank" rel="noreferrer"><File size={18} /><span><strong>{message.attachmentName || 'Dosya'}</strong><small>{formatBytes(message.attachmentSize)}</small></span><Download size={16} /></a>;
     if (message.messageType === 'resource') return <div className="chat-resource-card"><span><BookOpen size={18} /></span><div><small>{message.metadata?.examType || 'Çalışma kaynağı'}</small><strong>{message.metadata?.title}</strong><p>{message.metadata?.publisher}</p></div>{message.metadata?.sourceUrl && <a href={message.metadata.sourceUrl} target="_blank" rel="noreferrer" aria-label="Kaynağı aç"><ExternalLink size={16} /></a>}</div>;
     if (message.messageType === 'profile_card') return <div className="chat-profile-card"><header><span>{String(message.metadata?.displayName || message.name || 'Ö').charAt(0)}</span><div><small>Çalışma kartı</small><strong>{message.metadata?.displayName || message.name}</strong></div></header><div>{message.metadata?.weeklyMinutes != null && <span><Clock3 size={15} /><b>{message.metadata.weeklyMinutes} dk</b><small>Bu hafta</small></span>}{message.metadata?.weeklyQuestions != null && <span><Check size={15} /><b>{message.metadata.weeklyQuestions}</b><small>Soru</small></span>}{message.metadata?.streak != null && <span><Flame size={15} /><b>{message.metadata.streak} gün</b><small>Seri</small></span>}{message.metadata?.level != null && <span><Trophy size={15} /><b>Seviye {message.metadata.level}</b><small>{message.metadata.levelTitle}</small></span>}</div></div>;
@@ -455,7 +492,7 @@ export default function ClassroomChat({
         {recording && <div className="chat-recording-status" role="status"><span aria-hidden="true" /><div><strong>Ses kaydediliyor</strong><small>Bitirdiğinde kaydı dinleyip gönderebilirsin.</small></div><time>{formatRecordingTime(recordingSeconds)}</time></div>}
         {selectedFile && <div className={`chat-attachment-preview is-${messageTypeFor(selectedFile)}`}>
           {messageTypeFor(selectedFile) === 'image' && previewUrl ? <span className="attachment-thumbnail" style={{ backgroundImage: `url(${previewUrl})` }} /> : <span className="attachment-icon">{messageTypeFor(selectedFile) === 'audio' ? <Mic size={18} /> : <File size={18} />}</span>}
-          <div className="attachment-info"><strong>{selectedFile.name}</strong><small>{busy && uploadProgress ? `Yükleniyor · %${uploadProgress}` : messageTypeFor(selectedFile) === 'audio' ? 'Ses kaydı hazır' : formatBytes(selectedFile.size)}</small>{messageTypeFor(selectedFile) === 'audio' && previewUrl && <audio controls preload="metadata" src={previewUrl} />}</div>
+          <div className="attachment-info"><strong>{selectedFile.name}</strong><small>{busy && uploadProgress ? `Yükleniyor · %${uploadProgress}` : messageTypeFor(selectedFile) === 'audio' ? 'Ses kaydı hazır · Göndermeden önce dinleyebilirsin' : formatBytes(selectedFile.size)}</small>{messageTypeFor(selectedFile) === 'audio' && previewUrl && <VoiceMessagePlayer src={previewUrl} fileName={selectedFile.name} compact />}</div>
           <button type="button" onClick={clearFile} disabled={busy} aria-label="Eki kaldır"><X size={16} /></button>
         </div>}
         <form className="classroom-chat-composer" onSubmit={sendMessage}>

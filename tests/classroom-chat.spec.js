@@ -19,17 +19,20 @@ test.describe('Minimal classroom chat', () => {
     const serverErrors = [];
     const pageErrors = [];
     await page.addInitScript(() => {
-      class MockMediaRecorder {
-        static isTypeSupported(type) { return type.startsWith('audio/'); }
-        constructor() { this.mimeType = 'audio/webm;codecs=opus'; this.state = 'inactive'; }
-        start() { this.state = 'recording'; }
-        requestData() { this.ondataavailable?.({ data: new Blob(['calisiyo-voice'], { type: 'audio/webm' }) }); }
-        stop() { this.state = 'inactive'; queueMicrotask(() => this.onstop?.()); }
-      }
-      Object.defineProperty(globalThis, 'MediaRecorder', { configurable: true, value: MockMediaRecorder });
       Object.defineProperty(navigator, 'mediaDevices', {
         configurable: true,
-        value: { getUserMedia: async () => ({ getTracks: () => [{ stop() {} }] }) },
+        value: { getUserMedia: async () => {
+          const context = new AudioContext();
+          await context.resume();
+          const destination = context.createMediaStreamDestination();
+          const oscillator = context.createOscillator();
+          const gain = context.createGain();
+          gain.gain.value = 0.04;
+          oscillator.connect(gain).connect(destination);
+          oscillator.start();
+          globalThis.__voiceTestAudio = { context, oscillator };
+          return destination.stream;
+        } },
       });
     });
     page.on('pageerror', (error) => pageErrors.push(error.message));
@@ -57,6 +60,29 @@ test.describe('Minimal classroom chat', () => {
     await dialog.getByRole('button', { name: 'Sınıfı oluştur ve aç' }).click();
     await expect(page.getByRole('heading', { name: roomName })).toBeVisible();
 
+    await page.locator('.classroom-blackboard').click();
+    const boardDialog = page.locator('.classroom-board-modal');
+    await expect(boardDialog).toBeVisible();
+    const boardText = `Bugünün sorusu ${Date.now()}`;
+    await boardDialog.getByPlaceholder(/Bugünün sorusu/).fill(boardText);
+    await boardDialog.getByRole('button', { name: 'Notu kaydet' }).click();
+    await expect(boardDialog.locator('.board-shared-text')).toHaveText(boardText);
+    const boardSvg = boardDialog.getByRole('img', { name: 'Sınıfın ortak çizim tahtası' });
+    const boardBox = await boardSvg.boundingBox();
+    await page.mouse.move(boardBox.x + 80, boardBox.y + 90);
+    await page.mouse.down();
+    await page.mouse.move(boardBox.x + 150, boardBox.y + 135, { steps: 8 });
+    await page.mouse.up();
+    await expect(boardSvg.locator('polyline')).toHaveCount(1);
+    await boardDialog.getByRole('button', { name: 'Tahtayı kapat' }).click();
+
+    await page.getByRole('button', { name: 'Ön sol sıra sırasına otur' }).click();
+    await expect(page.locator('.classroom-character.is-me')).toHaveClass(/is-pose-sitting/);
+    await page.getByRole('button', { name: 'Ayağa kalk' }).click();
+    await expect(page.locator('.classroom-character.is-me')).toHaveClass(/is-pose-standing/);
+    await page.getByRole('button', { name: 'Zıpla', exact: true }).click();
+    await expect(page.locator('.classroom-character.is-me')).toHaveClass(/is-jumping/);
+
     const messageText = `Düzenli chat mesajı ${Date.now()}`;
     await page.getByLabel('Sınıfa mesaj yaz').fill(messageText);
     await page.getByRole('button', { name: 'Mesajı gönder' }).click();
@@ -64,13 +90,21 @@ test.describe('Minimal classroom chat', () => {
 
     await page.getByRole('button', { name: 'Ses kaydet' }).click();
     await expect(page.locator('.chat-recording-status')).toContainText('Ses kaydediliyor');
+    await page.waitForTimeout(1200);
     await page.getByRole('button', { name: 'Ses kaydını bitir' }).click();
     await expect(page.locator('.chat-attachment-preview.is-audio')).toContainText('Ses kaydı hazır');
-    await expect(page.locator('.chat-attachment-preview.is-audio audio')).toBeVisible();
+    const previewPlayer = page.locator('.chat-attachment-preview.is-audio .voice-player');
+    await expect(previewPlayer).toBeVisible();
+    await expect(previewPlayer).not.toHaveClass(/has-error/, { timeout: 10000 });
+    await expect(previewPlayer.locator('.voice-time')).not.toHaveText('0:00 / 0:00', { timeout: 10000 });
+    await previewPlayer.getByRole('button', { name: 'Ses kaydını oynat' }).click();
+    await expect.poll(() => previewPlayer.locator('audio').evaluate((audio) => !audio.paused && audio.currentTime > 0)).toBe(true);
+    await previewPlayer.getByRole('button', { name: 'Ses kaydını duraklat' }).click();
     await page.getByRole('button', { name: 'Mesajı gönder' }).click();
 
-    const voiceMessage = page.locator('.classroom-message.is-me').filter({ has: page.locator('.chat-audio') }).last();
-    await expect(voiceMessage.locator('.chat-audio')).toBeVisible();
+    const voiceMessage = page.locator('.classroom-message.is-me').filter({ has: page.locator('.voice-player') }).last();
+    await expect(voiceMessage.locator('.voice-player')).toBeVisible();
+    await expect(voiceMessage.locator('.voice-time')).not.toHaveText('0:00 / 0:00', { timeout: 10000 });
     const voiceMessageId = await voiceMessage.getAttribute('data-message-id');
     const stableVoiceMessage = page.locator(`.classroom-message[data-message-id="${voiceMessageId}"]`);
     const boxes = await page.locator('.classroom-message').evaluateAll((nodes) => nodes.map((node) => {
