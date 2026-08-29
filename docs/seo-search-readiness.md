@@ -116,6 +116,19 @@ Analytics yalnızca mevcut izin mimarisi içinde çalışır. ChatGPT yönlendir
 
 Teknik SEO tek başına otorite yaratmaz. Ürün sahibi; doğrulanabilir kullanıcı geri bildirimi, özgün çalışma verisi araştırmaları, eğitim topluluklarıyla gerçek iş birlikleri ve kaliteli kaynaklardan doğal bağlantılar üretmelidir. Yapay backlink, satın alınmış değerlendirme veya sahte sosyal kanıt kullanılmamalıdır.
 
+## Manuel ürün sahibi aksiyonları
+
+Kod deposu dışında tamamlanması gerekenler:
+
+1. Markalı alan adını satın al, Vercel'e bağla ve `NEXT_PUBLIC_SITE_URL` değerini güncelle.
+2. Yeni canonical property'yi Google Search Console ve Bing Webmaster Tools içinde doğrula; sitemap'i iki platforma da gönder.
+3. Ana sayfa, Özellikler, Rehber ve Paketler gibi öncelikli URL'leri incele; indeksleme ve Core Web Vitals durumunu zaman içinde izle.
+4. IndexNow kullanılacaksa anahtar üret, aynı origin üzerinde anahtar dosyasını yayınla ve yalnızca anlamlı değişikliklerden sonra bildirim gönder.
+5. Otterly veya kullanılan başka izleme aracındaki marka adını “Calisiyo” yap; Türkçe/Türkiye odaklı gerçek kullanıcı sorularını takip et.
+6. Yalnızca gerçekten Calisiyo'ya ait sosyal profil URL'lerini `NEXT_PUBLIC_OFFICIAL_SOCIAL_URLS` içine ekle.
+7. Gerçek eğitim üreticileri, öğretmenler ve topluluklarla doğrulanabilir iş birlikleri kur; sahte bağlantı, yorum veya atıf üretme.
+8. Google, Bing ve ChatGPT kaynaklı organik görünürlük/atıfları düzenli aralıklarla izle. Hiçbir teknik değişiklik sıralama veya atıf garantisi vermez.
+
 ## Doğrulama komutları
 
 ```powershell

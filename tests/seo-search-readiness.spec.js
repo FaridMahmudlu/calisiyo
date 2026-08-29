@@ -52,9 +52,14 @@ test.describe('SEO and AI-search readiness', () => {
       const schemas = await page.locator('script[type="application/ld+json"]').allTextContents();
       expect(schemas.length, route).toBeGreaterThan(0);
       for (const source of schemas) {
-        const serialized = JSON.stringify(JSON.parse(source));
+        const parsed = JSON.parse(source);
+        const serialized = JSON.stringify(parsed);
         expect(serialized).not.toMatch(/aggregateRating|reviewCount|ratingValue/);
         expect(serialized).not.toContain('localhost');
+        for (const id of [...serialized.matchAll(/"@id":"([^"]+)"/g)].map((match) => match[1])) {
+          if (id.endsWith('/#organization')) expect(id).toBe(`${origin}/#organization`);
+          if (id.endsWith('/#website')) expect(id).toBe(`${origin}/#website`);
+        }
       }
     }
   });
