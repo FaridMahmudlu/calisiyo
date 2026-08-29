@@ -6,6 +6,7 @@ import PublicFooter from '@/components/landing/PublicFooter';
 import GuideCard from '@/components/seo/GuideCard';
 import JsonLd from '@/components/seo/JsonLd';
 import { formatEditorialDate, GUIDE_BY_SLUG, GUIDES } from '@/lib/seo/content';
+import { FEATURE_BY_SLUG } from '@/lib/seo/features';
 import { absoluteUrl, SITE } from '@/lib/seo/site';
 
 export function generateStaticParams() {
@@ -52,6 +53,7 @@ export default async function GuidePage({ params }) {
 
   const pageUrl = absoluteUrl(`/rehber/${guide.slug}`);
   const related = guide.related.map((item) => GUIDE_BY_SLUG[item]).filter(Boolean);
+  const feature = FEATURE_BY_SLUG[guide.feature];
   const jsonLd = {
     '@context': 'https://schema.org',
     '@graph': [
@@ -90,7 +92,7 @@ export default async function GuidePage({ params }) {
           <span className="public-kicker">{guide.kicker}</span>
           <h1>{guide.title}</h1>
           <p className="guide-lead">{guide.summary}</p>
-          <div className="content-hero-meta"><span>Calisiyo editoryal</span><time dateTime={guide.updatedAt}>Güncellendi: {formatEditorialDate(guide.updatedAt)}</time></div>
+          <div className="content-hero-meta"><Link href="/hakkimizda">Calisiyo Editoryal</Link><time dateTime={guide.updatedAt}>Güncellendi: {formatEditorialDate(guide.updatedAt)}</time></div>
         </header>
 
         <div className="guide-article-layout">
@@ -98,6 +100,8 @@ export default async function GuidePage({ params }) {
           <div className="guide-article-body">
             <section className="guide-direct-answer" aria-label="Kısa cevap"><span>Kısa cevap</span><p>{guide.answer}</p></section>
             {guide.sections.map((section, index) => <GuideSection key={section.title} section={section} index={index} />)}
+
+            {feature && <aside className="guide-feature-link"><span>Calisiyo’da uygula</span><h2>{feature.shortTitle}</h2><p>{feature.description}</p><Link href={`/ozellikler/${feature.slug}`}>Özelliği incele <PiArrowRight /></Link></aside>}
 
             {guide.sources.length > 0 && <section className="guide-sources" aria-labelledby="kaynaklar"><h2 id="kaynaklar">Resmî kaynak</h2>{guide.sources.map((source) => <p key={source.href}><PiLink /><span><a href={source.href} target="_blank" rel="noopener noreferrer">{source.label}</a><small>{source.note}</small></span></p>)}</section>}
 

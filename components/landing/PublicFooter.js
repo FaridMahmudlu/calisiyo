@@ -3,6 +3,7 @@
 import Link from 'next/link';
 import { PiEnvelopeSimple } from 'react-icons/pi';
 import BrandLogo from '@/components/brand/BrandLogo';
+import { SITE } from '@/lib/seo/site';
 import { FOOTER } from './SharedLandingContent';
 
 export default function PublicFooter() {
@@ -15,7 +16,7 @@ export default function PublicFooter() {
         <div>
           <Link href="/" className="public-brand" aria-label="calisiyo ana sayfa"><BrandLogo /></Link>
           <p>{FOOTER.tagline}</p>
-          <a className="support-email" href="mailto:calisiyo.destek@gmail.com"><PiEnvelopeSimple /> calisiyo.destek@gmail.com</a>
+          <a className="support-email" href={`mailto:${SITE.supportEmail}`}><PiEnvelopeSimple /> {SITE.supportEmail}</a>
         </div>
         <div>
           <strong>Ürün</strong>

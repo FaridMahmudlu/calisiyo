@@ -6,9 +6,10 @@ export default function PublicContentNav() {
     <nav className="story-nav content-nav" aria-label="Ana navigasyon">
       <Link href="/" className="public-brand" aria-label="calisiyo ana sayfa"><BrandLogo priority /></Link>
       <div className="story-nav-links">
+        <Link href="/ozellikler">Özellikler</Link>
         <Link href="/rehber">Rehber</Link>
-        <Link href="/metodoloji">Metodoloji</Link>
         <Link href="/paketler">Paketler</Link>
+        <Link href="/hakkimizda">Hakkımızda</Link>
       </div>
       <div className="landing-auth">
         <Link href="/giris">Giriş yap</Link>

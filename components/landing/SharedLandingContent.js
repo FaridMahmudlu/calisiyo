@@ -1,6 +1,6 @@
 export const NAV_LINKS = [
   { label: 'Nasıl çalışır?', href: '#nasil-calisir' },
-  { label: 'Özellikler', href: '#ozellikler' },
+  { label: 'Özellikler', href: '/ozellikler' },
   { label: 'Paketler', href: '#paketler' },
   { label: 'Rehber', href: '/rehber' },
   { label: 'Sorular', href: '#sorular' },
@@ -19,10 +19,11 @@ export const FOOTER = {
   tagline: 'YKS hazırlığını planla, odaklan ve kendi çalışma verilerinle ilerle.',
   productLinks: [
     { label: 'Nasıl çalışır?', href: '#nasil-calisir' },
-    { label: 'Özellikler', href: '#ozellikler' },
+    { label: 'Özellikler', href: '/ozellikler' },
     { label: 'Paketler ve fiyatlar', href: '/paketler' },
     { label: 'YKS çalışma rehberi', href: '/rehber' },
     { label: 'Veri metodolojisi', href: '/metodoloji' },
+    { label: 'Hakkımızda', href: '/hakkimizda' },
     { label: 'Sık sorulan sorular', href: '#sorular' },
   ],
   accountLinks: [{ label: 'Giriş yap', href: '/giris' }, { label: 'Ücretsiz hesap oluştur', href: '/kayit' }],

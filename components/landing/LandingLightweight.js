@@ -3,6 +3,7 @@ import {
   PiArrowRight, PiBookOpenText, PiCalendarBlank, PiChartLineUp,
   PiCheck, PiClock, PiCrownSimple, PiListChecks, PiLockKey,
   PiPlayCircle, PiSparkle, PiTarget, PiTimer, PiTrendUp,
+  PiUsersThree, PiYoutubeLogo,
 } from 'react-icons/pi';
 import BrandLogo from '@/components/brand/BrandLogo';
 import PricingSection from './PricingSection';
@@ -66,7 +67,7 @@ export default function LandingLightweight() {
     <main className="editorial-landing">
       <nav className="editorial-nav" aria-label="Ana navigasyon">
         <Link href="/" className="public-brand" aria-label="calisiyo ana sayfa"><BrandLogo priority /></Link>
-        <div className="editorial-nav-links">{NAV_LINKS.map((link) => <a key={link.href} href={link.href}>{link.label}</a>)}</div>
+        <div className="editorial-nav-links">{NAV_LINKS.map((link) => link.href.startsWith('/') ? <Link key={link.href} href={link.href}>{link.label}</Link> : <a key={link.href} href={link.href}>{link.label}</a>)}</div>
         <div className="editorial-auth"><Link href="/giris">Giriş yap</Link><Link className="public-button primary" href="/kayit">Ücretsiz başla</Link></div>
       </nav>
 
@@ -90,9 +91,17 @@ export default function LandingLightweight() {
         </div>
       </section>
 
+      <section className="landing-differentiators section-shell" aria-labelledby="farkli-araclar">
+        <header><span>Planın ötesinde</span><h2 id="farkli-araclar">Kampını güne dağıt. Arkadaşlarınla aynı ritimde çalış.</h2></header>
+        <div>
+          <article><PiYoutubeLogo /><span>Video planlama</span><h3>YouTube kampını kaldığın yerden programa çevir.</h3><p>Başlangıç videosu, dakika konumu ve günlük kapasitenle görevleri hazırlayıp kontrol ederek aktar.</p><Link href="/ozellikler/youtube-calisma-plani">Nasıl çalıştığını gör <PiArrowRight /></Link></article>
+          <article><PiUsersThree /><span>Canlı çalışma sınıfı</span><h3>Ortak odak, sınıf tahtası ve canlı sohbet tek odada.</h3><p>Durumunu paylaş, arkadaşlarınla aynı sayacı kullan ve isteğe bağlı görsel sınıfta etkileşim kur.</p><Link href="/ozellikler/calisma-siniflari">Sınıfları incele <PiArrowRight /></Link></article>
+        </div>
+      </section>
+
       <section className="landing-data-band" id="ozellikler">
         <div className="section-shell data-band-grid">
-          <div className="data-band-copy"><span><PiLockKey /> Gerçek veriden görünür ilerleme</span><h2>Rakamların yalnızca sen çalıştıkça oluşur.</h2><p>Calisiyo; program, Kronometre, soru, konu ve deneme kayıtlarını birlikte değerlendirir. Veri yoksa yapay başarı oranı göstermez.</p><div className="data-band-links"><Link href="/metodoloji">Nasıl hesaplandığını gör <PiArrowRight /></Link><Link href="/rehber">YKS rehberlerini incele <PiArrowRight /></Link></div></div>
+          <div className="data-band-copy"><span><PiLockKey /> Gerçek veriden görünür ilerleme</span><h2>Rakamların yalnızca sen çalıştıkça oluşur.</h2><p>Calisiyo; program, Kronometre, soru, konu ve deneme kayıtlarını birlikte değerlendirir. Veri yoksa yapay başarı oranı göstermez.</p><div className="data-band-links"><Link href="/metodoloji">Nasıl hesaplandığını gör <PiArrowRight /></Link><Link href="/ozellikler">Tüm özellikleri incele <PiArrowRight /></Link></div></div>
           <div className="data-source-panel" aria-label="İstatistik veri kaynakları"><header><PiTrendUp /><div><strong>İlerlemenin kaynakları</strong><small>Örnek veri akışı</small></div></header>{[[PiClock, 'Çalışma sürelerin'], [PiBookOpenText, 'Çözdüğün sorular'], [PiTarget, 'Deneme sonuçların'], [PiListChecks, 'Tamamladığın görevler']].map(([Icon, label]) => <div key={label}><Icon /><span>{label}</span><PiCheck /></div>)}</div>
         </div>
       </section>

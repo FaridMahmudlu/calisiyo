@@ -83,6 +83,7 @@ export default function GuideHubPage() {
         <div><span>Şeffaf hesaplama</span><h2>Calisiyo verileri neyi gösterir, neyi göstermez?</h2><p>Çalışma süresi, seri, deneme neti ve program uyumu gibi göstergelerin hangi gerçek kayıtlardan oluştuğunu açıkça incele.</p></div>
         <Link className="public-button" href="/metodoloji">Metodolojiyi gör <PiArrowRight /></Link>
       </section>
+      <section className="guide-feature-directory section-shell"><div><span>Rehberden ürüne</span><h2>Okuduğun yöntemi Calisiyo araçlarıyla uygula.</h2></div><Link className="public-button" href="/ozellikler">Tüm özellikleri incele <PiArrowRight /></Link></section>
       <PublicFooter />
     </main>
   );

@@ -26,7 +26,7 @@ export default function HomePage() {
       {
         '@type': 'WebApplication',
         '@id': `${SITE.origin}/#application`,
-        name: 'calisiyo · YKS Çalışma Koçu',
+        name: SITE.productTitle,
         url: SITE.origin,
         description: 'YKS çalışma planı, Kronometre, konu ve tekrar takibi, deneme analizi ve gerçek çalışma istatistiklerini bir araya getiren web uygulaması.',
         applicationCategory: 'EducationalApplication',
@@ -39,7 +39,8 @@ export default function HomePage() {
           'TYT, AYT ve YDT konu takibi',
           'Deneme analizi ve net karşılaştırması',
           'Gerçek çalışma kayıtlarından istatistikler',
-          'Çalışma sınıfları',
+          'YouTube video ve oynatma listelerinden çalışma planı',
+          'Gerçek zamanlı çalışma sınıfları, ortak odak, tahta ve sohbet',
         ],
         offers: [PUBLIC_PLANS[0], ...PLUS_VARIANTS].map((plan) => ({
           '@type': 'Offer',
