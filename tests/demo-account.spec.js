@@ -3,6 +3,7 @@ const path = require('path');
 
 const baseURL = process.env.BASE_URL || 'http://localhost:3000';
 const demoName = process.env.DEMO_NAME || 'Mert Kaya';
+const minimumStreak = Number(process.env.DEMO_MINIMUM_STREAK || 30);
 const qaDir = path.resolve(__dirname, '..', 'design-references', 'qa');
 
 test('realistic demo account renders live dashboard and statistics', async ({ page }) => {
@@ -15,6 +16,7 @@ test('realistic demo account renders live dashboard and statistics', async ({ pa
   await expect(page).toHaveURL(/\/dashboard$/);
   await expect(page.getByText(demoName).first()).toBeVisible();
   await expect(page.getByText(/Tahmini 19 Haziran 2027/)).toBeVisible();
+  await expect(page.getByText(new RegExp(`${minimumStreak} günlük seri`)).first()).toBeVisible();
   await page.screenshot({ path: path.join(qaDir, 'demo-dashboard-desktop.png'), fullPage: true });
 
   await page.goto(`${baseURL}/dashboard/istatistikler`);
