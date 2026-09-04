@@ -1,21 +1,21 @@
 import {
   createShopierClient,
   isSafeShopierProductUrl,
+  isShopierProductActive,
   moneyToMinorUnits,
 } from '../lib/billing/shopier-core.mjs';
+import { producerDiscountMinor } from '../lib/billing/content-producer.mjs';
+import { planPriceMinor } from '../lib/billing/pricing-catalog.mjs';
 
-const expected = [
-  {
-    planCode: 'plus_2027', amount: '2500', currency: 'TRY',
-    id: process.env.SHOPIER_PRODUCT_ID_2027,
-    url: process.env.SHOPIER_PRODUCT_URL_2027,
-  },
-  {
-    planCode: 'plus_2028', amount: '4500', currency: 'TRY',
-    id: process.env.SHOPIER_PRODUCT_ID_2028,
-    url: process.env.SHOPIER_PRODUCT_URL_2028,
-  },
-];
+const money = (minor) => (minor / 100).toFixed(2);
+const expected = ['2027', '2028'].flatMap((year) => {
+  const planCode = `plus_${year}`;
+  const listMinor = planPriceMinor(planCode);
+  return [
+    { planCode, amount: money(listMinor), currency: 'TRY', id: process.env[`SHOPIER_PRODUCT_ID_${year}`], url: process.env[`SHOPIER_PRODUCT_URL_${year}`] },
+    { planCode: `${planCode}_creator`, amount: money(listMinor - producerDiscountMinor(listMinor)), currency: 'TRY', creator: true, id: process.env[`SHOPIER_CREATOR_PRODUCT_ID_${year}`], url: process.env[`SHOPIER_CREATOR_PRODUCT_URL_${year}`] },
+  ];
+});
 
 function fail(message) {
   console.error(`HATA: ${message}`);
@@ -30,12 +30,16 @@ if (!token) {
     const client = createShopierClient({ accessToken: token });
     const [response, discountCodeResponse, automaticResponse] = await Promise.all([
       client.listProducts({ limit: 50, sort: 'dateDesc' }),
-      client.listDiscountCodes({ limit: 1, sort: 'dateDesc' }),
+      client.listDiscountCodes({ limit: 50, sort: 'dateDesc' }),
       client.listAutomaticDiscounts({ limit: 50, sort: 'dateDesc' }),
     ]);
     const products = Array.isArray(response) ? response : [];
     if (!Array.isArray(discountCodeResponse)) fail('Shopier indirim kodu API yanıtı doğrulanamadı.');
-    const configuredProductIds = new Set(expected.map((item) => String(item.id || '').trim()).filter(Boolean));
+    const configuredIdValues = expected.map((item) => String(item.id || '').trim()).filter(Boolean);
+    const configuredProductIds = new Set(configuredIdValues);
+    if (configuredProductIds.size !== configuredIdValues.length) {
+      fail('Standart ve içerik üretici Shopier ürün kimlikleri benzersiz değil.');
+    }
     const unexpectedProducts = products.filter((product) => !configuredProductIds.has(String(product?.id || '')));
     console.log(JSON.stringify({
       check: 'store-product-scope',
@@ -69,6 +73,16 @@ if (!token) {
       if (actualPrice !== expectedPrice) fail(`${item.planCode} fiyatı beklenen tutarla eşleşmiyor.`);
       if (shipping !== 0) fail(`${item.planCode} ürününde kargo tutarı sıfır değil.`);
       if (priceData.discount === true) fail(`${item.planCode} ürününde beklenmeyen indirim etkin.`);
+      if (!isShopierProductActive(product)) fail(`${item.planCode} ürünü Shopier'de aktif satışta değil.`);
+    }
+    const creatorProductIds = new Set(expected.filter((item) => item.creator).map((item) => String(item.id || '').trim()).filter(Boolean));
+    for (const discount of Array.isArray(discountCodeResponse) ? discountCodeResponse : []) {
+      const scope = String(discount?.scope || '');
+      const includesCreatorProduct = (discount?.productIds || [])
+        .some((productId) => creatorProductIds.has(String(productId)));
+      if (scope === 'all' || scope === 'selectedCategories' || includesCreatorProduct) {
+        fail('İçerik üretici ürünü ek bir Shopier indirim kodunun kapsamında. İndirim istifleme riski var.');
+      }
     }
     const productIds = configuredProductIds;
     const now = Date.now();
@@ -91,7 +105,10 @@ if (!token) {
     if (!promoScopeVerified) {
       fail('Shopier indirim kodlarının yalnızca iki Calisiyo ürününe uygulanacağı manuel olarak doğrulanmadı.');
     }
-    if (!process.exitCode) console.log('Shopier ürün yapılandırması doğrulandı. SHOPIER_PRODUCTS_VALIDATED=true yapılabilir.');
+    if (String(process.env.SHOPIER_CREATOR_PRODUCTS_VALIDATED || '').toLowerCase() !== 'true') {
+      fail('İçerik üretici ürün doğrulama bayrağı etkin değil.');
+    }
+    if (!process.exitCode) console.log('Standart ve içerik üretici Shopier ürün yapılandırması doğrulandı.');
   } catch (error) {
     fail(`Shopier doğrulaması tamamlanamadı (${error?.code || 'unknown'}).`);
   }

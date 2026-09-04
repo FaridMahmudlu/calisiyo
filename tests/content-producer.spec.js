@@ -8,10 +8,13 @@ const read = (file) => fs.readFileSync(path.join(root, file), 'utf8');
 test.describe('Content Producer Program security and product contracts', () => {
   test('pricing and fixed-term product semantics have one active source', () => {
     const plans = read('lib/billing/plans.js');
+    const pricing = read('lib/billing/pricing-catalog.mjs');
     const landing = read('components/landing/PricingSection.js');
     const billing = read('app/dashboard/abonelik/page.js');
-    expect(plans).toContain("price: 2500");
-    expect(plans).toContain("price: 4500");
+    expect(pricing).toContain('plus_2027: 250000');
+    expect(pricing).toContain('plus_2028: 450000');
+    expect(plans).toContain("price: planPriceTry('plus_2027')");
+    expect(plans).toContain("price: planPriceTry('plus_2028')");
     expect(plans).toContain("period: 'yks_2028'");
     expect(plans).toContain('25 Haziran 2028’e kadar');
     expect([landing, billing].join('\n')).not.toMatch(/5\+1|toplam 6 ay|2\.000|1\.000/);

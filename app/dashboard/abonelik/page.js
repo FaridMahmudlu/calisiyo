@@ -45,6 +45,7 @@ export default function BillingPage() {
 
   const currentPlan = billing?.currentPlan || contextPlan;
   const selected = useMemo(() => getBillingVariant(selectedCode) || PLUS_VARIANTS[0], [selectedCode]);
+  const creatorPrice = billing?.creatorDiscount?.plans?.[selected.code] || null;
   const trialActive = currentPlan?.status === 'trialing' && currentPlan?.trialEndsAt;
 
   const startTrial = async () => {
@@ -109,7 +110,7 @@ export default function BillingPage() {
           <div className="billing-period" role="group" aria-label="Plus sınav yılı">
             {PLUS_VARIANTS.map((variant) => <button key={variant.code} className={selected.code === variant.code ? 'is-active' : ''} onClick={() => setSelectedCode(variant.code)}>{variant.label}<small>{variant.duration}</small></button>)}
           </div>
-          <strong className="billing-plan-price">{formatTry(selected.price)}<small>{selected.duration}</small></strong>
+          {creatorPrice ? <div className="billing-creator-price"><span>%20 içerik üretici indirimi</span><del>{formatTry(creatorPrice.listPrice)}</del><strong>{formatTry(creatorPrice.finalPrice)}</strong><small>{selected.duration}</small><p>Kayıt sırasında kullandığın {billing.creatorDiscount.code} kodu otomatik uygulandı.</p></div> : <strong className="billing-plan-price">{formatTry(selected.price)}<small>{selected.duration}</small></strong>}
           <p className="pricing-equivalent">7 gün ücretsiz · süre sonunda otomatik ücret alınmaz</p>
           <ul>{PUBLIC_PLANS[1].features.map((feature) => <li key={feature}><Check />{feature}</li>)}</ul>
           <div className="order-actions">
@@ -128,7 +129,7 @@ export default function BillingPage() {
 
     {checkoutOpen && <div className="billing-modal-backdrop" role="presentation" onMouseDown={() => !busy && setCheckoutOpen(false)}><section className="billing-checkout" role="dialog" aria-modal="true" aria-labelledby="checkout-title" onMouseDown={(event) => event.stopPropagation()}>
       <div className="checkout-heading"><span><LockKeyhole /></span><div><small>Güvenli sipariş özeti</small><h2 id="checkout-title">calisiyo plus · {selected.label}</h2></div><button onClick={() => setCheckoutOpen(false)} aria-label="Pencereyi kapat">×</button></div>
-      <div className="checkout-summary"><span>{selected.duration}</span><strong>{formatTry(selected.price)}</strong><small>Liste fiyatı · otomatik yenileme yok</small><p>Geçerli içerik üretici kodları Shopier ödeme ekranında %20 indirim uygular. Ödeyeceğin nihai tutarı Shopier gösterir.</p></div>
+      <div className="checkout-summary"><span>{selected.duration}</span>{creatorPrice ? <><strong>{formatTry(creatorPrice.finalPrice)}</strong><div className="checkout-price-lines"><span>Liste fiyatı <b>{formatTry(creatorPrice.listPrice)}</b></span><span>İçerik üretici indirimi <b>−{formatTry(creatorPrice.discountAmount)}</b></span><span>Ödenecek tutar <b>{formatTry(creatorPrice.finalPrice)}</b></span></div><p>Kayıt sırasında kullandığın içerik üretici kodu otomatik uygulandı. Shopier’de yeniden kod girmen gerekmez.</p></> : <><strong>{formatTry(selected.price)}</strong><small>Liste fiyatı · otomatik yenileme yok</small><p>Ödeyeceğin nihai tutar güvenli Shopier ödeme sayfasında doğrulanır.</p></>}</div>
       {!billing?.checkoutEnabled && <div className="checkout-disabled"><Clock3 /><div><strong>Satışa hazırlık tamamlanıyor</strong><p>{billing?.checkoutMessage} Bu sırada ücretsiz planı kullanmaya devam edebilirsin.</p></div></div>}
       <div className="checkout-links"><a href="/on-bilgilendirme" target="_blank">Ön Bilgilendirme</a><a href="/mesafeli-satis" target="_blank">Mesafeli Satış</a><a href="/iptal-iade" target="_blank">İptal ve İade</a><a href="/kvkk" target="_blank">KVKK</a></div>
       <label><input type="checkbox" checked={confirmGuardian} onChange={(event) => setConfirmGuardian(event.target.checked)} /><span>18 yaşındayım veya veli/kanuni temsilci onayıyla işlem yapıyorum; sözleşmeleri okudum.</span></label>

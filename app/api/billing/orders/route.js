@@ -5,6 +5,7 @@ import { shopierProductForPlan } from '@/lib/billing/providers/shopier';
 import { BILLING_PERIODS, getBillingVariant, LEGAL_DOCUMENT_VERSIONS } from '@/lib/billing/plans';
 import { createClient } from '@/lib/supabase/server';
 import { createAdminClient } from '@/lib/supabase/admin';
+import { producerDiscountMinor } from '@/lib/billing/content-producer.mjs';
 
 export const runtime = 'nodejs';
 
@@ -25,14 +26,6 @@ export async function POST(request) {
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return unauthorized();
 
-  if (!getBillingReadiness().ready) {
-    return Response.json({
-      ok: false,
-      code: 'checkout_not_ready',
-      message: 'Ücretli paket satışı kısa süre içinde açılacak. Ücretsiz planı kullanmaya devam edebilirsin.',
-    }, { status: 503 });
-  }
-
   let body;
   try { body = await request.json(); } catch { body = {}; }
   const plan = getBillingVariant(String(body.planCode || ''));
@@ -44,22 +37,59 @@ export async function POST(request) {
     return Response.json({ ok: false, message: 'Zorunlu sözleşme onaylarını tamamlamalısın.' }, { status: 400 });
   }
 
-  const product = shopierProductForPlan(plan.code);
+  const admin = createAdminClient();
+  const { data: creatorContext, error: creatorContextError } = await admin
+    .rpc('service_content_producer_checkout_context', { p_user_id: user.id });
+  if (creatorContextError) {
+    console.error('Creator checkout context failed', { feature: 'billing', stage: 'creator_context', errorCode: creatorContextError.code || 'unknown' });
+    return Response.json({ ok: false, message: 'Ödeme bilgilerin şu anda güvenle doğrulanamadı. Kartından ödeme alınmadı.' }, { status: 502 });
+  }
+  const pricingSource = creatorContext?.attributed ? 'signup_creator_code' : 'standard';
+  const readiness = getBillingReadiness();
+  if (creatorContext?.attributed && (!creatorContext?.eligible || !readiness.creatorDiscountCheckoutReady)) {
+    return Response.json({
+      ok: false,
+      code: 'creator_discount_not_ready',
+      message: 'İçerik üretici indirimin şu anda hazırlanıyor. Kartından ödeme alınmadı; biraz sonra tekrar deneyebilirsin.',
+    }, { status: 503 });
+  }
+  if (!creatorContext?.attributed && !readiness.standardCheckoutReady) {
+    return Response.json({
+      ok: false,
+      code: 'checkout_not_ready',
+      message: 'Ücretli paket satışı kısa süre içinde açılacak. Ücretsiz planı kullanmaya devam edebilirsin.',
+    }, { status: 503 });
+  }
+
+  const product = shopierProductForPlan(plan.code, pricingSource);
   if (!product) {
     return Response.json({ ok: false, code: 'checkout_not_ready', message: 'Bu paket henüz satışa hazır değil.' }, { status: 503 });
   }
+  const listAmountMinor = Math.round(plan.price * 100);
+  const discountAmountMinor = pricingSource === 'signup_creator_code'
+    ? producerDiscountMinor(listAmountMinor)
+    : 0;
+  const discountAmount = discountAmountMinor / 100;
+  const payableAmount = (listAmountMinor - discountAmountMinor) / 100;
   const number = orderNumber();
   const { hash } = createLegalSnapshot({
     planCode: plan.code,
     planName: `calisiyo plus · ${plan.label}`,
     billingPeriod,
-    amount: plan.price,
+    amount: payableAmount,
     orderNumber: number,
+    pricing: {
+      listAmount: plan.price,
+      discountPercent: pricingSource === 'signup_creator_code' ? 20 : 0,
+      discountAmount,
+      payableAmount,
+      source: pricingSource,
+      ...(pricingSource === 'signup_creator_code' ? { code: creatorContext.code } : {}),
+    },
   });
 
   try {
-    const admin = createAdminClient();
-    const { data: order, error } = await admin.rpc('create_shopier_billing_order', {
+    const { data: order, error } = await admin.rpc('create_shopier_billing_order_v2', {
       p_user_id: user.id,
       p_order_number: number,
       p_plan_code: plan.code,
@@ -70,6 +100,10 @@ export async function POST(request) {
       p_legal_snapshot_hash: hash,
       p_immediate_service_consent: true,
       p_adult_or_guardian_confirmed: true,
+      p_pricing_source: pricingSource,
+      p_creator_signup_attribution_id: pricingSource === 'signup_creator_code' ? creatorContext.attributionId : null,
+      p_expected_paid_amount: payableAmount,
+      p_expected_discount_amount: discountAmount,
     });
     if (error || !order?.id || !order?.paymentUrl) throw error || new Error('order_not_created');
     return Response.json({ ok: true, order }, { status: order.reused ? 200 : 201 });

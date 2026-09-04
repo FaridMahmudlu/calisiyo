@@ -1,10 +1,21 @@
-import { createShopierClient, moneyToMinorUnits } from '../lib/billing/shopier-core.mjs';
+import {
+  createShopierClient,
+  isShopierProductActive,
+  moneyToMinorUnits,
+} from '../lib/billing/shopier-core.mjs';
+import { producerDiscountMinor } from '../lib/billing/content-producer.mjs';
+import { planPriceMinor } from '../lib/billing/pricing-catalog.mjs';
 
 const apply = process.argv.includes('--apply');
-const expected = [
-  { planCode: 'plus_2027', productId: process.env.SHOPIER_PRODUCT_ID_2027, price: '2500.00' },
-  { planCode: 'plus_2028', productId: process.env.SHOPIER_PRODUCT_ID_2028, price: '4500.00' },
-];
+const money = (minor) => (minor / 100).toFixed(2);
+const expected = ['2027', '2028'].flatMap((year) => {
+  const planCode = `plus_${year}`;
+  const listMinor = planPriceMinor(planCode);
+  return [
+    { planCode, productId: process.env[`SHOPIER_PRODUCT_ID_${year}`], price: money(listMinor) },
+    { planCode: `${planCode}_creator`, productId: process.env[`SHOPIER_CREATOR_PRODUCT_ID_${year}`], price: money(listMinor - producerDiscountMinor(listMinor)) },
+  ];
+});
 
 function fail(message) {
   console.error(`HATA: ${message}`);
@@ -15,7 +26,9 @@ const token = String(process.env.SHOPIER_ACCESS_TOKEN || '').trim();
 if (!token) {
   fail('SHOPIER_ACCESS_TOKEN tanımlı değil.');
 } else if (expected.some((item) => !/^[A-Za-z0-9_-]{1,128}$/.test(String(item.productId || '').trim()))) {
-  fail('SHOPIER_PRODUCT_ID_2027 ve SHOPIER_PRODUCT_ID_2028 tanımlı olmalı.');
+  fail('Standart ve içerik üretici Shopier ürün kimliklerinin tamamı tanımlı olmalı.');
+} else if (new Set(expected.map((item) => String(item.productId).trim())).size !== expected.length) {
+  fail('Standart ve içerik üretici Shopier ürün kimlikleri benzersiz olmalı.');
 } else {
   const client = createShopierClient({ accessToken: token, timeoutMs: 10_000 });
   for (const item of expected) {
@@ -41,6 +54,9 @@ if (!token) {
       }
       const after = apply ? await client.getProduct(productId) : before;
       const verified = after?.priceData && typeof after.priceData === 'object' ? after.priceData : {};
+      if (!isShopierProductActive(after)) {
+        fail(`${item.planCode} ürünü Shopier'de aktif satışta değil.`);
+      }
       if (apply && (moneyToMinorUnits(verified.price) !== expectedMinor
           || String(verified.currency || '').toUpperCase() !== 'TRY'
           || moneyToMinorUnits(verified.shippingPrice) !== 0

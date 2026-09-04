@@ -132,7 +132,7 @@ test.describe('Shopier server-side billing contracts', () => {
 
   test('producer business rules keep promo payload, 20% arithmetic and reward tiers exact', async () => {
     const {
-      isExactProducerDiscount, producerRewardMinor,
+      isExactProducerDiscount, producerDiscountMinor, producerRewardMinor,
       shopierProducerDiscountPayload, validShopierProducerDiscount,
     } = await modules();
     const payload = shopierProducerDiscountPayload('emir2027');
@@ -144,9 +144,21 @@ test.describe('Shopier server-side billing contracts', () => {
     expect(isExactProducerDiscount({ listMinor: 250000, paidMinor: 200000, discountMinor: 50000 })).toBe(true);
     expect(isExactProducerDiscount({ listMinor: 450000, paidMinor: 360000, discountMinor: 90000 })).toBe(true);
     expect(isExactProducerDiscount({ listMinor: 450000, paidMinor: 359999, discountMinor: 90001 })).toBe(false);
+    expect(producerDiscountMinor(250000)).toBe(50000);
+    expect(producerDiscountMinor(450000)).toBe(90000);
+    expect(producerDiscountMinor(0)).toBeNull();
     expect([1, 2, 3, 4, 5].map(producerRewardMinor)).toEqual([100000, 100000, 100000, 50000, 50000]);
     expect(producerRewardMinor(0)).toBeNull();
     expect(() => shopierProducerDiscountPayload('x')).toThrow('invalid_producer_code');
+  });
+
+  test('Shopier product availability is explicit and fail-closed', async () => {
+    const { isShopierProductActive } = await modules();
+    expect(isShopierProductActive({ stockStatus: 'inStock' })).toBe(true);
+    expect(isShopierProductActive({ status: 'active' })).toBe(true);
+    expect(isShopierProductActive({ stockStatus: 'outOfStock' })).toBe(false);
+    expect(isShopierProductActive({ status: 'draft' })).toBe(false);
+    expect(isShopierProductActive({})).toBe(false);
   });
 
   test('both products and refund states preserve exact money semantics', async () => {

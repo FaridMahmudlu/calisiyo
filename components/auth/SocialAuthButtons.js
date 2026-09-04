@@ -4,7 +4,7 @@ import { useMemo, useState } from 'react';
 import { FcGoogle } from 'react-icons/fc';
 import { createClient } from '@/lib/supabase/client';
 
-export default function SocialAuthButtons({ intent = 'login', onError }) {
+export default function SocialAuthButtons({ intent = 'login', onError, beforeOAuth }) {
   const supabase = useMemo(() => createClient(), []);
   const [loading, setLoading] = useState(false);
 
@@ -13,6 +13,9 @@ export default function SocialAuthButtons({ intent = 'login', onError }) {
     onError?.('');
 
     try {
+      const creatorClaim = intent === 'signup' && beforeOAuth
+        ? await beforeOAuth()
+        : null;
       const callback = new URL('/auth/callback', window.location.origin);
       const requested = new URLSearchParams(window.location.search).get('next');
       callback.searchParams.set('next',
@@ -20,6 +23,7 @@ export default function SocialAuthButtons({ intent = 'login', onError }) {
           ? '/profilini-tamamla'
           : requested?.startsWith('/dashboard/abonelik') ? requested : '/dashboard'
       );
+      if (creatorClaim) callback.searchParams.set('creator_claim', creatorClaim);
 
       const { error } = await supabase.auth.signInWithOAuth({
         provider: 'google',
@@ -39,7 +43,9 @@ export default function SocialAuthButtons({ intent = 'login', onError }) {
       }
     } catch (err) {
       console.error('[Google OAuth Exception]:', err);
-      onError?.('Google yönlendirmesi sırasında bir hata oluştu.');
+      if (err?.message !== 'creator_code_invalid') {
+        onError?.('Google yönlendirmesi sırasında bir hata oluştu.');
+      }
       setLoading(false);
     }
   };

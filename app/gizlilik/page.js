@@ -26,7 +26,7 @@ export default function GizlilikPage() {
       <div className="legal-shell section-shell">
         <span className="public-kicker">Yasal Bilgilendirme</span>
         <h1>Gizlilik Politikası</h1>
-        <p className="legal-subtitle">Son Güncelleme Tarihi: 9 Ağustos 2026</p>
+        <p className="legal-subtitle">Son Güncelleme Tarihi: 3 Eylül 2026</p>
 
         <hr className="legal-divider" />
 
@@ -42,6 +42,7 @@ export default function GizlilikPage() {
             <li><strong>Kimlik ve İletişim Bilgileri:</strong> Ad soyad, e-posta adresi, şifrelenmiş kimlik doğrulama parolası.</li>
             <li><strong>Akademik ve Alan Seçim Verileri:</strong> YKS hazırlık alanı (Sayısal, Eşit Ağırlık, Sözel, Dil), hedef üniversite/bölüm bilgileri.</li>
             <li><strong>Çalışma ve İlerleme Verileri:</strong> Günlük/haftalık ders programı kayıtları, çalışma süreleri (Kronometre kayıtları), çözülen soru sayıları, deneme sınavı net ve süre sonuçları, konu tamamlama durumları ve kişisel notlar.</li>
+            <li><strong>İçerik Üretici Kodu Verisi:</strong> Yalnızca kayıt sırasında isteğe bağlı olarak girilen kod, kodun doğrulanma zamanı ve hesaba tanımlanan indirim ilişkisi. Bu ilişki sonradan değiştirilemez; içerik üreticisine adınız, e-posta adresiniz veya çalışma verileriniz gösterilmez.</li>
             <li><strong>Teknik ve Kullanım Verileri:</strong> IP adresi, cihaz türü, tarayıcı bilgisi, oturum çerezleri, sayfa görüntüleme istatistikleri ve sistem hata logları.</li>
           </ul>
 
@@ -50,6 +51,7 @@ export default function GizlilikPage() {
           <ul>
             <li>Kullanıcı hesabının oluşturulması, kimlik doğrulamasının yapılması ve güvenliğinin sağlanması.</li>
             <li>Kullanıcıya özel günlük/haftalık çalışma programı, deneme analizi ve grafiksel istatistiklerin üretilmesi.</li>
+            <li>İsteğe bağlı içerik üretici kodunun kayıt hesabıyla eşleştirilmesi, uygun indirimin uygulanması ve içerik üreticisine yalnızca toplulaştırılmış kayıt, aktivasyon, deneme ve doğrulanmış satış sayılarının sunulması.</li>
             <li>Platformun performansının artırılması, kişisel içerik gönderilmeyen teknik hata kayıtlarıyla (Sentry) sorunların tespiti ve yalnızca açık çerez izni verildiğinde PostHog ile Google Analytics üzerinden kullanıcı deneyiminin iyileştirilmesi.</li>
           </ul>
 

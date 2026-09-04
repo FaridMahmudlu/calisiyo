@@ -23,13 +23,16 @@ async function syncSelfCode({ supabase, userId, code, oldProviderDiscountId = nu
   return producer;
 }
 
-export async function GET() {
+export async function GET(request) {
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return Response.json({ ok: false, message: 'Oturum gerekli.' }, { status: 401 });
-  const [producerResult, applicationResult] = await Promise.all([
+  const requestedRange = new URL(request.url).searchParams.get('range');
+  const range = ['7d', '30d', 'all'].includes(requestedRange) ? requestedRange : '30d';
+  const [producerResult, applicationResult, growthResult] = await Promise.all([
     supabase.rpc('current_content_producer_summary'),
     supabase.rpc('current_content_producer_application'),
+    supabase.rpc('current_content_producer_growth_summary', { p_range: range }),
   ]);
   if (producerResult.error || applicationResult.error) {
     console.error('Content producer summary failed', {
@@ -38,10 +41,17 @@ export async function GET() {
     });
     return Response.json({ ok: false, message: 'Üretici bilgilerin şu anda yüklenemedi.' }, { status: 502 });
   }
+  if (growthResult.error) {
+    console.error('Creator growth summary failed', {
+      feature: 'creator_signup_attribution', stage: 'creator_growth', errorCode: growthResult.error.code || 'unknown',
+    });
+  }
   return Response.json({
     ok: true,
     producer: producerResult.data,
     application: applicationResult.data,
+    growth: growthResult.error ? null : growthResult.data,
+    growthError: growthResult.error ? 'Kod performansı şu anda yüklenemedi.' : null,
   });
 }
 
