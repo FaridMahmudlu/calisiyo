@@ -1,9 +1,9 @@
 'use client';
 
-import { useMemo, useState } from 'react';
+import { useMemo, useRef, useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { Check, Eye, EyeOff, Lock, Mail, UserRound } from 'lucide-react';
+import { BadgePercent, Check, Eye, EyeOff, Lock, Mail, UserRound } from 'lucide-react';
 import SocialAuthButtons from '@/components/auth/SocialAuthButtons';
 import BrandLogo from '@/components/brand/BrandLogo';
 import { createClient } from '@/lib/supabase/client';
@@ -14,11 +14,109 @@ export default function KayitPage() {
   const router = useRouter();
   const supabase = useMemo(() => createClient(), []);
   const [step, setStep] = useState(1);
-  const [form, setForm] = useState({ fullName: '', email: '', password: '', confirmPassword: '', alanSecimi: '', yksYear: 2027 });
+  const [form, setForm] = useState({ fullName: '', email: '', password: '', confirmPassword: '', alanSecimi: '', yksYear: 2027, creatorCode: '' });
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [confirmationSent, setConfirmationSent] = useState(false);
+  const [creatorClaim, setCreatorClaim] = useState(null);
+  const [creatorCodeState, setCreatorCodeState] = useState('idle');
+  const creatorValidationId = useRef(0);
+  const creatorValidationReason = useRef(null);
+
+  const validateCreatorCode = async () => {
+    const code = form.creatorCode.trim();
+    if (!code) {
+      creatorValidationReason.current = null;
+      setCreatorClaim(null);
+      setCreatorCodeState('idle');
+      return null;
+    }
+    if (creatorCodeState === 'valid') return true;
+    const validationId = ++creatorValidationId.current;
+    creatorValidationReason.current = null;
+    setCreatorCodeState('checking');
+    try {
+      const response = await fetch('/api/auth/content-producer-code', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ code }),
+      });
+      const result = await response.json();
+      if (validationId !== creatorValidationId.current) return null;
+      if (response.status === 429 && result.retryable) {
+        creatorValidationReason.current = 'limited';
+        setCreatorClaim(null);
+        setCreatorCodeState('limited');
+        setError(result.message || 'Kod doğrulama hizmeti kısa süreliğine yoğun. Bir dakika sonra tekrar dene.');
+        return null;
+      }
+      if (!response.ok || !result.valid) {
+        creatorValidationReason.current = 'invalid';
+        setCreatorClaim(null);
+        setCreatorCodeState('invalid');
+        return null;
+      }
+      setForm((current) => ({ ...current, creatorCode: result.code }));
+      creatorValidationReason.current = null;
+      setCreatorCodeState('valid');
+      return true;
+    } catch {
+      if (validationId !== creatorValidationId.current) return null;
+      creatorValidationReason.current = 'invalid';
+      setCreatorClaim(null);
+      setCreatorCodeState('invalid');
+      return null;
+    }
+  };
+
+  const issueCreatorClaim = async () => {
+    const code = form.creatorCode.trim();
+    if (!code) return null;
+    if (creatorClaim && creatorCodeState === 'valid') return creatorClaim;
+
+    const validationId = ++creatorValidationId.current;
+    creatorValidationReason.current = null;
+    setCreatorCodeState('checking');
+    try {
+      const response = await fetch('/api/auth/content-producer-code/issue', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ code }),
+      });
+      const result = await response.json();
+      if (validationId !== creatorValidationId.current) return null;
+      if (response.status === 429 && result.retryable) {
+        creatorValidationReason.current = 'limited';
+        setCreatorCodeState('limited');
+        setError(result.message || 'Kod doğrulama hizmeti kısa süreliğine yoğun. Bir dakika sonra tekrar dene.');
+        return null;
+      }
+      if (!response.ok || !result.valid || !result.claimToken) {
+        creatorValidationReason.current = 'invalid';
+        setCreatorCodeState('invalid');
+        return null;
+      }
+      setForm((current) => ({ ...current, creatorCode: result.code }));
+      setCreatorClaim(result.claimToken);
+      setCreatorCodeState('valid');
+      return result.claimToken;
+    } catch {
+      if (validationId !== creatorValidationId.current) return null;
+      creatorValidationReason.current = 'invalid';
+      setCreatorCodeState('invalid');
+      return null;
+    }
+  };
+
+  const creatorClaimForOAuth = async () => {
+    const claim = await issueCreatorClaim();
+    if (form.creatorCode.trim() && !claim) {
+      if (creatorValidationReason.current !== 'limited') setError('Bu kod geçerli değil veya şu anda kullanılamıyor.');
+      throw new Error('creator_code_invalid');
+    }
+    return claim;
+  };
 
   const submit = async (event) => {
     event.preventDefault();
@@ -30,14 +128,27 @@ export default function KayitPage() {
       if (passwordError) return setError(passwordError);
       if (form.password !== form.confirmPassword) return setError('Şifreler birbiriyle eşleşmiyor.');
       if (!form.consent) return setError('Devam etmek için üyelik şartlarını kabul etmelisin.');
+      const validCode = await validateCreatorCode();
+      if (form.creatorCode.trim() && !validCode) {
+        if (creatorValidationReason.current !== 'limited') setError('Bu kod geçerli değil veya şu anda kullanılamıyor.');
+        return;
+      }
       setStep(2);
       return;
     }
 
     if (!form.alanSecimi) return setError('Devam etmek için bir alan seçmelisin.');
     setLoading(true);
+    const signupClaim = await issueCreatorClaim();
+    if (form.creatorCode.trim() && !signupClaim) {
+      setLoading(false);
+      setStep(1);
+      if (creatorValidationReason.current !== 'limited') setError('Bu kod geçerli değil veya şu anda kullanılamıyor.');
+      return;
+    }
     const callback = new URL('/auth/callback', window.location.origin);
     callback.searchParams.set('next', '/dashboard');
+    if (signupClaim) callback.searchParams.set('creator_claim', signupClaim);
     const { data, error: signUpError } = await supabase.auth.signUp({
       email: form.email.trim().toLowerCase(),
       password: form.password,
@@ -63,6 +174,21 @@ export default function KayitPage() {
     if (!data.session) {
       setConfirmationSent(true);
       return;
+    }
+    if (signupClaim) {
+      try {
+        const claimResponse = await fetch('/api/auth/content-producer-code/claim', {
+          method: 'POST', headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ claimToken: signupClaim }),
+        });
+        if (!claimResponse.ok) {
+          router.replace('/auth/kod-hatasi?next=/dashboard');
+          return;
+        }
+      } catch {
+        router.replace('/auth/kod-hatasi?next=/dashboard');
+        return;
+      }
     }
     router.replace('/dashboard');
   };
@@ -104,7 +230,7 @@ export default function KayitPage() {
           <p>{step === 1 ? 'E-posta veya sosyal hesabınla ücretsiz başla.' : 'Hazırlandığın alanı seç.'}</p>
 
           {error && <div className="auth-alert" role="alert">{error}</div>}
-          {step === 1 && <><SocialAuthButtons intent="signup" onError={setError} /><div className="auth-divider"><span>veya e-posta ile</span></div></>}
+          {step === 1 && <><SocialAuthButtons intent="signup" onError={setError} beforeOAuth={creatorClaimForOAuth} /><div className="auth-divider"><span>veya e-posta ile</span></div></>}
 
           <form onSubmit={submit}>
             {step === 1 ? (
@@ -113,6 +239,7 @@ export default function KayitPage() {
                 <label>E-posta<div><Mail size={17} /><input type="email" value={form.email} onChange={(event) => setForm({ ...form, email: event.target.value })} autoComplete="email" required /></div></label>
                 <label>Şifre<div><Lock size={17} /><input type={showPassword ? 'text' : 'password'} minLength={PASSWORD_MIN_LENGTH} value={form.password} onChange={(event) => setForm({ ...form, password: event.target.value })} autoComplete="new-password" required /><button type="button" onClick={() => setShowPassword((value) => !value)} aria-label={showPassword ? 'Şifreyi gizle' : 'Şifreyi göster'}>{showPassword ? <EyeOff size={17} /> : <Eye size={17} />}</button></div><small className="auth-help">En az 10 karakter; büyük/küçük harf, rakam ve özel karakter kullan.</small></label>
                 <label>Şifreyi doğrula<div><Lock size={17} /><input type={showPassword ? 'text' : 'password'} minLength={PASSWORD_MIN_LENGTH} value={form.confirmPassword} onChange={(event) => setForm({ ...form, confirmPassword: event.target.value })} autoComplete="new-password" required /></div></label>
+                <label htmlFor="creator-code">İçerik üretici kodun var mı? <small>(İsteğe bağlı)</small><div><BadgePercent size={17} /><input id="creator-code" value={form.creatorCode} onChange={(event) => { creatorValidationId.current += 1; creatorValidationReason.current = null; setForm({ ...form, creatorCode: event.target.value.toUpperCase() }); setCreatorClaim(null); setCreatorCodeState('idle'); }} onBlur={validateCreatorCode} autoComplete="off" spellCheck={false} inputMode="text" placeholder="Örn. MELIKE20" maxLength={64} aria-describedby="creator-code-help creator-code-status" /></div><small id="creator-code-help" className="auth-help">Varsa içerik üreticisinin sana özel kodunu girebilirsin. İsteğe bağlıdır.</small>{creatorCodeState !== 'idle' && <small id="creator-code-status" className={`auth-help creator-code-status is-${creatorCodeState}`} role={creatorCodeState === 'invalid' || creatorCodeState === 'limited' ? 'alert' : 'status'}>{creatorCodeState === 'checking' ? 'Kod kontrol ediliyor…' : creatorCodeState === 'valid' ? '✓ Kod doğrulandı. %20 içerik üretici indirimin hesabına tanımlanacak.' : creatorCodeState === 'limited' ? 'Kod doğrulama hizmeti kısa süreliğine yoğun. Bir dakika sonra tekrar dene.' : 'Bu kod geçerli değil veya şu anda kullanılamıyor.'}</small>}</label>
                 <label className="auth-checkbox-label">
                   <input type="checkbox" checked={form.consent || false} onChange={(e) => setForm({ ...form, consent: e.target.checked })} required />
                   <span>

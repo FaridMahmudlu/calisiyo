@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
+import { claimContentProducerSignupAttribution } from '@/lib/auth/content-producer-signup';
 
 const ALLOWED_DESTINATIONS = new Set([
   '/dashboard',
@@ -34,6 +35,7 @@ export async function GET(request) {
   const code = url.searchParams.get('code');
   const origin = canonicalOrigin(url);
   const next = safeNextPath(url.searchParams.get('next'), origin);
+  const creatorClaim = url.searchParams.get('creator_claim');
 
   if (code) {
     const supabase = await createClient();
@@ -42,8 +44,20 @@ export async function GET(request) {
     if (!error) {
       const { data: { user } } = await supabase.auth.getUser();
       let destination = next;
+      let creatorClaimFailed = false;
 
       if (user) {
+        if (creatorClaim) {
+          try {
+            await claimContentProducerSignupAttribution(user.id, creatorClaim);
+          } catch (claimError) {
+            creatorClaimFailed = true;
+            console.error('Creator signup callback claim failed', {
+              feature: 'creator_signup_attribution', stage: 'oauth_callback',
+              errorCode: claimError?.code || 'unknown',
+            });
+          }
+        }
         const metadata = user.user_metadata || {};
         const { data: profile } = await supabase
           .from('profiles')
@@ -62,6 +76,11 @@ export async function GET(request) {
         }
 
         if (!metadata.alan_secimi) destination = '/profilini-tamamla';
+        if (creatorClaimFailed) {
+          const warningUrl = new URL('/auth/kod-hatasi', origin);
+          warningUrl.searchParams.set('next', destination);
+          return NextResponse.redirect(warningUrl);
+        }
       }
 
       return NextResponse.redirect(new URL(destination, origin));

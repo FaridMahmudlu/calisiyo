@@ -26,7 +26,7 @@ export default function KullanimSartlariPage() {
       <div className="legal-shell section-shell">
         <span className="public-kicker">Kullanım Şartları</span>
         <h1>Hizmet Kullanım Şartları</h1>
-        <p className="legal-subtitle">Son Güncelleme Tarihi: 9 Ağustos 2026</p>
+        <p className="legal-subtitle">Son Güncelleme Tarihi: 3 Eylül 2026</p>
 
         <hr className="legal-divider" />
 
@@ -54,6 +54,9 @@ export default function KullanimSartlariPage() {
           <h2>4. Hizmetin Niteliği ve Sorumluluk Sınırı</h2>
           <p>
             calisiyo, öğrencilerin YKS hazırlık süreçlerini destekleyen “calisiyo ücretsiz” ve sınav yılına göre sunulan “calisiyo plus” planlarından oluşan dijital planlama ve analiz hizmetidir. Plus 7 gün ücretsiz denenebilir; kullanıcı açıkça satın alma işlemi yapmadıkça otomatik ücret alınmaz. Platformda sunulan istatistikler ve tahminler kullanıcı tarafından girilen gerçek verilere dayanır. calisiyo, sınav başarısı veya resmi sınav sonuçları konusunda herhangi bir hukuki taahhüt veya garanti vermez.
+          </p>
+          <p>
+            Kayıt sırasında geçerli bir içerik üretici kodunu isteğe bağlı olarak kullanan yeni hesaplara, uygun calisiyo plus ürünlerinde belirtilen indirim uygulanabilir. Kod yalnızca kayıt sırasında bir kez hesaba tanımlanır; başka indirimlerle birleştirilemez ve mevcut hesaplara sonradan eklenemez.
           </p>
 
           <h2>5. Fikri Mülkiyet Hakları</h2>

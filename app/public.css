@@ -191,6 +191,11 @@
 .auth-label-row { display: flex; align-items: center; justify-content: space-between; }
 .auth-label-row a { color: #008f61; font-size: .69rem; font-weight: 700; text-decoration: none; }
 .auth-help { margin-top: -3px; color: #7a879b; font-size: .65rem; font-weight: 500; }
+.creator-code-status { line-height: 1.45; }
+.creator-code-status.is-valid { color: #087f5b; }
+.creator-code-status.is-invalid { color: #b42318; }
+.creator-code-status.is-limited { color: #9a6700; }
+.creator-code-status.is-checking { color: #52685f; }
 .auth-submit { width: 100%; margin-top: 5px; }
 .auth-switch { text-align: center; font-size: .75rem; }
 .auth-switch a { color: #00a870; font-weight: 700; }

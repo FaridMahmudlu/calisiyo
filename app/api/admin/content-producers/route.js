@@ -66,6 +66,7 @@ export async function GET(request) {
   const params = new URL(request.url).searchParams;
   const q = params.get('q')?.trim() || '';
   const ledgerUserId = params.get('ledgerUserId')?.trim() || '';
+  const range = ['7d', '30d', 'all'].includes(params.get('range')) ? params.get('range') : '30d';
   if (ledgerUserId) {
     if (!/^[0-9a-f-]{36}$/i.test(ledgerUserId)) {
       return Response.json({ ok: false, message: 'Geçerli bir üretici seçmelisin.' }, { status: 400 });
@@ -79,17 +80,28 @@ export async function GET(request) {
     { data: producers, error },
     { data: applications, error: applicationError },
     { data: users, error: userError },
+    { data: growth, error: growthError },
   ] = await Promise.all([
     session.supabase.rpc('admin_list_content_producers'),
     session.supabase.rpc('admin_list_content_producer_applications'),
     q.length >= 2 ? session.supabase.rpc('admin_list_users', { p_search: q, p_page: 1, p_page_size: 10 }) : Promise.resolve({ data: { items: [] }, error: null }),
+    session.supabase.rpc('admin_content_producer_growth_overview', { p_range: range }),
   ]);
   if (error || applicationError || userError) return Response.json({ ok: false, message: 'Üretici yönetimi yüklenemedi.' }, { status: 502 });
+  if (growthError) {
+    console.error('Admin creator growth summary failed', {
+      feature: 'creator_signup_attribution', stage: 'admin_growth', errorCode: growthError.code || 'unknown',
+    });
+  }
   return Response.json({
     ok: true,
-    producers: producers || [],
+    producers: (producers || []).map((producer) => ({
+      ...producer,
+      growth: (growth || []).find((item) => item.userId === producer.userId) || null,
+    })),
     applications: applications || [],
     users: users?.items || [],
+    growthError: growthError ? 'Üretici büyüme verileri şu anda yüklenemedi.' : null,
   });
 }
 

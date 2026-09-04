@@ -4,8 +4,8 @@
 
 ## 1. Hukuki ve mağaza bilgileri
 
-- Resmi ad-soyad veya ticari unvan
-- Vergi kimlik veya MERSİS numarası (uygulanan statüye göre)
+- Shopier hesabındaki satıcı kimliğiyle uyumlu resmi ad-soyad; şirketleşme halinde ticari unvan
+- Vergi kimlik veya MERSİS bilgisi yalnızca satıcının hukuki/vergi statüsünde zorunluysa
 - Shopier hesabında doğrulanmış mağaza/ödeme bilgileri
 - `calisiyo.destek@gmail.com`, telefon ve açık adres
 - Shopier ürün fiyatlarının sırasıyla 2.500 TRY ve 4.500 TRY olması
@@ -21,8 +21,13 @@ SHOPIER_PRODUCT_ID_2027=<API ürün kimliği>
 SHOPIER_PRODUCT_ID_2028=<API ürün kimliği>
 SHOPIER_PRODUCT_URL_2027=https://www.shopier.com/50041880
 SHOPIER_PRODUCT_URL_2028=https://www.shopier.com/50041981
+SHOPIER_CREATOR_PRODUCT_ID_2027=<2000 TRY API ürün kimliği>
+SHOPIER_CREATOR_PRODUCT_ID_2028=<3600 TRY API ürün kimliği>
+SHOPIER_CREATOR_PRODUCT_URL_2027=https://www.shopier.com/<creator-2027-public-id>
+SHOPIER_CREATOR_PRODUCT_URL_2028=https://www.shopier.com/<creator-2028-public-id>
 SHOPIER_WEBHOOK_SECRETS=<order.created ve refund.updated tokenları, virgülle ayrılmış>
 SHOPIER_PRODUCTS_VALIDATED=true
+SHOPIER_CREATOR_PRODUCTS_VALIDATED=true
 SHOPIER_PROMO_SCOPE_VERIFIED=true
 SUPABASE_SERVICE_ROLE_KEY=<server-only service role key>
 ```
@@ -33,7 +38,9 @@ Public ürün URL'sindeki sayı API ürün kimliği kabul edilmez. PAT'i yerel `
 npm run shopier:verify
 ```
 
-komutu çalıştırılmalı; yalnız başarılı sonuçtan sonra `SHOPIER_PRODUCTS_VALIDATED=true` yapılmalıdır.
+komutu çalıştırılmalı; yalnız dört ürünün kimliği, güvenli URL'si, TRY fiyatı,
+aktif satış durumu ve indirim çakışması doğrulandıktan sonra standart ve üretici
+doğrulama bayrakları `true` yapılmalıdır.
 
 ## 3. Webhooklar
 

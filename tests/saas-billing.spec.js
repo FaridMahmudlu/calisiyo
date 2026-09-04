@@ -18,7 +18,9 @@ test.describe('SaaS pricing, legal and billing safety', () => {
     const config = fs.readFileSync(path.resolve(__dirname, '..', 'lib', 'billing', 'config.js'), 'utf8');
     expect(config).not.toContain("missing.push('ticari unvan')");
     expect(config).not.toContain("missing.push('vergi veya MERSİS numarası')");
-    expect(config).toContain("missing.push(...shopierConfigurationProblems())");
+    expect(config).toContain('sharedMissing.push(...shopierCommonConfigurationProblems())');
+    expect(config).toContain('shopierStandardProductConfigurationProblems()');
+    expect(config).toContain('creatorShopierConfigurationProblems()');
   });
 
   test('public pricing is responsive, factual and consent-gated', async ({ page }) => {

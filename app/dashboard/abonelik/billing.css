@@ -27,6 +27,11 @@
 .billing-plan-card p { margin: 0; color: var(--study-muted); font-size: .67rem; line-height: 1.55; }
 .billing-plan-price { margin: 22px 0 18px; font-size: 1.4rem; }
 .billing-plan-price small { margin-left: 5px; color: var(--study-muted); font-size: .55rem; font-weight: 600; }
+.billing-creator-price { margin: 18px 0; display: grid; grid-template-columns: auto 1fr; align-items: baseline; gap: 4px 10px; }
+.billing-creator-price > span { grid-column: 1 / -1; width: fit-content; padding: 5px 8px; border-radius: 999px; background: #e3f8ef; color: #087552; font-size: .58rem; font-weight: 800; }
+.billing-creator-price del { color: var(--study-muted); font-size: .78rem; }
+.billing-creator-price strong { color: var(--study-green-dark); font-size: 1.4rem; }
+.billing-creator-price small, .billing-creator-price p { grid-column: 1 / -1; color: var(--study-muted); font-size: .58rem; }
 .billing-plan-card ul { margin: 0 0 22px; padding: 0; display: grid; gap: 9px; list-style: none; }
 .billing-plan-card li { color: #4e665d; display: flex; align-items: flex-start; gap: 8px; font-size: .66rem; line-height: 1.4; }
 .billing-plan-card li svg { width: 14px; flex: 0 0 auto; color: var(--study-green); }
@@ -62,6 +67,9 @@
 .checkout-summary strong { font-size: 1.15rem; }
 .checkout-summary small { grid-column: 1 / -1; }
 .checkout-summary p { grid-column: 1 / -1; margin: 7px 0 0; padding-top: 9px; border-top: 1px solid #d8e7e1; color: #536c62; font-size: .58rem; line-height: 1.5; }
+.checkout-price-lines { grid-column: 1 / -1; margin-top: 10px; display: grid; gap: 7px; }
+.checkout-price-lines span { display: flex; justify-content: space-between; gap: 16px; }
+.checkout-price-lines span:last-child { padding-top: 8px; border-top: 1px solid #d8e7e1; color: #173f32; font-weight: 800; }
 .checkout-disabled { margin-bottom: 15px; padding: 12px; border: 1px solid #f0d69f; border-radius: 10px; background: #fffaf0; color: #805815; display: flex; gap: 10px; }
 .checkout-disabled svg { flex: 0 0 auto; width: 18px; }
 .checkout-disabled strong { font-size: .7rem; }

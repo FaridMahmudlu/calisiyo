@@ -26,6 +26,9 @@ export default function ContentProducerPage() {
   const { profile } = useUser();
   const [producer, setProducer] = useState(null);
   const [application, setApplication] = useState(null);
+  const [growth, setGrowth] = useState(null);
+  const [growthError, setGrowthError] = useState('');
+  const [growthRange, setGrowthRange] = useState('30d');
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [changingCode, setChangingCode] = useState(false);
@@ -36,11 +39,13 @@ export default function ContentProducerPage() {
     preferredPlanCode: profile?.yks_year === 2028 ? 'plus_2028' : 'plus_2027',
   });
   const load = useCallback(async () => {
-    const response = await fetch('/api/content-producer', { cache: 'no-store' });
+    const response = await fetch(`/api/content-producer?range=${growthRange}`, { cache: 'no-store' });
     const result = await response.json().catch(() => ({}));
     if (!response.ok || !result.ok) throw new Error(result.message || 'Üretici bilgilerin yüklenemedi.');
     setProducer(result.producer);
     setApplication(result.application || { status: 'none' });
+    setGrowth(result.growth || null);
+    setGrowthError(result.growthError || '');
     if (result.application && !['none', 'withdrawn'].includes(result.application.status)) {
       setForm({
         platform: result.application.platform || 'youtube',
@@ -51,7 +56,7 @@ export default function ContentProducerPage() {
         preferredPlanCode: result.application.preferredPlanCode || 'plus_2027',
       });
     }
-  }, []);
+  }, [growthRange]);
   useEffect(() => {
     const timer = window.setTimeout(() => {
       load().catch((error) => setNotice(error.message)).finally(() => setLoading(false));
@@ -163,7 +168,7 @@ export default function ContentProducerPage() {
     {notice && <div className="producer-notice" role="status">{notice}<button onClick={() => setNotice('')}>Kapat</button></div>}
     {producer.status === 'suspended' && <div className="producer-warning"><ShieldCheck /><div><strong>Program erişimin askıda</strong><p>Üretici grant’in ve kod ilişkilendirmen durduruldu. Satın aldığın ücretli plan varsa etkilenmez.</p></div></div>}
     <section className="producer-hero">
-      <div><span><BadgeCheck /> İndirim Kodun</span><h2>{producer.code || producer.codePreview || 'Hazırlanıyor'}</h2><p>{producer.code ? 'Takipçilerin bu kodla Shopier ödeme ekranında %20 indirim kazanır.' : 'İndirim kodun hazırlanıyor. Shopier ürün kapsamı güvenli biçimde doğrulanıyor.'}</p><small><Gift /> Ücretsiz {producer.grantPlanCode === 'plus_2028' ? 'YKS 2028' : 'YKS 2027'} Plus · {date(producer.grantEndsAt)} tarihine kadar</small></div>
+      <div><span><BadgeCheck /> İndirim Kodun</span><h2>{producer.code || producer.codePreview || 'Hazırlanıyor'}</h2><p>{producer.code ? 'Takipçilerin kodunu kayıt sırasında kullanır; %20 indirim Plus satın alırken hesaplarına otomatik uygulanır.' : 'İndirim kodun hazırlanıyor. Shopier ürün kapsamı güvenli biçimde doğrulanıyor.'}</p><small><Gift /> Ücretsiz {producer.grantPlanCode === 'plus_2028' ? 'YKS 2028' : 'YKS 2027'} Plus · {date(producer.grantEndsAt)} tarihine kadar</small></div>
       <div className="producer-code-actions">
         <button onClick={copyCode} disabled={!producer.code}><Copy /> Kodu kopyala</button>
         {!producer.selfCodeChangeUsed && <button onClick={() => { setCodeDraft(''); setChangingCode(true); }}><PencilLine /> Kodunu değiştir</button>}
@@ -176,6 +181,20 @@ export default function ContentProducerPage() {
       <div><button type="button" onClick={() => setChangingCode(false)} disabled={saving}>Vazgeç</button><button type="submit" disabled={saving}>{saving ? 'Etkinleştiriliyor…' : 'Kodu bir kez değiştir'}</button></div>
     </form>}
     <section className="producer-model"><div><span>Kazanç modelin</span><h2>Basit, sabit ve denetlenebilir</h2></div><p>İlk 3 doğrulanmış satışında satış başına <strong>₺1.000</strong>, 4. satıştan itibaren satış başına <strong>₺500</strong> kazanırsın. Kazançlar, iade kontrolü için 14 gün bekledikten sonra ödenebilir olur.</p></section>
+    <section className="producer-growth" aria-labelledby="producer-growth-title">
+      <header><div><span>Kod Performansın</span><h2 id="producer-growth-title">Kayıttan doğrulanmış satışa</h2><p>İçerik üretici kodunla kayıt olan kullanıcıların toplu performansını takip et.</p></div><div className="producer-range" role="group" aria-label="Performans tarih aralığı">{[['7d', '7 gün'], ['30d', '30 gün'], ['all', 'Tümü']].map(([value, label]) => <button key={value} className={growthRange === value ? 'is-active' : ''} onClick={() => setGrowthRange(value)}>{label}</button>)}</div></header>
+      {growthError ? <div className="producer-growth-error" role="alert">{growthError}</div> : growth ? <>
+        <div className="producer-growth-metrics">
+          <article><small>Kodla kayıt</small><strong>{Number(growth.registrations || 0).toLocaleString('tr-TR')}</strong><span>Yeni hesap</span></article>
+          <article><small>Aktifleşen</small><strong>{Number(growth.activated || 0).toLocaleString('tr-TR')}</strong><span>%{growth.activationRate || 0} aktivasyon</span></article>
+          <article><small>Plus denemesi</small><strong>{Number(growth.trials || 0).toLocaleString('tr-TR')}</strong><span>%{growth.trialRate || 0} dönüşüm</span></article>
+          <article><small>Ücretliye geçen</small><strong>{Number(growth.paidConversions || 0).toLocaleString('tr-TR')}</strong><span>%{growth.paidRate || 0} dönüşüm</span></article>
+          <article><small>Doğrulanmış satış</small><strong>{Number(growth.verifiedSales || 0).toLocaleString('tr-TR')}</strong><span>Kazanç ledger’ına giren</span></article>
+        </div>
+        <div className="producer-funnel" aria-label="İçerik üretici dönüşüm hunisi">{[['Kodla kayıt', growth.registrations], ['Aktifleşen', growth.activated], ['Plus denemesi', growth.trials], ['Ücretliye geçen', growth.paidConversions]].map(([label, value]) => <div key={label}><span>{label}<b>{Number(value || 0).toLocaleString('tr-TR')}</b></span><i><em style={{ width: `${growth.registrations ? Math.max(2, Math.min(100, Number(value || 0) * 100 / growth.registrations)) : 0}%` }} /></i></div>)}</div>
+      </> : null}
+      <p className="producer-privacy"><ShieldCheck /> Öğrenci gizliliğini korumak için yalnızca toplu sayılar gösterilir. İsim, e-posta veya kişisel çalışma verileri paylaşılmaz.</p>
+    </section>
     <section className="producer-metrics">
       <article><span><CircleDollarSign /></span><small>Ödenebilir kazanç</small><strong>{money(producer.availableMinor)}</strong><p>14 günlük beklemesi biten net ledger tutarı</p></article>
       <article><span><Clock3 /></span><small>Bekleyen kazanç</small><strong>{money(producer.pendingMinor)}</strong><p>İade kontrol süresi devam eden satışlar</p></article>

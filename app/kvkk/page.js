@@ -26,7 +26,7 @@ export default function KvkkPage() {
       <div className="legal-shell section-shell">
         <span className="public-kicker">KVKK Aydınlatma Metni</span>
         <h1>6698 Sayılı KVKK Uyarınca Aydınlatma Metni</h1>
-        <p className="legal-subtitle">Son Güncelleme Tarihi: 9 Ağustos 2026</p>
+        <p className="legal-subtitle">Son Güncelleme Tarihi: 3 Eylül 2026</p>
 
         <hr className="legal-divider" />
 
@@ -44,6 +44,7 @@ export default function KvkkPage() {
             <li><strong>Kimlik Verisi:</strong> Ad ve soyadınız.</li>
             <li><strong>İletişim Verisi:</strong> E-posta adresiniz.</li>
             <li><strong>Müşteri İşlem ve Kullanım Verisi:</strong> YKS alanı seçiminiz (Sayısal, Eşit Ağırlık, Sözel, Dil), günlük ders çalışma süreleriniz, soru çözme ve deneme sınavı sonuçlarınız, kişisel çalışma hedefleriniz ve notlarınız.</li>
+            <li><strong>Kampanya ve İndirim Verisi:</strong> Kayıt sırasında isteğe bağlı olarak girdiğiniz içerik üretici kodu, doğrulama zamanı ve hesaba tanımlanan indirim ilişkisi.</li>
             <li><strong>İşlem Güvenliği Verisi:</strong> Şifrelenmiş parola, IP adresi, giriş-çıkış kayıtları, cihaz ve tarayıcı bilgisi.</li>
           </ul>
 
@@ -55,6 +56,7 @@ export default function KvkkPage() {
             <li><strong>Bir sözleşmenin kurulması veya ifasıyla doğrudan doğruya ilgili olması kaydıyla (KVKK m. 5/2-c):</strong> Üyelik hesabınızın açılması, kişisel çalışma alanınızın oluşturulması ve YKS hazırlık hizmetlerinin sunulması.</li>
             <li><strong>Veri sorumlusunun hukuki yükümlülüğünü yerine getirebilmesi için zorunlu olması (KVKK m. 5/2-ç):</strong> Sistem güvenliğinin sağlanması ve mevzuattan kaynaklanan bilgi saklama yükümlülüklerinin ifası.</li>
             <li><strong>İlgili kişinin temel hak ve özgürlüklerine zarar vermemek kaydıyla, veri sorumlusunun meşru menfaatleri için veri işlenmesinin zorunlu olması (KVKK m. 5/2-f):</strong> Platform performansının analizi, sistem hatalarının giderilmesi ve hizmet kalitesinin artırılması.</li>
+            <li><strong>Bir sözleşmenin kurulması veya ifasıyla doğrudan doğruya ilgili olması kaydıyla (KVKK m. 5/2-c):</strong> İsteğe bağlı içerik üretici kodunun hesabınıza bir kez tanımlanması ve uygun satın alımlarda indirimin uygulanması. İçerik üreticisine yalnızca toplulaştırılmış performans sayıları sunulur; kimliğiniz, iletişim bilgileriniz ve çalışma verileriniz paylaşılmaz.</li>
           </ul>
 
           <h2>4. Kişisel Verilerin Aktarıldığı Taraflar ve Aktarım Amacı</h2>

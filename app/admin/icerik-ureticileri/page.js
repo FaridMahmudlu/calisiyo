@@ -28,15 +28,20 @@ export default function ContentProducerAdminPage() {
   const [providerId, setProviderId] = useState('');
   const [scopeConfirmed, setScopeConfirmed] = useState(false);
   const [ledger, setLedger] = useState(null);
+  const [growthRange, setGrowthRange] = useState('30d');
+  const [growthError, setGrowthError] = useState('');
 
   const load = useCallback(async (search = '') => {
-    const response = await fetch(`/api/admin/content-producers${search ? `?q=${encodeURIComponent(search)}` : ''}`, { cache: 'no-store' });
+    const params = new URLSearchParams({ range: growthRange });
+    if (search) params.set('q', search);
+    const response = await fetch(`/api/admin/content-producers?${params}`, { cache: 'no-store' });
     const result = await response.json().catch(() => ({}));
     if (!response.ok || !result.ok) throw new Error(result.message || 'Program bilgileri yüklenemedi.');
     setProducers(result.producers || []);
     setApplications(result.applications || []);
     setUsers(result.users || []);
-  }, []);
+    setGrowthError(result.growthError || '');
+  }, [growthRange]);
 
   useEffect(() => {
     const timer = window.setTimeout(() => {
@@ -159,13 +164,21 @@ export default function ContentProducerAdminPage() {
     </section>
 
     <section className="admin-card producer-admin-list">
-      <header><div><span>Program hesapları</span><h2>Gerçek ledger özeti</h2></div><ShieldCheck /></header>
+      <header><div><span>Program hesapları</span><h2>Büyüme ve gerçek ledger özeti</h2></div><div className="producer-admin-range" role="group" aria-label="Büyüme tarih aralığı">{[['7d','7 gün'],['30d','30 gün'],['all','Tümü']].map(([value,label]) => <button key={value} className={growthRange === value ? 'is-active' : ''} onClick={() => setGrowthRange(value)}>{label}</button>)}</div></header>
+      {growthError && <div className="admin-notice is-error" role="alert">{growthError}</div>}
       {producers.length ? producers.map((producer) => <article key={producer.userId}>
         <div className="producer-admin-user"><span>{String(producer.name || 'Ü').charAt(0)}</span><div><strong>{producer.name}</strong><small>{producer.email}</small></div></div>
         <div><small>Kod</small><strong>{producer.code || '—'}</strong><em>{producer.promoStatus}</em></div>
         <div><small>Ücretsiz Plus</small><strong>{producer.grantPlanCode === 'plus_2028' ? 'YKS 2028' : 'YKS 2027'}</strong><em>{date(producer.grantEndsAt)} tarihine kadar</em></div>
         <div><small>Satış</small><strong>{producer.lifetimeSales || 0}</strong><em>{money(producer.availableMinor)} ödenebilir</em></div>
         <div><small>Ödenen</small><strong>{money(producer.paidMinor)}</strong><em>{money(producer.pendingMinor)} bekliyor</em></div>
+        {producer.growth && <div className="producer-admin-growth" aria-label={`${producer.name} toplu büyüme performansı`}>
+          <span><small>Kodla kayıt</small><strong>{Number(producer.growth.registrations || 0).toLocaleString('tr-TR')}</strong></span>
+          <span><small>Aktifleşen</small><strong>{Number(producer.growth.activated || 0).toLocaleString('tr-TR')}</strong><em>%{producer.growth.activationRate || 0}</em></span>
+          <span><small>Trial</small><strong>{Number(producer.growth.trials || 0).toLocaleString('tr-TR')}</strong><em>%{producer.growth.trialRate || 0}</em></span>
+          <span><small>Ücretliye geçen</small><strong>{Number(producer.growth.paidConversions || 0).toLocaleString('tr-TR')}</strong><em>%{producer.growth.paidRate || 0}</em></span>
+          <span><small>Doğrulanmış satış</small><strong>{Number(producer.growth.verifiedSales || 0).toLocaleString('tr-TR')}</strong></span>
+        </div>}
         <div className="producer-admin-actions">
           {producer.promoStatus !== 'active' && <><button onClick={() => act('sync_code', { userId: producer.userId, code: producer.code })} disabled={Boolean(busy)}><RefreshCw /> Shopier senkronunu dene</button><button onClick={() => setConfirming(producer)}><BadgeCheck /> Provider kimliğiyle doğrula</button></>}
           <button onClick={() => loadLedger(producer)} disabled={Boolean(busy)}><BookOpenText /> Ledger</button>
