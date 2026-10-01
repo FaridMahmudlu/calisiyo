@@ -4,7 +4,7 @@ Son doğrulama: 30 Ağustos 2026
 
 ## Tek canonical varlık kaynağı
 
-Üretimdeki canonical origin `NEXT_PUBLIC_SITE_URL` değeridir. Özel alan adı yokken güvenli fallback `https://calisiyo-theta.vercel.app` olur. İsim, destek adresi, logo, sosyal görsel, canonical origin ve isteğe bağlı resmî sosyal hesaplar `lib/seo/site.js` üzerinden üretilir.
+Üretimdeki canonical origin `NEXT_PUBLIC_SITE_URL` değeridir (`https://calisiyo.com.tr`). Değişken tanımlı değilse fallback da `https://calisiyo.com.tr` olur. Eski `calisiyo-theta.vercel.app` ve `www.calisiyo.com.tr` hostları `next.config.mjs` içinde `/api` dışındaki tüm yollar için 308 ile `https://calisiyo.com.tr` adresine yönlendirilir. İsim, destek adresi, logo, sosyal görsel, canonical origin ve isteğe bağlı resmî sosyal hesaplar `lib/seo/site.js` üzerinden üretilir.
 
 `NEXT_PUBLIC_OFFICIAL_SOCIAL_URLS`, yalnızca doğrulanmış HTTPS profil URL'lerinin virgülle ayrılmış listesi olmalıdır. Boşsa Organization şemasına yapay `sameAs` eklenmez.
 

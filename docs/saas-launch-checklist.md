@@ -47,7 +47,7 @@ doğrulama bayrakları `true` yapılmalıdır.
 Production endpoint:
 
 ```text
-POST https://calisiyo-theta.vercel.app/api/billing/shopier/webhook
+POST https://calisiyo.com.tr/api/billing/shopier/webhook
 ```
 
 Gerekli olaylar `order.created` ve `refund.updated` olaylarıdır. Önce mevcut kayıtları güvenli biçimde denetle:

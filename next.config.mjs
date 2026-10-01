@@ -12,6 +12,14 @@ const nextConfig = {
   turbopack: {
     root: process.cwd(),
   },
+  async redirects() {
+    return ['calisiyo-theta.vercel.app', 'www.calisiyo.com.tr'].map((host) => ({
+      source: '/:path((?!api(?:/|$)).*)',
+      has: [{ type: 'host', value: host }],
+      destination: 'https://calisiyo.com.tr/:path',
+      permanent: true,
+    }));
+  },
   async headers() {
     return [
       {
