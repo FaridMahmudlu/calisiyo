@@ -35,7 +35,7 @@ export function ToastProvider({ children }: { children: ReactNode }) {
     <ToastContext.Provider value={api}>
       {children}
       {toast ? (
-        <Animated.View key={toast.id} entering={FadeIn.duration(180)} exiting={FadeOut.duration(160)} pointerEvents="box-none" style={[styles.wrap, { bottom: insets.bottom + 96 }]}>
+        <Animated.View key={toast.id} entering={FadeIn.duration(180)} exiting={FadeOut.duration(160)} pointerEvents="box-none" style={[styles.wrap, { bottom: insets.bottom + 104 }]}>
           <Pressable accessibilityRole="alert" onPress={() => setToast(null)} style={[styles.toast, { backgroundColor: colors.inverseSurface, borderColor: colors.inverseSurface, shadowColor: colors.shadow }]}>
             <Icon size={20} color={tint} />
             <Text variant="bodyStrong" color={colors.inverseText} style={{ flex: 1 }}>{toast.message}</Text>

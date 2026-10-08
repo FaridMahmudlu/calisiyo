@@ -44,7 +44,11 @@ export function Button({
   const inactive = disabled || loading;
   const iconSize = size === 'sm' ? 16 : 19;
   const edge = palette.edge && !inactive ? EDGE[size] : 0;
-  const height = HEIGHT[size];
+  // Shape props belong to the visible face; layout props (flex, margins, width, shadow) stay on the outer edge layer.
+  const { padding, paddingHorizontal, paddingLeft, paddingRight, borderRadius, height: customHeight, ...outer } = (StyleSheet.flatten(style) || {}) as ViewStyle;
+  const height = typeof customHeight === 'number' ? customHeight : HEIGHT[size];
+  const corner = typeof borderRadius === 'number' ? borderRadius : radius.sm;
+  const facePadding = { paddingHorizontal: paddingHorizontal ?? padding ?? (size === 'sm' ? 14 : 20), paddingLeft, paddingRight };
 
   return (
     <Pressable
@@ -57,7 +61,7 @@ export function Button({
         if (haptic) Haptics.selectionAsync().catch(() => undefined);
         onPress?.();
       }}
-      style={[{ height, borderRadius: radius.sm, opacity: inactive ? 0.5 : 1 }, edge ? { backgroundColor: palette.edge! } : null, fullWidth && styles.fullWidth, style]}
+      style={[{ height, borderRadius: corner, opacity: inactive ? 0.5 : 1 }, edge ? { backgroundColor: palette.edge! } : null, fullWidth && styles.fullWidth, outer]}
     >
       {({ pressed }) => (
         <View
@@ -65,7 +69,8 @@ export function Button({
             styles.face,
             {
               height: height - edge,
-              paddingHorizontal: size === 'sm' ? 14 : 20,
+              borderRadius: corner,
+              ...facePadding,
               backgroundColor: palette.face,
               borderColor: palette.border,
               borderWidth: variant === 'secondary' ? 1.5 : 0,

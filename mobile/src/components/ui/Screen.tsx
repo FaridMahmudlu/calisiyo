@@ -31,7 +31,7 @@ export function Screen({ children, onRefresh, scroll = true, padded = true, cont
       keyboardDismissMode="interactive"
       showsVerticalScrollIndicator={false}
       refreshControl={refresh ? <RefreshControl refreshing={refreshing} onRefresh={refresh} tintColor={colors.primary} colors={[colors.primary]} /> : undefined}
-      contentContainerStyle={[padded && styles.padded, { paddingTop: (padded ? space.lg : 0) + topInset, paddingBottom: insets.bottom + 120 }, contentStyle]}
+      contentContainerStyle={[padded && styles.padded, { paddingTop: (padded ? space.lg : 0) + topInset, paddingBottom: insets.bottom + 128 }, contentStyle]}
     >
       {children}
     </ScrollView>

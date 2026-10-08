@@ -1,8 +1,10 @@
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { router } from 'expo-router';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { tabBarClearance } from '@/components/navigation/FloatingTabBar';
 import { CalendarDays, CheckCircle2, ChevronLeft, ChevronRight, Clock3, ListChecks, Plus, Trash2 } from 'lucide-react-native';
 import { useMemo, useState } from 'react';
-import { Alert, Platform, Pressable, ScrollView, StyleSheet, View } from 'react-native';
+import { Alert, Pressable, ScrollView, StyleSheet, View } from 'react-native';
 import { formatDate, formatDuration, formatTime, parseLocalDate, toLocalDateKey, todayStr } from '@shared/utils/date';
 import { TabHeader } from '@/components/TabHeader';
 import { Button, Card, DateField, EmptyState, ErrorState, IconButton, ProgressBar, Screen, Select, Sheet, SkeletonCards, Text, TextField, useToast } from '@/components/ui';
@@ -20,6 +22,7 @@ const REALTIME_TABLES = ['gunluk_gorevler', 'kaynaklarim'];
 
 export default function DailyProgramScreen() {
   const { colors } = useTheme();
+  const insets = useSafeAreaInsets();
   const toast = useToast();
   const queryClient = useQueryClient();
   const { profile } = useAccount();
@@ -123,8 +126,8 @@ export default function DailyProgramScreen() {
   const resourceById = Object.fromEntries((resources.data || []).map((resource) => [resource.id, resource]));
 
   return (
-    <Screen edges="top" onRefresh={refetch} footer={(
-      <View style={styles.fabWrap} pointerEvents="box-none">
+    <Screen edges="top" onRefresh={refetch} contentStyle={{ paddingBottom: tabBarClearance(insets.bottom) + 90 }} footer={(
+      <View style={[styles.fabWrap, { bottom: tabBarClearance(insets.bottom) + 6 }]} pointerEvents="box-none">
         <Button title="Görev ekle" icon={Plus} size="lg" onPress={openCreate} style={styles.fab} />
       </View>
     )}>
@@ -221,6 +224,6 @@ const styles = StyleSheet.create({
   todayDot: { position: 'absolute', bottom: 6, width: 5, height: 5, borderRadius: 3 },
   summary: { flexDirection: 'row' },
   row2: { flexDirection: 'row', gap: space.md },
-  fabWrap: { position: 'absolute', left: 0, right: 0, bottom: Platform.select({ ios: 96, default: 20 }), alignItems: 'center' },
-  fab: { paddingHorizontal: 28, borderRadius: radius.full, shadowColor: '#00A870', shadowOpacity: 0.3, shadowRadius: 16, shadowOffset: { width: 0, height: 8 }, elevation: 6 },
+  fabWrap: { position: 'absolute', left: 0, right: 0, alignItems: 'center' },
+  fab: { minWidth: 196, paddingHorizontal: 26, borderRadius: radius.full, shadowColor: '#00A870', shadowOpacity: 0.28, shadowRadius: 14, shadowOffset: { width: 0, height: 8 } },
 });
