@@ -2,11 +2,14 @@ import { useQuery } from '@tanstack/react-query';
 import * as Clipboard from 'expo-clipboard';
 import { router } from 'expo-router';
 import {
-  ArrowRight, Check, Clipboard as ClipboardIcon, Crown, DoorOpen, Flame, Goal, LockKeyhole, Medal, PencilLine, Plus, Search, Share2, ShieldCheck, Sparkles, UserPlus, UsersRound, X,
+  ArrowRight, Ban, Check, Clipboard as ClipboardIcon, Crown, DoorOpen, Flag, Flame, Goal, LockKeyhole, Medal, MoreHorizontal, PencilLine, Plus, Search, Share2, ShieldCheck, Sparkles, UserPlus, UsersRound, X,
 } from 'lucide-react-native';
 import { useEffect, useMemo, useState } from 'react';
 import { Share, StyleSheet, View } from 'react-native';
+import { ActionMenu } from '@/components/ActionMenu';
 import { TabHeader } from '@/components/TabHeader';
+import { useBlockActions, type ReportTarget } from '@/features/moderation/moderation';
+import { ReportSheet } from '@/features/moderation/ReportSheet';
 import { Avatar, Badge, Button, Card, EmptyState, ErrorState, IconButton, Screen, SectionHeader, Segmented, Select, Sheet, SkeletonCards, SwitchRow, Text, TextField, useToast } from '@/components/ui';
 import { supabase } from '@/lib/supabase';
 import { useAccount } from '@/providers/AccountProvider';
@@ -31,7 +34,7 @@ const friendly = (error: any, fallback: string) => error?.message?.replace(/^.*?
 
 type Person = { friendshipId: string; userId?: string; name: string; isSelf?: boolean; level?: number; rank?: number } & Partial<Record<Metric, number | null>>;
 type Group = { id: string; name: string; description?: string; memberCount: number; maxMembers: number; weeklyGoalMinutes: number; onlineCount?: number; memberRole?: string; accessType?: string; ownerName?: string; ownerUsername?: string; isMember?: boolean };
-type Hub = { profile: Record<string, any>; metrics: Record<string, number>; friends: Person[]; groups: Group[]; incomingRequests: { friendshipId: string; name: string }[] };
+type Hub = { profile: Record<string, any>; metrics: Record<string, number>; friends: Person[]; groups: Group[]; incomingRequests: { friendshipId: string; userId: string; name: string }[] };
 
 export default function SocialScreen() {
   const { colors } = useTheme();
@@ -41,6 +44,9 @@ export default function SocialScreen() {
   const [search, setSearch] = useState('');
   const [searchResult, setSearchResult] = useState<{ name: string; username: string; friendshipStatus?: string } | null>(null);
   const [busy, setBusy] = useState('');
+  const [reportTarget, setReportTarget] = useState<ReportTarget | null>(null);
+  const [personMenu, setPersonMenu] = useState<Person | null>(null);
+  const { block } = useBlockActions(toast.error);
   const [sheet, setSheet] = useState<'create' | 'join' | 'protected' | 'username' | 'privacy' | null>(null);
   const [usernameDraft, setUsernameDraft] = useState('');
   const [inviteCode, setInviteCode] = useState('');
@@ -115,6 +121,9 @@ export default function SocialScreen() {
   };
   const respond = async (id: string, response: 'accepted' | 'declined') => {
     if (await run(`${response}-${id}`, () => supabase.rpc('respond_friend_request', { p_friendship_id: id, p_response: response }), 'İstek yanıtlanamadı.')) hubQuery.refetch();
+  };
+  const blockPerson = async (person: { userId: string; name: string }) => {
+    if (await block(person)) { toast.success(`${person.name} engellendi.`); hubQuery.refetch(); }
   };
   const removeFriend = async (id: string) => {
     if (await run(`remove-${id}`, () => supabase.rpc('remove_friend', { p_friendship_id: id }), 'Arkadaş kaldırılamadı.')) hubQuery.refetch();
@@ -200,6 +209,7 @@ export default function SocialScreen() {
                   <View key={request.friendshipId} style={[styles.row, index > 0 && { borderTopWidth: 1, borderTopColor: colors.border }]}>
                     <Avatar name={request.name} size={38} />
                     <View style={{ flex: 1 }}><Text variant="bodyStrong">{request.name}</Text><Text variant="caption" color="textMuted">Çalışma arkadaşlığı isteği</Text></View>
+                    <IconButton icon={Ban} label={`${request.name} kullanıcısını engelle`} onPress={() => blockPerson({ userId: request.userId, name: request.name })} />
                     <IconButton icon={X} label="Reddet" tone="danger" onPress={() => respond(request.friendshipId, 'declined')} />
                     <IconButton icon={Check} label="Kabul et" tone="primary" onPress={() => respond(request.friendshipId, 'accepted')} />
                   </View>
@@ -248,7 +258,7 @@ export default function SocialScreen() {
                 </View>
                 {person[metric] == null ? <View style={{ flexDirection: 'row', alignItems: 'center', gap: 3 }}><LockKeyhole size={13} color={colors.textSubtle} /><Text variant="caption" color="textSubtle">Gizli</Text></View>
                   : <Text variant="captionStrong">{Number(person[metric]).toLocaleString('tr-TR')} {activeMetric.unit}</Text>}
-                {!person.isSelf ? <IconButton icon={X} label={`${person.name} arkadaşını kaldır`} size={32} onPress={() => removeFriend(person.friendshipId)} /> : null}
+                {!person.isSelf ? <IconButton icon={MoreHorizontal} label={`${person.name} için seçenekler`} size={32} onPress={() => setPersonMenu(person)} /> : null}
               </View>
             ))}
             {(hub.friends || []).length === 0 ? <Text variant="caption" color="textMuted" align="center">Karşılaştırma için ilk çalışma arkadaşını ekle.</Text> : null}
@@ -308,6 +318,13 @@ export default function SocialScreen() {
         footer={<Button title="Kaydet" loading={busy === 'username'} onPress={saveUsername} style={{ flex: 1 }} />}>
         <TextField label="Yeni kullanıcı adı" value={usernameDraft} onChangeText={(value) => setUsernameDraft(value.toLowerCase().replace(/[^a-z0-9_]/g, ''))} maxLength={24} autoCapitalize="none" hint="3–24 karakter; harf, rakam ve alt çizgi" />
       </Sheet>
+
+      <ReportSheet target={reportTarget} onClose={() => setReportTarget(null)} />
+      <ActionMenu open={!!personMenu} title={personMenu?.name} onClose={() => setPersonMenu(null)} actions={personMenu ? [
+        { label: 'Arkadaşlıktan çıkar', icon: X, onPress: () => removeFriend(personMenu.friendshipId) },
+        { label: 'Kullanıcıyı şikayet et', icon: Flag, destructive: true, onPress: () => personMenu.userId && setReportTarget({ type: 'user', id: personMenu.userId, label: personMenu.name }) },
+        { label: 'Kullanıcıyı engelle', icon: Ban, destructive: true, onPress: () => personMenu.userId && blockPerson({ userId: personMenu.userId, name: personMenu.name }) },
+      ] : []} />
 
       <Sheet open={sheet === 'privacy'} onClose={() => setSheet(null)} title="Neyi paylaşacağını sen seç" subtitle="Deneme netleri hiçbir zaman sosyal profiline eklenmez.">
         {hub ? PRIVACY.map(([key, title, description]) => (

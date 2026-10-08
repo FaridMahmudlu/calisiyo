@@ -4,8 +4,8 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import Link from 'next/link';
 import { useParams, useRouter } from 'next/navigation';
 import {
-  ArrowLeft, ArrowRightLeft, BookOpenCheck, Check, Clipboard, Clock3, Coffee,
-  Eye, EyeOff, Flame, Goal, LockKeyhole, LogOut, Palette, PauseCircle,
+  ArrowLeft, ArrowRightLeft, Ban, BookOpenCheck, Check, Clipboard, Clock3, Coffee,
+  Eye, EyeOff, Flag, Flame, Goal, LockKeyhole, LogOut, Palette, PauseCircle,
   Play, Settings2, ShieldCheck, Sparkles, TimerReset, Trophy, UserMinus, UsersRound, Volume2, VolumeX,
 } from 'lucide-react';
 import { createClient } from '@/lib/supabase/client';
@@ -18,6 +18,7 @@ import ClassroomAvatar from '@/components/classroom/ClassroomAvatar';
 import ClassroomScene, { REACTION_META } from '@/components/classroom/ClassroomScene';
 import ClassroomChat from '@/components/classroom/ClassroomChat';
 import ClassroomBoard from '@/components/classroom/ClassroomBoard';
+import ReportDialog from '@/components/moderation/ReportDialog';
 import '../classroom.css';
 
 const STATUS_META = {
@@ -85,6 +86,8 @@ export default function ClassroomPage() {
   const [board, setBoard] = useState({ text: '', strokes: [], version: 0 });
   const [boardOpen, setBoardOpen] = useState(false);
   const [boardBusy, setBoardBusy] = useState(false);
+  const [reportTarget, setReportTarget] = useState(null);
+  const [blockedUserIds, setBlockedUserIds] = useState([]);
   const presenceStartedRef = useRef(false);
   const lastPresenceMutationAtRef = useRef(0);
   const focusEditingRef = useRef(false);
@@ -99,6 +102,22 @@ export default function ClassroomPage() {
     setNotice(message);
     window.setTimeout(() => setNotice(''), 2600);
   }, []);
+
+  useEffect(() => {
+    if (!userId) return;
+    supabase.rpc('list_my_blocked_users').then(({ data: blocked }) => {
+      setBlockedUserIds((blocked || []).map((item) => item.userId));
+    });
+  }, [supabase, userId]);
+
+  const toggleBlock = async (member) => {
+    const isBlocked = blockedUserIds.includes(member.userId);
+    if (!isBlocked && !window.confirm(`${member.name} engellensin mi? Mesajları senden gizlenir ve sana arkadaşlık isteği gönderemez.`)) return;
+    const { error: blockError } = await supabase.rpc(isBlocked ? 'unblock_user' : 'block_user', { p_user_id: member.userId });
+    if (blockError) return setError(blockError.message || 'İşlem tamamlanamadı.');
+    setBlockedUserIds((current) => isBlocked ? current.filter((id) => id !== member.userId) : [...current, member.userId]);
+    showNotice(isBlocked ? `${member.name} engeli kaldırıldı.` : `${member.name} engellendi.`);
+  };
 
   const loadRoom = useCallback(async ({ quiet = false } = {}) => {
     if (!groupId || !userId) return;
@@ -649,6 +668,7 @@ export default function ClassroomPage() {
                 <button onClick={toggleScene}>{sceneVisible ? <EyeOff size={16} /> : <Eye size={16} />} {sceneVisible ? 'Görseli gizle' : 'Görseli aç'}</button>
                 {room.inviteCode && <button onClick={copyInvite}><Clipboard size={16} /> {copied ? 'Kod kopyalandı' : room.inviteCode}</button>}
                 {isOwner && <button onClick={() => setRoomSettingsOpen(true)}><Settings2 size={16} /> Sınıfı düzenle</button>}
+                {!isOwner && <button onClick={() => setReportTarget({ type: 'group', id: room.id, label: room.name })}><Flag size={16} /> Sınıfı şikayet et</button>}
                 <button className="leave-room-button" onClick={() => setLeaveOpen(true)}><LogOut size={16} /> {isOwner ? 'Sınıfı kapat' : 'Sınıftan ayrıl'}</button>
               </div>
             </header>
@@ -726,11 +746,13 @@ export default function ClassroomPage() {
                 viewerIsMuted={viewerIsMuted}
                 onError={setError}
                 onRefresh={loadMessages}
+                blockedUserIds={blockedUserIds}
+                onReportMessage={(message) => setReportTarget({ type: 'message', id: message.id, label: `${message.name}: ${String(message.body || message.attachmentName || 'Ek dosya').slice(0, 120)}` })}
               />
 
               <article className="classroom-members-panel study-panel">
                 <header><div><span><ShieldCheck size={15} /> Üyeler</span><h2>{isOwner ? 'Sınıfını güvenle yönet' : 'Sınıf arkadaşların'}</h2></div><em>{members.length}/{room.maxMembers}</em></header>
-                <div>{members.map((member) => { const memberModeration = moderationByUser.get(member.userId); const isMuted = memberModeration?.mutedUntil && Date.parse(memberModeration.mutedUntil) > clockNow; return <article key={member.userId}><ClassroomAvatar avatar={{ model: member.avatarModel }} name={member.name} size={46} facing="south_east" /><div><strong>{member.userId === userId ? 'Sen' : member.name}{member.role === 'owner' ? ' · Kurucu' : ''}</strong><small>{member.presence === 'offline' ? 'Çevrimdışı' : STATUS_META[member.presence]?.label || 'Sınıfta'}{isMuted ? ' · Susturuldu' : ''}</small></div>{isOwner && member.userId !== userId && <button onClick={() => { setModerationTarget({ ...member, isMuted }); setModerationReason(memberModeration?.muteReason || ''); setOwnershipConfirm(false); }}><ShieldCheck size={15} /> Yönet</button>}</article>; })}</div>
+                <div>{members.map((member) => { const memberModeration = moderationByUser.get(member.userId); const isMuted = memberModeration?.mutedUntil && Date.parse(memberModeration.mutedUntil) > clockNow; return <article key={member.userId}><ClassroomAvatar avatar={{ model: member.avatarModel }} name={member.name} size={46} facing="south_east" /><div><strong>{member.userId === userId ? 'Sen' : member.name}{member.role === 'owner' ? ' · Kurucu' : ''}</strong><small>{member.presence === 'offline' ? 'Çevrimdışı' : STATUS_META[member.presence]?.label || 'Sınıfta'}{isMuted ? ' · Susturuldu' : ''}</small></div>{isOwner && member.userId !== userId && <button onClick={() => { setModerationTarget({ ...member, isMuted }); setModerationReason(memberModeration?.muteReason || ''); setOwnershipConfirm(false); }}><ShieldCheck size={15} /> Yönet</button>}{member.userId !== userId && <span className="member-safety-actions"><button type="button" onClick={() => setReportTarget({ type: 'user', id: member.userId, label: member.name })} aria-label={`${member.name} kullanıcısını şikayet et`} title="Şikayet et"><Flag size={14} /></button><button type="button" onClick={() => toggleBlock(member)} aria-label={blockedUserIds.includes(member.userId) ? `${member.name} engelini kaldır` : `${member.name} kullanıcısını engelle`} title={blockedUserIds.includes(member.userId) ? 'Engeli kaldır' : 'Engelle'}><Ban size={14} /></button></span>}</article>; })}</div>
               </article>
             </section>
 
@@ -763,6 +785,8 @@ export default function ClassroomPage() {
           </>
         )}
       </DataState>
+
+      <ReportDialog supabase={supabase} target={reportTarget} onClose={() => setReportTarget(null)} onReported={() => showNotice('Şikayetin alındı. Yönetici ekibimiz inceleyecek.')} />
 
       {avatarOpen && <AvatarStudio open onClose={() => setAvatarOpen(false)} initialAvatar={{ model: me?.avatarModel }} name={me?.name || 'Sen'} onSave={saveAvatar} busy={avatarBusy} />}
 

@@ -17,6 +17,7 @@ export default function AdminLayout() {
       headerBackButtonDisplayMode: 'minimal',
     }}>
       <Stack.Screen name="index" options={{ title: 'Yönetim Merkezi' }} />
+      <Stack.Screen name="sikayetler" options={{ title: 'İçerik Şikayetleri' }} />
       <Stack.Screen name="odemeler" options={{ title: 'Ödeme İnceleme' }} />
       <Stack.Screen name="icerik-ureticileri" options={{ title: 'İçerik Üreticileri' }} />
     </Stack>

@@ -76,9 +76,10 @@
     "lint": "expo lint",
     "typecheck": "tsc --noEmit",
     "assets:brand": "node scripts/generate-brand-assets.cjs",
-    "build:android:preview": "eas build -p android --profile preview",
-    "build:android:production": "eas build -p android --profile production",
-    "submit:android": "eas submit -p android --profile production"
+    "build:android:preview": "npx --yes eas-cli@24.8.0 build -p android --profile preview",
+    "build:android:production": "npx --yes eas-cli@24.8.0 build -p android --profile production",
+    "submit:android": "npx --yes eas-cli@24.8.0 submit -p android --profile production",
+    "update:production": "npx --yes eas-cli@24.8.0 update --channel production"
   },
   "private": true,
   "overrides": {

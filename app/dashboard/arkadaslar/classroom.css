@@ -287,3 +287,8 @@
 @media(prefers-reduced-motion:reduce){.classroom-character.is-jumping,.classroom-character.is-waving .character-avatar-button{animation:none}}
 :root[data-theme='dark'] .classroom-action-dock,:root[data-theme='dark'] .classroom-board-modal,:root[data-theme='dark'] .board-canvas-toolbar,:root[data-theme='dark'] .board-text-panel{border-color:var(--study-border);background:var(--study-surface)}
 :root[data-theme='dark'] .classroom-seat{border-color:#386252;background:rgba(19,34,29,.9);color:#8bdcbd}:root[data-theme='dark'] .board-text-panel textarea{border-color:var(--study-border);background:#101815;color:var(--study-ink)}
+.classroom-members-panel > div > article { grid-template-columns: auto 1fr auto auto; }
+.member-safety-actions { display: inline-flex; gap: 4px; }
+.member-safety-actions button { width: 30px; height: 30px; border: 1px solid #e4ebe8; border-radius: 8px; background: #fff; color: #8a948f; display: inline-grid; place-items: center; cursor: pointer; }
+.member-safety-actions button:hover { color: #c5362c; border-color: #f3c7c4; }
+.classroom-message.is-blocked .message-bubble { opacity: .7; }

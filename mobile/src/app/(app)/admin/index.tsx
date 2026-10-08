@@ -1,6 +1,6 @@
 import { useQuery } from '@tanstack/react-query';
 import { router } from 'expo-router';
-import { Activity, ArrowUpRight, Ban, CheckCircle2, CircleDollarSign, Clock3, CreditCard, FileText, GraduationCap, MessageSquarePlus, Search, Send, ShieldCheck, Sparkles, Target, UserCheck, UsersRound, Volume2, VolumeX } from 'lucide-react-native';
+import { Activity, ArrowUpRight, Ban, CheckCircle2, Flag, CircleDollarSign, Clock3, CreditCard, FileText, GraduationCap, MessageSquarePlus, Search, Send, ShieldCheck, Sparkles, Target, UserCheck, UsersRound, Volume2, VolumeX } from 'lucide-react-native';
 import { useEffect, useState } from 'react';
 import { useNow } from '@/hooks/useNow';
 import { Pressable, StyleSheet, View } from 'react-native';
@@ -116,6 +116,7 @@ export default function AdminDashboardScreen() {
         <View style={{ flex: 1 }}><Text variant="subheading">Güvenli yönetici oturumu</Text><Text variant="caption" color="textMuted">{(role.data || '').replace('_', ' ')} · Tüm işlemler denetim günlüğüne yazılır.</Text></View>
       </Card>
       <View style={{ marginTop: space.md, gap: space.sm }}>
+        <ListItem icon={Flag} iconColor={colors.danger} title="İçerik şikayetleri" subtitle="Mesaj, sınıf ve kullanıcı şikayetleri" onPress={() => router.push('/admin/sikayetler')} />
         <ListItem icon={CreditCard} title="Ödeme inceleme" subtitle="Shopier siparişleri ve provider olayları" onPress={() => router.push('/admin/odemeler')} />
         <ListItem icon={CircleDollarSign} iconColor={colors.gold} title="İçerik üreticileri" subtitle="Başvurular, kodlar, ledger ve payout" onPress={() => router.push('/admin/icerik-ureticileri')} />
       </View>

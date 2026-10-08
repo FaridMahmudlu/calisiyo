@@ -5,7 +5,7 @@ import * as tus from 'tus-js-client';
 import { fixWebmDuration } from '@fix-webm-duration/fix';
 import {
   BookOpen, Check, CheckCheck, Clock3, Download, ExternalLink, File,
-  Flame, Image as ImageIcon, Mic, Paperclip, Pencil, Send, Share2,
+  Flag, Flame, Image as ImageIcon, Mic, Paperclip, Pencil, Send, Share2,
   Square, Trash2, Trophy, X,
 } from 'lucide-react';
 import Modal from '@/components/ui/Modal';
@@ -112,7 +112,7 @@ const resumableUpload = async ({ supabase, file, path, onProgress }) => {
 
 export default function ClassroomChat({
   supabase, groupId, userId, isOwner, room, messages,
-  viewerIsMuted, onError, onRefresh,
+  viewerIsMuted, onError, onRefresh, blockedUserIds = [], onReportMessage,
 }) {
   const [text, setText] = useState('');
   const [busy, setBusy] = useState(false);
@@ -471,6 +471,9 @@ export default function ClassroomChat({
         >
           {(messages || []).length === 0 ? <div className="classroom-chat-empty"><Send size={22} /><strong>İlk mesajı sen bırak</strong><span>Metin, kaynak, görsel, dosya veya ses paylaşabilirsin.</span></div> : messages.map((message) => {
             const mine = message.userId === userId;
+            if (!mine && blockedUserIds.includes(message.userId)) {
+              return <div key={message.id} role="listitem" className="classroom-message is-blocked"><div className="message-bubble"><p className="is-deleted">Engellediğin bir kullanıcının mesajı gizlendi.</p></div></div>;
+            }
             const reply = message.replyToId ? replyLookup.get(message.replyToId) : null;
             return <div key={message.id} role="listitem" data-message-id={message.id} className={`classroom-message ${mine ? 'is-me' : ''}`}>
               {!mine && <span className="message-avatar" aria-hidden="true">{String(message.name || 'Ö').charAt(0).toLocaleUpperCase('tr-TR')}</span>}
@@ -478,7 +481,7 @@ export default function ClassroomChat({
                 <header className="message-meta">
                   <strong>{mine ? 'Sen' : message.name}</strong>
                   <time dateTime={message.createdAt}>{new Intl.DateTimeFormat('tr-TR', { hour: '2-digit', minute: '2-digit' }).format(new Date(message.createdAt))}</time>
-                  {(mine || isOwner) && !message.deletedAt && <div className="message-actions">{mine && message.body && <button type="button" onClick={() => { setEditId(message.id); setEditText(message.body || ''); }} aria-label="Mesajı düzenle"><Pencil size={14} /></button>}<button type="button" onClick={() => deleteMessage(message)} aria-label="Mesajı sil"><Trash2 size={14} /></button></div>}
+                  {!message.deletedAt && (mine || isOwner || onReportMessage) && <div className="message-actions">{mine && message.body && <button type="button" onClick={() => { setEditId(message.id); setEditText(message.body || ''); }} aria-label="Mesajı düzenle"><Pencil size={14} /></button>}{(mine || isOwner) && <button type="button" onClick={() => deleteMessage(message)} aria-label="Mesajı sil"><Trash2 size={14} /></button>}{!mine && onReportMessage && <button type="button" onClick={() => onReportMessage(message)} aria-label="Mesajı şikayet et" title="Şikayet et"><Flag size={14} /></button>}</div>}
                 </header>
                 {reply && <small className="message-reply">{reply.name}: {reply.body}</small>}
                 {editId === message.id ? <div className="message-edit"><input value={editText} onChange={(event) => setEditText(event.target.value)} maxLength={1000} autoFocus aria-label="Mesaj metni" /><button type="button" onClick={() => saveEdit(message.id)} disabled={busy}>Kaydet</button><button type="button" onClick={() => setEditId('')}>Vazgeç</button></div> : <>{!message.deletedAt && renderPayload(message)}{message.body && <p className={message.deletedAt ? 'is-deleted' : ''}>{message.body}</p>}</>}

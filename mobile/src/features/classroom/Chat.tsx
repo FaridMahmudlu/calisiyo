@@ -3,7 +3,8 @@ import * as Crypto from 'expo-crypto';
 import * as DocumentPicker from 'expo-document-picker';
 import { Image } from 'expo-image';
 import * as WebBrowser from 'expo-web-browser';
-import { BookOpen, Check, CheckCheck, Clock3, Download, ExternalLink, File as FileIcon, Flame, Image as ImageIcon, Mic, Paperclip, Send, Share2, Square, Trophy, X } from 'lucide-react-native';
+import { Ban, BookOpen, Check, CheckCheck, Clock3, Download, ExternalLink, File as FileIcon, Flag, Flame, Image as ImageIcon, Mic, Paperclip, Pencil, Send, Share2, Square, Trash2, Trophy, X } from 'lucide-react-native';
+import { ActionMenu, type MenuAction } from '@/components/ActionMenu';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { ActivityIndicator, Alert, FlatList, Linking, Pressable, StyleSheet, TextInput, View } from 'react-native';
 import { ImageViewer } from '@/components/ImageViewer';
@@ -28,8 +29,9 @@ const formatBytes = (bytes?: number | null) => { const size = Number(bytes || 0)
 const safeFileName = (name: string) => String(name || 'dosya').normalize('NFKD').replace(/[^a-zA-Z0-9._-]+/g, '-').replace(/-+/g, '-').slice(-120);
 const timeLabel = (value: string) => new Intl.DateTimeFormat('tr-TR', { hour: '2-digit', minute: '2-digit' }).format(new Date(value));
 
-export function ClassroomChat({ groupId, userId, canChat, isOwner, messages, onError, onRefresh }: {
+export function ClassroomChat({ groupId, userId, canChat, isOwner, messages, onError, onRefresh, blockedUserIds, onReportMessage, onBlockUser }: {
   groupId: string; userId: string; canChat: boolean; isOwner: boolean; messages: ChatMessage[]; onError: (message: string) => void; onRefresh: () => Promise<unknown>;
+  blockedUserIds: string[]; onReportMessage: (message: ChatMessage) => void; onBlockUser: (person: { userId: string; name: string }) => void;
 }) {
   const { colors } = useTheme();
   const [text, setText] = useState('');
@@ -44,6 +46,16 @@ export function ClassroomChat({ groupId, userId, canChat, isOwner, messages, onE
   const [shareables, setShareables] = useState<{ id: string; title: string; publisher?: string; examType?: string }[]>([]);
   const [shareFields, setShareFields] = useState({ weekly: true, questions: true, streak: true, level: true });
   const [viewer, setViewer] = useState<string | null>(null);
+  const [menuMessage, setMenuMessage] = useState<ChatMessage | null>(null);
+  const menuMine = menuMessage?.userId === userId;
+  const menuActions: MenuAction[] = menuMessage ? [
+    ...(menuMine && menuMessage.body ? [{ label: 'Düzenle', icon: Pencil, onPress: () => { setEditId(menuMessage.id); setEditText(menuMessage.body || ''); } }] : []),
+    ...(menuMine || isOwner ? [{ label: 'Mesajı sil', icon: Trash2, destructive: true, onPress: () => remove(menuMessage) }] : []),
+    ...(!menuMine ? [
+      { label: 'Mesajı şikayet et', icon: Flag, destructive: true, onPress: () => onReportMessage(menuMessage) },
+      { label: `${menuMessage.name} kullanıcısını engelle`, icon: Ban, destructive: true, onPress: () => onBlockUser({ userId: menuMessage.userId, name: menuMessage.name }) },
+    ] : []),
+  ] : [];
   const recorder = useAudioRecorder(RecordingPresets.HIGH_QUALITY);
   const timer = useRef<ReturnType<typeof setInterval> | null>(null);
   const signed = useRef(new Set<string>());
@@ -238,15 +250,15 @@ export function ClassroomChat({ groupId, userId, canChat, isOwner, messages, onE
         ListEmptyComponent={<View style={{ transform: [{ scaleY: -1 }], alignItems: 'center', padding: space.xxl, gap: 6 }}><Send size={22} color={colors.primary} /><Text variant="subheading">İlk mesajı sen bırak</Text><Text variant="caption" color="textMuted" align="center">Metin, kaynak, görsel, dosya veya ses paylaşabilirsin.</Text></View>}
         renderItem={({ item: message }) => {
           const mine = message.userId === userId;
+          if (!mine && blockedUserIds.includes(message.userId)) {
+            return <View style={styles.row}><View style={[styles.bubble, { backgroundColor: colors.surfaceMuted, borderColor: colors.border }]}><Text variant="caption" color="textSubtle" style={{ fontStyle: 'italic' }}>Engellediğin bir kullanıcının mesajı gizlendi.</Text></View></View>;
+          }
           const reply = message.replyToId ? replyLookup.get(message.replyToId) : null;
           return (
             <View style={[styles.row, mine && { justifyContent: 'flex-end' }]}>
               {!mine ? <Avatar name={message.name} size={30} /> : null}
-              <Pressable onLongPress={() => (mine || isOwner) && !message.deletedAt ? Alert.alert('Mesaj', undefined, [
-                ...(mine && message.body ? [{ text: 'Düzenle', onPress: () => { setEditId(message.id); setEditText(message.body || ''); } }] : []),
-                { text: 'Sil', style: 'destructive' as const, onPress: () => remove(message) },
-                { text: 'Vazgeç', style: 'cancel' as const },
-              ]) : undefined}
+              <Pressable onLongPress={() => !message.deletedAt ? setMenuMessage(message) : undefined} delayLongPress={300}
+                accessibilityHint="Seçenekler için basılı tut"
                 style={[styles.bubble, { backgroundColor: mine ? colors.primarySoft : colors.surface, borderColor: mine ? colors.primaryBorder : colors.border }]}>
                 <View style={{ flexDirection: 'row', justifyContent: 'space-between', gap: space.sm }}>
                   <Text variant="captionStrong" color={mine ? 'primaryPressed' : 'text'}>{mine ? 'Sen' : message.name}</Text>
@@ -330,6 +342,7 @@ export function ClassroomChat({ groupId, userId, canChat, isOwner, messages, onE
       </Sheet>
 
       <ImageViewer urls={viewer ? [viewer] : []} index={viewer ? 0 : null} onClose={() => setViewer(null)} />
+      <ActionMenu open={!!menuMessage} title="Mesaj" subtitle={menuMessage?.body ? String(menuMessage.body).slice(0, 80) : undefined} actions={menuActions} onClose={() => setMenuMessage(null)} />
     </View>
   );
 }

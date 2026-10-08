@@ -1,13 +1,16 @@
 import * as Clipboard from 'expo-clipboard';
 import { router, Stack, useFocusEffect, useLocalSearchParams } from 'expo-router';
 import {
-  ArrowRightLeft, BookOpenCheck, Coffee, Copy, Flame, Goal, LogOut, Palette, PauseCircle, Play, Settings2, Share2, ShieldCheck, Sparkles, Trophy, UserMinus, UsersRound, Volume2, VolumeX,
+  ArrowRightLeft, Ban, BookOpenCheck, Coffee, Copy, Flag, Flame, Goal, LogOut, MoreHorizontal, Palette, PauseCircle, Play, Settings2, Share2, ShieldCheck, Sparkles, Trophy, UserMinus, UsersRound, Volume2, VolumeX,
 } from 'lucide-react-native';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { Alert, AppState, KeyboardAvoidingView, Platform, Pressable, RefreshControl, ScrollView, Share, StyleSheet, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Badge, Button, Card, Chip, ErrorState, IconButton, Notice, ProgressBar, Segmented, Select, Sheet, SkeletonCards, SwitchRow, Text, TextField, useToast } from '@/components/ui';
+import { ActionMenu } from '@/components/ActionMenu';
 import { ClassroomAvatar } from '@/features/classroom/Avatar';
+import { useBlockActions, useBlockedUsers, type ReportTarget } from '@/features/moderation/moderation';
+import { ReportSheet } from '@/features/moderation/ReportSheet';
 import { AvatarStudio } from '@/features/classroom/AvatarStudio';
 import { ClassroomBoard, type BoardState } from '@/features/classroom/Board';
 import { ClassroomChat, type ChatMessage } from '@/features/classroom/Chat';
@@ -74,6 +77,14 @@ export default function ClassroomScreen() {
   const editingSubject = useRef(false);
 
   const showError = useCallback((message: string) => toast.error(message), [toast]);
+  const [reportTarget, setReportTarget] = useState<ReportTarget | null>(null);
+  const [memberMenu, setMemberMenu] = useState<Member | null>(null);
+  const blocked = useBlockedUsers(userId);
+  const blockedUserIds = (blocked.data || []).map((item) => item.userId);
+  const { block, unblock } = useBlockActions(showError);
+  const blockPerson = async (person: { userId: string; name: string }) => {
+    if (await block(person)) toast.success(`${person.name} engellendi.`);
+  };
 
   const loadRoom = useCallback(() => {
     if (!groupId || !userId) return Promise.resolve();
@@ -356,7 +367,9 @@ export default function ClassroomScreen() {
       {tab === 'chat' ? (
         <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : undefined} keyboardVerticalOffset={Platform.OS === 'ios' ? 100 : 0}>
           <View style={{ flex: 1, paddingBottom: insets.bottom }}>
-            <ClassroomChat groupId={groupId!} userId={userId} canChat={canChat} isOwner={!!isOwner} messages={data?.messages || []} onError={showError} onRefresh={loadMessages} />
+            <ClassroomChat groupId={groupId!} userId={userId} canChat={canChat} isOwner={!!isOwner} messages={data?.messages || []} onError={showError} onRefresh={loadMessages}
+              blockedUserIds={blockedUserIds} onBlockUser={blockPerson}
+              onReportMessage={(message) => setReportTarget({ type: 'message', id: message.id, label: `${message.name}: ${String(message.body || message.attachmentName || 'Ek dosya').slice(0, 120)}` })} />
           </View>
         </KeyboardAvoidingView>
       ) : tab === 'room' ? (
@@ -448,10 +461,12 @@ export default function ClassroomScreen() {
                   </View>
                   <Text variant="captionStrong">{Number(member.weeklyMinutes || 0).toLocaleString('tr-TR')} dk</Text>
                   {isOwner && member.userId !== userId ? <IconButton icon={ShieldCheck} label={`${member.name} üyesini yönet`} size={34} onPress={() => { setModeration({ ...member, isMuted: muted }); setModerationReason(mod?.muteReason || ''); }} /> : null}
+                  {member.userId !== userId ? <IconButton icon={MoreHorizontal} label={`${member.name} için seçenekler`} size={34} onPress={() => setMemberMenu(member)} /> : null}
                 </View>
               );
             })}
           </Card>
+          {!isOwner ? <Button title="Sınıfı şikayet et" icon={Flag} variant="ghost" size="sm" onPress={() => setReportTarget({ type: 'group', id: room.id, label: room.name })} /> : null}
           {room.inviteCode ? (
             <Card tone="muted" style={{ flexDirection: 'row', alignItems: 'center', gap: space.md }}>
               <View style={{ flex: 1 }}><Text variant="caption" color="textMuted">Davet kodu</Text><Text variant="heading">{room.inviteCode}</Text></View>
@@ -461,6 +476,14 @@ export default function ClassroomScreen() {
           ) : null}
         </ScrollView>
       )}
+
+      <ReportSheet target={reportTarget} onClose={() => setReportTarget(null)} />
+      <ActionMenu open={!!memberMenu} title={memberMenu?.name} onClose={() => setMemberMenu(null)} actions={memberMenu ? [
+        { label: 'Kullanıcıyı şikayet et', icon: Flag, destructive: true, onPress: () => setReportTarget({ type: 'user', id: memberMenu.userId, label: memberMenu.name }) },
+        blockedUserIds.includes(memberMenu.userId)
+          ? { label: 'Engeli kaldır', icon: Ban, onPress: async () => { if (await unblock(memberMenu.userId)) toast.success(`${memberMenu.name} engeli kaldırıldı.`); } }
+          : { label: 'Kullanıcıyı engelle', icon: Ban, destructive: true, onPress: () => blockPerson(memberMenu) },
+      ] : []} />
 
       <ClassroomBoard open={boardOpen} board={board} isOwner={!!isOwner} busy={boardBusy} onClose={() => setBoardOpen(false)}
         onSaveText={async (text) => { if (await runBoard('save_classroom_board_text', { p_text: text })) toast.success('Tahta notu kaydedildi.'); }}

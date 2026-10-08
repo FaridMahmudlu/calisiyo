@@ -1,12 +1,13 @@
 import * as Application from 'expo-application';
 import { Stack } from 'expo-router';
-import { Bell, Check, Database, Download, Eye, FileText, Fingerprint, LockKeyhole, LogOut, Monitor, Moon, Save, Smartphone, Sun, Trash2, UserRound } from 'lucide-react-native';
+import { Ban, Bell, Check, Database, Download, Eye, FileText, Fingerprint, LockKeyhole, LogOut, Monitor, Moon, Save, Smartphone, Sun, Trash2, UserRound } from 'lucide-react-native';
 import { useEffect, useState } from 'react';
 import { Linking, Pressable, StyleSheet, View } from 'react-native';
 import { PASSWORD_MIN_LENGTH, passwordValidationMessage } from '@shared/utils/password';
 import { Button, Card, IconButton, ListItem, Screen, SectionHeader, Sheet, SwitchRow, Text, TextField, useToast } from '@/components/ui';
 import { AlanPicker, YearPicker } from '@/features/auth/AlanPicker';
 import { isDeviceRegisteredForPush, notificationPermission, registerDeviceForPush, unregisterDeviceForPush } from '@/features/notifications/push';
+import { useBlockActions, useBlockedUsers } from '@/features/moderation/moderation';
 import { useBiometric } from '@/features/security/BiometricGate';
 import { api } from '@/lib/api';
 import { LEGAL_LINKS, openWebPage } from '@/lib/browser';
@@ -45,6 +46,9 @@ export default function SettingsScreen() {
   const [deleteText, setDeleteText] = useState('');
   const [deleting, setDeleting] = useState(false);
   const [exporting, setExporting] = useState(false);
+  const [blockedOpen, setBlockedOpen] = useState(false);
+  const blocked = useBlockedUsers(user?.id);
+  const { unblock } = useBlockActions(toast.error);
 
   useEffect(() => { notificationPermission().then(setPermission).catch(() => undefined); }, [pushState]);
   const patch = <T extends object>(setter: (value: T) => void, value: T) => { setter(value); setDirty(true); };
@@ -174,6 +178,7 @@ export default function SettingsScreen() {
           </View>
         ) : null}
         <ListItem icon={LockKeyhole} title="Şifreyi değiştir" subtitle={`En az ${PASSWORD_MIN_LENGTH} karakter; büyük/küçük harf, rakam ve özel karakter`} onPress={() => setPasswordOpen(true)} />
+        <ListItem icon={Ban} iconColor={colors.textMuted} title="Engellenen kullanıcılar" subtitle={blocked.data?.length ? `${blocked.data.length} kişi` : 'Engellediğin kimse yok'} onPress={() => setBlockedOpen(true)} />
       </Card>
 
       {analyticsAvailable ? (
@@ -203,6 +208,18 @@ export default function SettingsScreen() {
 
       {dirty ? <Button title={saving ? 'Kaydediliyor…' : 'Değişiklikleri kaydet'} icon={Save} size="lg" loading={saving} onPress={save} style={{ marginTop: space.lg }} /> : null}
 
+      <Sheet open={blockedOpen} onClose={() => setBlockedOpen(false)} title="Engellenen kullanıcılar" subtitle="Engellediğin kişiler sana arkadaşlık isteği gönderemez ve sınıf mesajları senden gizlenir.">
+        {(blocked.data || []).length === 0 ? <Text variant="body" color="textMuted">Engellediğin bir kullanıcı yok.</Text> : (blocked.data || []).map((person) => (
+          <View key={person.userId} style={styles.blockedRow}>
+            <View style={{ flex: 1 }}>
+              <Text variant="bodyStrong">{person.name}</Text>
+              <Text variant="caption" color="textMuted">{person.username ? `@${person.username} · ` : ''}{new Date(person.blockedAt).toLocaleDateString('tr-TR')}</Text>
+            </View>
+            <Button title="Engeli kaldır" size="sm" variant="secondary" onPress={async () => { if (await unblock(person.userId)) toast.success(`${person.name} engeli kaldırıldı.`); }} />
+          </View>
+        ))}
+      </Sheet>
+
       <Sheet open={passwordOpen} onClose={() => setPasswordOpen(false)} title="Şifreyi değiştir" footer={<Button title="Şifreyi değiştir" onPress={changePassword} style={{ flex: 1 }} />}>
         <TextField label="Yeni şifre" icon={LockKeyhole} secure value={password.value} onChangeText={(value) => setPassword({ ...password, value })} autoComplete="new-password" textContentType="newPassword" />
         <TextField label="Yeni şifre tekrar" icon={LockKeyhole} secure value={password.confirm} onChangeText={(confirm) => setPassword({ ...password, confirm })} autoComplete="new-password" textContentType="newPassword" />
@@ -220,4 +237,5 @@ export default function SettingsScreen() {
 const styles = StyleSheet.create({
   themes: { flexDirection: 'row', gap: space.sm },
   theme: { flex: 1, alignItems: 'center', gap: 6, paddingVertical: space.lg, borderRadius: radius.md, borderWidth: 1.5 },
+  blockedRow: { flexDirection: 'row', alignItems: 'center', gap: space.md, paddingVertical: space.sm },
 });

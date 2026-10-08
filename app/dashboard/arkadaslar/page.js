@@ -4,7 +4,7 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import {
-  ArrowRight, BookOpenCheck, Check, Clipboard, Crown, DoorOpen, Flame, Goal,
+  ArrowRight, Ban, BookOpenCheck, Check, Clipboard, Crown, DoorOpen, Flag, Flame, Goal,
   LockKeyhole, Medal, PencilLine, Plus, Search, ShieldCheck, Sparkles, Timer, UserPlus,
   UsersRound, X,
 } from 'lucide-react';
@@ -14,6 +14,7 @@ import PageHeader from '@/components/ui/PageHeader';
 import DataState from '@/components/ui/DataState';
 import Modal from '@/components/ui/Modal';
 import Select from '@/components/ui/Select';
+import ReportDialog from '@/components/moderation/ReportDialog';
 import './social.css';
 
 const METRIC_OPTIONS = [
@@ -57,6 +58,8 @@ export default function FriendsPage() {
   const [inviteCode, setInviteCode] = useState('');
   const [protectedGroup, setProtectedGroup] = useState(null);
   const [joinPassword, setJoinPassword] = useState('');
+  const [reportTarget, setReportTarget] = useState(null);
+  const [reportNotice, setReportNotice] = useState('');
 
   const loadHub = useCallback(async ({ quiet = false, includeDirectory = true } = {}) => {
     if (!user?.id) return;
@@ -178,6 +181,15 @@ export default function FriendsPage() {
     else await loadHub({ quiet: true });
   };
 
+  const blockPerson = async (person) => {
+    if (!person?.userId || !window.confirm(`${person.name} engellensin mi? Arkadaşlığınız kaldırılır, sana istek gönderemez ve sınıf mesajları senden gizlenir.`)) return;
+    setBusy(`block-${person.userId}`);
+    const { error: blockError } = await supabase.rpc('block_user', { p_user_id: person.userId });
+    setBusy('');
+    if (blockError) return setError(friendlyError(blockError, 'Kullanıcı engellenemedi.'));
+    await loadHub({ quiet: true, includeDirectory: false });
+  };
+
   const updatePreference = async (key, value) => {
     const next = { ...hub.profile, [key]: value };
     setHub((current) => ({ ...current, profile: next }));
@@ -295,6 +307,8 @@ export default function FriendsPage() {
       />
 
       {error && <div className="social-alert" role="alert">{error}<button onClick={() => setError('')} aria-label="Uyarıyı kapat"><X size={16} /></button></div>}
+      {reportNotice && <div className="social-alert is-success" role="status">{reportNotice}<button onClick={() => setReportNotice('')} aria-label="Bilgiyi kapat"><X size={16} /></button></div>}
+      <ReportDialog supabase={supabase} target={reportTarget} onClose={() => setReportTarget(null)} onReported={() => setReportNotice('Şikayetin alındı. Yönetici ekibimiz inceleyecek.')} />
 
       <DataState loading={loading} error={!loading ? error && !hub ? error : '' : ''} empty={!hub}>
         {hub && (
@@ -330,6 +344,7 @@ export default function FriendsPage() {
                     <article key={request.friendshipId}>
                       <span className="social-avatar">{initials(request.name)}</span>
                       <div><strong>{request.name}</strong><small>Çalışma arkadaşlığı isteği gönderdi</small></div>
+                      <button className="request-decline" onClick={() => blockPerson(request)} disabled={busy === `block-${request.userId}`} title="Engelle ve isteği kaldır"><Ban size={16} /> Engelle</button>
                       <button className="request-decline" onClick={() => respond(request.friendshipId, 'declined')} disabled={busy.endsWith(request.friendshipId)}><X size={16} /> Reddet</button>
                       <button className="request-accept" onClick={() => respond(request.friendshipId, 'accepted')} disabled={busy.endsWith(request.friendshipId)}><Check size={16} /> Kabul et</button>
                     </article>
@@ -349,7 +364,7 @@ export default function FriendsPage() {
                       {person.avatarUrl ? <span className={`social-avatar has-image ${person.isSelf ? 'is-self' : ''}`} style={{ backgroundImage: `url(${person.avatarUrl})` }} aria-label={`${person.name} profil fotoğrafı`} /> : <span className={`social-avatar ${person.isSelf ? 'is-self' : ''}`}>{initials(person.name)}</span>}
                       <div><strong>{person.isSelf ? <>{person.name}<i>Sen</i></> : person.name}</strong><small>{person.level ? `Seviye ${person.level}` : person.isSelf ? 'Kişisel göstergen' : 'Paylaşım tercihi sınırlı'}</small></div>
                       <em>{person[metric] == null ? <><LockKeyhole size={15} /> Gizli</> : `${Number(person[metric]).toLocaleString('tr-TR')} ${activeMetric[2]}`}</em>
-                      {!person.isSelf && <button className="friend-remove" onClick={() => removeFriend(person.friendshipId)} disabled={busy === `remove-${person.friendshipId}`} aria-label={`${person.name} arkadaşını kaldır`}><X size={15} /></button>}
+                      {!person.isSelf && <span className="friend-row-actions"><button className="friend-remove" onClick={() => setReportTarget({ type: 'user', id: person.userId, label: person.name })} aria-label={`${person.name} kullanıcısını şikayet et`} title="Şikayet et"><Flag size={14} /></button><button className="friend-remove" onClick={() => blockPerson(person)} disabled={busy === `block-${person.userId}`} aria-label={`${person.name} kullanıcısını engelle`} title="Engelle"><Ban size={14} /></button><button className="friend-remove" onClick={() => removeFriend(person.friendshipId)} disabled={busy === `remove-${person.friendshipId}`} aria-label={`${person.name} arkadaşını kaldır`} title="Arkadaşlıktan çıkar"><X size={15} /></button></span>}
                     </article>
                   ))}
                 </div>
