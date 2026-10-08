@@ -11,7 +11,7 @@ export default function AdminLayout() {
   return (
     <Stack screenOptions={{
       header: (props) => <AppHeader {...props} />,
-headerShadowVisible: false,
+      headerShadowVisible: false,
       headerTintColor: colors.primary,
       headerTitleStyle: { fontFamily: fonts.bold, color: colors.text },
       headerStyle: { backgroundColor: colors.background },

@@ -82,7 +82,7 @@ function AppNavigator() {
       <Stack
         screenOptions={{
           header: (props) => <AppHeader {...props} />,
-headerShadowVisible: false,
+          headerShadowVisible: false,
           headerTintColor: colors.primary,
           headerTitleStyle: { fontFamily: fonts.bold, color: colors.text },
           headerLargeTitleStyle: { fontFamily: fonts.heavy, color: colors.text },
