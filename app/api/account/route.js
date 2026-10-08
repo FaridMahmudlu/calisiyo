@@ -1,4 +1,5 @@
 import { createClient } from '@/lib/supabase/server';
+import { createAdminClient } from '@/lib/supabase/admin';
 import { passwordValidationMessage } from '@/lib/utils/password';
 
 const DEFAULT_PREFERENCES = {
@@ -231,4 +232,65 @@ export async function PATCH(request) {
   }
 
   return invalid('Bu işlem desteklenmiyor.');
+}
+
+async function listStoragePaths(storage, bucket, prefix) {
+  const paths = [];
+  for (let offset = 0; ; offset += 100) {
+    const { data, error } = await storage.from(bucket).list(prefix, { limit: 100, offset });
+    if (error) throw error;
+    for (const item of data || []) {
+      const path = `${prefix}/${item.name}`;
+      if (item.id) paths.push(path);
+      else paths.push(...await listStoragePaths(storage, bucket, path));
+    }
+    if (!data || data.length < 100) return paths;
+  }
+}
+
+async function removeStoragePaths(storage, bucket, paths) {
+  for (let index = 0; index < paths.length; index += 100) {
+    const { error } = await storage.from(bucket).remove(paths.slice(index, index + 100));
+    if (error) throw error;
+  }
+}
+
+export async function DELETE(request) {
+  const supabase = await createClient();
+  const { data: { user }, error: userError } = await supabase.auth.getUser();
+  if (userError || !user) return unauthorized();
+
+  const body = await request.json().catch(() => ({}));
+  if (body.confirm !== 'HESABIMI SIL') return invalid('Hesap silme onayı eksik.');
+
+  let admin;
+  try {
+    admin = createAdminClient();
+  } catch {
+    return Response.json({ ok: false, message: 'Hesap silme şu anda kullanılamıyor.' }, { status: 503 });
+  }
+
+  try {
+    const { data: attachments, error: attachmentError } = await admin
+      .from('study_group_messages')
+      .select('attachment_path')
+      .eq('user_id', user.id)
+      .not('attachment_path', 'is', null);
+    if (attachmentError) throw attachmentError;
+    await removeStoragePaths(admin.storage, 'classroom-attachments', (attachments || []).map((row) => row.attachment_path));
+    await removeStoragePaths(admin.storage, 'study-assets', await listStoragePaths(admin.storage, 'study-assets', user.id));
+  } catch (storageError) {
+    console.error('Account storage cleanup failed', { code: storageError?.code || storageError?.name || 'unknown' });
+    return Response.json({ ok: false, message: 'Dosyaların silinemedi. Lütfen tekrar dene.' }, { status: 500 });
+  }
+
+  const { error: deleteError } = await admin.auth.admin.deleteUser(user.id);
+  if (deleteError) {
+    console.error('Account deletion failed', { code: deleteError.code || deleteError.status || 'unknown' });
+    return Response.json({
+      ok: false,
+      message: 'Hesabın silinemedi. Yönetici hesapları ve açık işlemler için calisiyo.destek@gmail.com adresine yazabilirsin.',
+    }, { status: 409 });
+  }
+  return Response.json({ ok: true });
 }

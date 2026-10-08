@@ -1,12 +1,16 @@
 'use client';
 
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { Bell, Check, Database, Download, Eye, LockKeyhole, Monitor, Moon, Save, Sun, UserRound } from 'lucide-react';
+import { useRouter } from 'next/navigation';
+import { Bell, Check, Database, Download, Eye, LockKeyhole, Monitor, Moon, Save, Sun, Trash2, UserRound } from 'lucide-react';
 import { useUser } from '../layout';
 import { createClient } from '@/lib/supabase/client';
 import { PASSWORD_MIN_LENGTH, passwordValidationMessage } from '@/lib/utils/password';
 import { ALANLAR, getExamTabs } from '@/lib/constants/alanlar';
 import PageHeader from '@/components/ui/PageHeader';
+import Modal from '@/components/ui/Modal';
+
+const DELETE_CONFIRMATION = 'HESABIMI SIL';
 
 const DATA_TABLES = ['profiles', 'gunluk_gorevler', 'kaynaklarim', 'yapamadiklari', 'tekrarlar', 'denemeler', 'deneme_detaylari', 'calisma_suresi', 'notlar', 'konu_takibi', 'notifications'];
 
@@ -96,6 +100,10 @@ export default function AyarlarPage() {
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
   const [exporting, setExporting] = useState(false);
+  const [deleteOpen, setDeleteOpen] = useState(false);
+  const [deleteText, setDeleteText] = useState('');
+  const [deleting, setDeleting] = useState(false);
+  const router = useRouter();
 
   const hydrate = useCallback(() => {
     if (!profile) return;
@@ -255,6 +263,24 @@ export default function AyarlarPage() {
     setSaved(true);
   };
 
+  const deleteAccount = async () => {
+    if (deleteText.trim() !== DELETE_CONFIRMATION) return;
+    setDeleting(true);
+    const response = await fetch('/api/account', {
+      method: 'DELETE',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ confirm: DELETE_CONFIRMATION }),
+    }).catch(() => null);
+    const result = await response?.json().catch(() => ({}));
+    if (!response?.ok || !result?.ok) {
+      setDeleting(false);
+      setDeleteOpen(false);
+      return setError(result?.message || 'Hesabın silinemedi. Lütfen tekrar dene.');
+    }
+    await supabase.auth.signOut({ scope: 'local' });
+    router.replace('/');
+  };
+
   const exportData = async (format) => {
     setExporting(true);
     const results = await Promise.all(DATA_TABLES.map(async (table) => {
@@ -307,6 +333,13 @@ export default function AyarlarPage() {
       <section className="settings-section study-panel"><div className="settings-intro"><LockKeyhole size={20} /><div><h2>Güvenlik</h2><p>En az 10 karakter; büyük/küçük harf, rakam ve özel karakter içeren bir şifre kullan.</p></div></div><form className="settings-fields password-fields" onSubmit={updatePassword}><label>Yeni şifre<input type="password" minLength={PASSWORD_MIN_LENGTH} value={password.value} onChange={(event) => setPassword({ ...password, value: event.target.value })} /></label><label>Yeni şifre tekrar<input type="password" minLength={PASSWORD_MIN_LENGTH} value={password.confirm} onChange={(event) => setPassword({ ...password, confirm: event.target.value })} /></label><button className="study-button">Şifreyi değiştir</button></form></section>
 
       <section className="settings-section study-panel"><div className="settings-intro"><Database size={20} /><div><h2>Verilerim</h2><p>Tüm çalışma kayıtlarının taşınabilir kopyasını indir.</p></div></div><div className="export-actions"><button className="study-button" onClick={() => exportData('json')} disabled={exporting}><Download size={16} /> JSON olarak indir</button><button className="study-button" onClick={() => exportData('csv')} disabled={exporting}><Download size={16} /> CSV olarak indir</button></div></section>
+
+      <section className="settings-section study-panel" id="hesabi-sil"><div className="settings-intro"><Trash2 size={20} /><div><h2>Hesabı sil</h2><p>Hesabın, çalışma kayıtların ve yüklediğin dosyalar kalıcı olarak silinir. Yasal saklama yükümlülüğü olan ödeme kayıtları kimliğinden ayrılarak saklanır.</p></div></div><div className="export-actions"><button className="study-button study-button-danger" onClick={() => { setDeleteText(''); setDeleteOpen(true); }}><Trash2 size={16} /> Hesabımı kalıcı olarak sil</button></div></section>
+
+      <Modal open={deleteOpen} title="Hesabını kalıcı olarak sil" description="Bu işlem geri alınamaz." onClose={() => !deleting && setDeleteOpen(false)} size="sm">
+        <div className="settings-fields"><label>Onaylamak için <strong>{DELETE_CONFIRMATION}</strong> yaz<input value={deleteText} onChange={(event) => setDeleteText(event.target.value.toUpperCase().replaceAll('İ', 'I'))} autoComplete="off" /></label></div>
+        <div className="export-actions" style={{ marginTop: 16 }}><button className="study-button" onClick={() => setDeleteOpen(false)} disabled={deleting}>Vazgeç</button><button className="study-button study-button-danger" onClick={deleteAccount} disabled={deleting || deleteText.trim() !== DELETE_CONFIRMATION}>{deleting ? 'Siliniyor…' : 'Hesabı sil'}</button></div>
+      </Modal>
     </div>
   );
 }
