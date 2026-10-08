@@ -62,6 +62,6 @@ export function Select({ label, value, options, onChange, placeholder = 'Seç', 
 }
 
 const styles = StyleSheet.create({
-  trigger: { minHeight: 50, paddingHorizontal: 14, borderWidth: 1.5, borderRadius: radius.sm, flexDirection: 'row', alignItems: 'center', gap: 8 },
-  option: { minHeight: 52, paddingHorizontal: 14, paddingVertical: 10, borderRadius: radius.sm, flexDirection: 'row', alignItems: 'center', gap: 10 },
+  trigger: { minHeight: 52, paddingHorizontal: 14, borderWidth: 1.5, borderRadius: radius.sm, flexDirection: 'row', alignItems: 'center', gap: 8 },
+  option: { minHeight: 54, paddingHorizontal: 14, paddingVertical: 10, borderRadius: radius.sm, flexDirection: 'row', alignItems: 'center', gap: 10 },
 });

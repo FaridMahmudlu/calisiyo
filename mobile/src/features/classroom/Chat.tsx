@@ -300,7 +300,7 @@ export function ClassroomChat({ groupId, userId, canChat, isOwner, messages, onE
             <Text variant="captionStrong" numberOfLines={1}>{attachment.name}</Text>
             {attachment.kind === 'audio' ? <VoicePlayer uri={attachment.uri} /> : <Text variant="caption" color="textMuted">{busy ? 'Yükleniyor…' : formatBytes(attachment.size)}</Text>}
           </View>
-          <Pressable accessibilityLabel="Eki kaldır" disabled={busy} onPress={() => setAttachment(null)} hitSlop={8}><X size={18} color={colors.textMuted} /></Pressable>
+          <Pressable accessibilityLabel="Eki kaldır" disabled={busy} onPress={() => setAttachment(null)} style={{ minWidth: 44, minHeight: 44, alignItems: 'center', justifyContent: 'center' }}><X size={18} color={colors.textMuted} /></Pressable>
         </View>
       ) : null}
 
@@ -369,7 +369,7 @@ const styles = StyleSheet.create({
   status: { flexDirection: 'row', alignItems: 'center', gap: space.md, marginHorizontal: space.md, marginBottom: space.sm, padding: space.md, borderRadius: radius.md },
   recDot: { width: 10, height: 10, borderRadius: 5 },
   composer: { borderTopWidth: 1, padding: space.sm, gap: space.xs },
-  tool: { width: 40, height: 36, borderRadius: radius.xs, alignItems: 'center', justifyContent: 'center' },
+  tool: { width: 44, height: 44, borderRadius: radius.sm, alignItems: 'center', justifyContent: 'center' },
   input: { flex: 1, minHeight: 44, maxHeight: 120, borderRadius: 22, paddingHorizontal: space.lg, paddingTop: 12, paddingBottom: 12, fontFamily: fonts.regular, fontSize: 15 },
   send: { width: 44, height: 44, borderRadius: 22, alignItems: 'center', justifyContent: 'center' },
 });

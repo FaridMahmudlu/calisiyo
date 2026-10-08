@@ -16,13 +16,13 @@ export function Card({ children, style, onPress, padded = true, tone = 'default'
   const border = tone === 'primary' ? colors.primaryBorder : colors.border;
   const base = [
     styles.card,
-    { backgroundColor: background, borderColor: border, shadowColor: colors.shadow, shadowOpacity: scheme === 'dark' ? 0 : 0.05 },
+    { backgroundColor: background, borderColor: border, borderBottomColor: tone === 'muted' ? border : tone === 'primary' ? colors.primaryBorder : colors.borderStrong, shadowColor: colors.shadow, shadowOpacity: scheme === 'dark' ? 0 : 0.045 },
     padded && styles.padded,
     style,
   ];
   if (!onPress) return <View style={base}>{children}</View>;
   return (
-    <Pressable accessibilityRole="button" onPress={onPress} style={({ pressed }) => [base, pressed && { opacity: 0.85, transform: [{ scale: 0.99 }] }]}>
+    <Pressable accessibilityRole="button" onPress={onPress} style={({ pressed }) => [base, pressed && { transform: [{ translateY: 1.5 }], borderBottomWidth: 1.5, backgroundColor: tone === 'default' ? colors.surfaceMuted : background }]}>
       {children}
     </Pressable>
   );
@@ -36,7 +36,7 @@ export function SectionHeader({ title, action, onAction, subtitle }: { title: st
         {subtitle ? <Text variant="caption" color="textMuted">{subtitle}</Text> : null}
       </View>
       {action ? (
-        <Pressable accessibilityRole="button" onPress={onAction} hitSlop={8}>
+        <Pressable accessibilityRole="button" onPress={onAction} hitSlop={12} style={({ pressed }) => ({ opacity: pressed ? 0.6 : 1, paddingVertical: 4 })}>
           <Text variant="captionStrong" color="primary">{action}</Text>
         </Pressable>
       ) : null}
@@ -46,10 +46,11 @@ export function SectionHeader({ title, action, onAction, subtitle }: { title: st
 
 const styles = StyleSheet.create({
   card: {
-    borderRadius: radius.md,
-    borderWidth: StyleSheet.hairlineWidth * 2,
-    shadowOffset: { width: 0, height: 4 },
-    shadowRadius: 14,
+    borderRadius: radius.lg,
+    borderWidth: 1,
+    borderBottomWidth: 3,
+    shadowOffset: { width: 0, height: 6 },
+    shadowRadius: 16,
     elevation: 0,
   },
   padded: { padding: space.lg },

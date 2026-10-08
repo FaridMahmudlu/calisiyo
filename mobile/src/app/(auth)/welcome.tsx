@@ -3,7 +3,6 @@ import { Link, router } from 'expo-router';
 import { BookOpenCheck, CalendarCheck, LineChart, Timer, UsersRound, type LucideIcon } from 'lucide-react-native';
 import { useCallback, useRef, useState } from 'react';
 import { FlatList, Pressable, StyleSheet, useWindowDimensions, View, type ViewToken } from 'react-native';
-import Animated, { FadeInDown } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { BrandLogo } from '@/components/brand/BrandMark';
 import { Button, Text } from '@/components/ui';
@@ -72,7 +71,7 @@ export default function WelcomeScreen() {
           const Icon = item.icon;
           return (
             <View style={[styles.slide, { width }]}>
-              <Animated.View entering={FadeInDown.duration(500)} style={[styles.hero, { backgroundColor: colors.surface, borderColor: colors.primaryBorder }]}>
+              <View style={[styles.hero, { backgroundColor: colors.surface, borderColor: colors.primaryBorder }]}>
                 <View style={[styles.heroIcon, { backgroundColor: colors.primary }]}><Icon size={34} color="#FFFFFF" strokeWidth={2.2} /></View>
                 {item.points.map((point) => (
                   <View key={point} style={styles.point}>
@@ -80,7 +79,7 @@ export default function WelcomeScreen() {
                     <Text variant="bodyStrong" style={{ flex: 1 }}>{point}</Text>
                   </View>
                 ))}
-              </Animated.View>
+              </View>
               <Text variant="label" color="primary" style={{ marginTop: space.xxl }}>{item.kicker}</Text>
               <Text variant="display" style={{ marginTop: space.sm }}>{item.title}</Text>
               <Text variant="body" color="textMuted" style={{ marginTop: space.md }}>{item.body}</Text>

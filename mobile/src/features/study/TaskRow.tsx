@@ -46,18 +46,21 @@ export function TaskRow({ task, onToggle, onPress, showDate, resourceName }: {
     <Pressable
       onPress={onPress}
       accessibilityRole={onPress ? 'button' : undefined}
-      style={({ pressed }) => [styles.row, { backgroundColor: pressed && onPress ? colors.surfaceMuted : colors.surface, borderColor: colors.border, opacity: task.tamamlandi ? 0.78 : 1 }]}
+      style={({ pressed }) => [styles.row, { backgroundColor: pressed && onPress ? colors.surfaceMuted : colors.surface, borderColor: colors.border, borderBottomColor: colors.borderStrong, opacity: task.tamamlandi ? 0.78 : 1 }]}
     >
       <View style={[styles.accent, { backgroundColor: accent }]} />
       <Pressable
         accessibilityRole="checkbox"
         accessibilityState={{ checked: task.tamamlandi }}
         accessibilityLabel={task.tamamlandi ? 'Görevi tekrar aç' : 'Görevi tamamla'}
-        hitSlop={10}
         onPress={() => { Haptics.impactAsync(task.tamamlandi ? Haptics.ImpactFeedbackStyle.Light : Haptics.ImpactFeedbackStyle.Medium).catch(() => undefined); onToggle(); }}
-        style={[styles.check, { borderColor: task.tamamlandi ? colors.primary : colors.borderStrong, backgroundColor: task.tamamlandi ? colors.primary : 'transparent' }]}
+        style={styles.checkTouch}
       >
-        {task.tamamlandi ? <Check size={15} color="#FFFFFF" strokeWidth={3} /> : null}
+        {({ pressed }) => (
+          <View style={[styles.check, { borderColor: task.tamamlandi ? colors.primary : colors.borderStrong, backgroundColor: task.tamamlandi ? colors.primary : pressed ? colors.primarySoft : 'transparent', transform: [{ scale: pressed ? 0.9 : 1 }] }]}>
+            {task.tamamlandi ? <Check size={16} color="#FFFFFF" strokeWidth={3} /> : null}
+          </View>
+        )}
       </Pressable>
       <View style={{ flex: 1, gap: 2 }}>
         <Text variant="captionStrong" color={accent} numberOfLines={1}>{[task.dersler?.ikon, task.dersler?.ad || 'Genel çalışma'].filter(Boolean).join(' ')}</Text>
@@ -77,8 +80,9 @@ export function TaskRow({ task, onToggle, onPress, showDate, resourceName }: {
 }
 
 const styles = StyleSheet.create({
-  row: { flexDirection: 'row', alignItems: 'center', gap: space.md, padding: space.md, paddingLeft: space.lg, borderRadius: radius.md, borderWidth: StyleSheet.hairlineWidth * 2, overflow: 'hidden' },
+  row: { flexDirection: 'row', alignItems: 'center', gap: space.sm, padding: space.md, paddingLeft: space.md, borderRadius: radius.md, borderWidth: 1, borderBottomWidth: 2.5, overflow: 'hidden' },
   accent: { position: 'absolute', left: 0, top: 0, bottom: 0, width: 4 },
-  check: { width: 28, height: 28, borderRadius: 14, borderWidth: 2, alignItems: 'center', justifyContent: 'center' },
+  checkTouch: { width: 44, height: 44, alignItems: 'center', justifyContent: 'center' },
+  check: { width: 30, height: 30, borderRadius: 15, borderWidth: 2.5, alignItems: 'center', justifyContent: 'center' },
   meta: { flexDirection: 'row', alignItems: 'center', gap: 4, marginTop: 2 },
 });

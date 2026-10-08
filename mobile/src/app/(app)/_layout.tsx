@@ -1,4 +1,5 @@
 import { Stack } from 'expo-router';
+import { AppHeader } from '@/components/AppHeader';
 import { LifeBuoy, LogOut, RefreshCw, ShieldAlert } from 'lucide-react-native';
 import { useEffect } from 'react';
 import { ActivityIndicator, Alert, StyleSheet, View } from 'react-native';
@@ -80,7 +81,8 @@ function AppNavigator() {
     <BiometricGate active={!needsProfile}>
       <Stack
         screenOptions={{
-          headerShadowVisible: false,
+          header: (props) => <AppHeader {...props} />,
+headerShadowVisible: false,
           headerTintColor: colors.primary,
           headerTitleStyle: { fontFamily: fonts.bold, color: colors.text },
           headerLargeTitleStyle: { fontFamily: fonts.heavy, color: colors.text },

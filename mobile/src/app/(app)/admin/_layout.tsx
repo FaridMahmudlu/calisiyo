@@ -1,4 +1,5 @@
 import { Redirect, Stack } from 'expo-router';
+import { AppHeader } from '@/components/AppHeader';
 import { useAccount } from '@/providers/AccountProvider';
 import { useTheme } from '@/theme/ThemeProvider';
 import { fonts } from '@/theme/tokens';
@@ -9,7 +10,8 @@ export default function AdminLayout() {
   if (!adminRole) return <Redirect href="/" />;
   return (
     <Stack screenOptions={{
-      headerShadowVisible: false,
+      header: (props) => <AppHeader {...props} />,
+headerShadowVisible: false,
       headerTintColor: colors.primary,
       headerTitleStyle: { fontFamily: fonts.bold, color: colors.text },
       headerStyle: { backgroundColor: colors.background },

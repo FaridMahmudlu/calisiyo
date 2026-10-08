@@ -10,7 +10,8 @@ self.addEventListener('push', (event) => {
   const payload = event.data ? event.data.json() : {};
   event.waitUntil(self.registration.showNotification(payload.title || 'calisiyo', {
     body: payload.body || 'Yeni bir bildirimin var.',
-    icon: '/brand/calisiyo-logo.svg',
+    icon: '/brand/calisiyo-mark-192.png',
+    badge: '/brand/favicon-48x48.png',
     tag: payload.tag || 'calisiyo-notification',
     data: { url: payload.url || '/dashboard' },
   }));

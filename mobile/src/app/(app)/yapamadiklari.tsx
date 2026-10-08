@@ -177,7 +177,7 @@ export default function WrongQuestionsScreen() {
                 <Text variant="bodyStrong" numberOfLines={1}>{question.konu || 'Konu belirtilmedi'}</Text>
                 <Text variant="caption" color="textMuted" numberOfLines={1}>{[question.kaynak, `S. ${question.sayfa || '—'} · Soru ${question.soru_no || '—'}`, formatDate(question.created_at)].filter(Boolean).join(' · ')}</Text>
               </View>
-              <Pressable accessibilityRole="checkbox" accessibilityState={{ checked: question.cozuldu }} accessibilityLabel={question.cozuldu ? 'Çözülmedi olarak işaretle' : 'Çözüldü olarak işaretle'} onPress={() => toggleSolved(question)} hitSlop={8}>
+              <Pressable accessibilityRole="checkbox" accessibilityState={{ checked: question.cozuldu }} accessibilityLabel={question.cozuldu ? 'Çözülmedi olarak işaretle' : 'Çözüldü olarak işaretle'} onPress={() => toggleSolved(question)} style={({ pressed }) => [{ minWidth: 44, minHeight: 44, alignItems: 'center', justifyContent: 'center' }, { opacity: pressed ? 0.6 : 1 }]}>
                 {question.cozuldu ? <Badge label="Çözüldü" /> : <Badge label="Bekliyor" tone="warning" />}
               </Pressable>
             </Pressable>

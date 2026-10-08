@@ -177,7 +177,7 @@ export default function ResourcesScreen() {
       <Card tone="muted" onPress={openYoutube} style={[styles.ytBanner, { marginTop: space.md }]}>
         <CirclePlay size={22} color="#E62117" />
         <View style={{ flex: 1 }}><Text variant="subheading">YouTube’dan çalışma planı</Text><Text variant="caption" color="textMuted">Video veya oynatma listesini günlere böl.</Text></View>
-        <Pressable accessibilityRole="button" accessibilityLabel="Paket limitleri" onPress={() => setPremiumOpen(true)} hitSlop={8}><Crown size={18} color={colors.gold} /></Pressable>
+        <Pressable accessibilityRole="button" accessibilityLabel="Paket limitleri" onPress={() => setPremiumOpen(true)} style={{ minWidth: 44, minHeight: 44, alignItems: 'center', justifyContent: 'center' }}><Crown size={18} color={colors.gold} /></Pressable>
       </Card>
 
       <View style={{ gap: space.sm, marginTop: space.md }}>

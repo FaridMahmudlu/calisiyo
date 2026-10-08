@@ -5,7 +5,6 @@ import { router } from 'expo-router';
 import { BarChart2, BookOpen, Calendar, CheckCircle2, ChevronRight, Clock, Flame, Plus, Quote, Target, Timer, TrendingUp, Trophy } from 'lucide-react-native';
 import { useMemo } from 'react';
 import { Pressable, StyleSheet, View } from 'react-native';
-import Animated, { FadeInDown } from 'react-native-reanimated';
 import { daysUntilYKS, formatDate, formatDuration, formatShortDate, parseLocalDate, toLocalDateKey, todayStr, yksDateLabel } from '@shared/utils/date';
 import { AreaChart, Heatmap, HorizontalBars } from '@/components/charts';
 import { TabHeader } from '@/components/TabHeader';
@@ -17,7 +16,7 @@ import { createStudyImageUrls } from '@/lib/storage';
 import { supabase } from '@/lib/supabase';
 import { useAccount } from '@/providers/AccountProvider';
 import { useTheme } from '@/theme/ThemeProvider';
-import { radius, space } from '@/theme/tokens';
+import { brand, radius, space } from '@/theme/tokens';
 
 const MOTIVATION_QUOTES = [
   'Bugün attığın küçük adımlar, yarınki büyük başarılarının temeli olacak.',
@@ -84,6 +83,7 @@ export default function DashboardScreen() {
   const questionPct = plannedQuestions ? Math.round((solvedQuestions / plannedQuestions) * 100) : 0;
   const todayMinutes = Number(data?.time.daily?.find((item) => item.date === today)?.studyMinutes || 0);
   const timePct = Math.min(100, Math.round((todayMinutes / 300) * 100));
+  const dayPct = todayTasks.length ? Math.round((taskPct + timePct) / 2) : timePct;
   const daysLeft = daysUntilYKS();
   const quote = MOTIVATION_QUOTES[dayOfYear(today) % MOTIVATION_QUOTES.length];
 
@@ -168,22 +168,33 @@ export default function DashboardScreen() {
       ) : null}
 
       {dashboard.isLoading ? <SkeletonCards count={4} /> : (
-        <Animated.View entering={FadeInDown.duration(350)} style={{ gap: space.md }}>
+        <View style={{ gap: space.md }}>
+          <Pressable accessibilityRole="button" accessibilityLabel="Bugünkü ilerleme · odak oturumu" onPress={() => router.push('/kronometre')} style={({ pressed }) => [styles.heroWrap, { backgroundColor: colors.primaryEdge, transform: [{ translateY: pressed ? 2 : 0 }] }]}>
+            <LinearGradient colors={[colors.heroStart, colors.heroEnd]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={styles.hero}>
+              <View style={{ flex: 1, gap: 6 }}>
+                <Text variant="label" color="#D9FBEA">Bugünkü ilerleme</Text>
+                <Text variant="display" color="#FFFFFF">%{dayPct}</Text>
+                <Text variant="caption" color="#E7FFF3">{completed.length}/{todayTasks.length} görev · {formatDuration(todayMinutes)} çalışma</Text>
+                <View style={[styles.heroCta, { backgroundColor: '#FFFFFF' }]}>
+                  <Timer size={16} color={colors.primaryPressed} />
+                  <Text variant="captionStrong" color={colors.primaryPressed}>{stats.activePomodoroMinutes ? `Oturum sürüyor · ${stats.activePomodoroMinutes} dk` : 'Odak oturumu başlat'}</Text>
+                </View>
+                <Text variant="caption" color="#D9FBEA">{stats.streakQualified ? 'Bugünkü seri hedefin tamamlandı! 🔥' : `Seri için bugün ${Math.max(0, 30 - stats.todayMinutes)} dakika daha odaklan.`}</Text>
+              </View>
+              <ProgressRing value={dayPct} size={104} stroke={11} color={brand.amber} track="rgba(255,255,255,0.22)">
+                <Flame size={18} color={brand.amber} fill={stats.streakQualified ? brand.amber : 'transparent'} />
+                <Text variant="number" color="#FFFFFF">{stats.streak}</Text>
+                <Text variant="caption" color="#D9FBEA">gün seri</Text>
+              </ProgressRing>
+            </LinearGradient>
+          </Pressable>
+
           <View style={styles.grid}>
             <MiniStat icon={Calendar} tint={colors.primary} title="YKS’ye kalan" value={daysLeft == null ? '—' : String(daysLeft)} hint={daysLeft == null ? 'Tahmini tarih geçti' : `gün · Tahmini ${yksDateLabel()}`} />
             <MiniStat icon={Target} tint="#F43F5E" title="Bugünkü hedef" value={`${completed.length}/${todayTasks.length}`} hint="görev tamamlandı" progress={taskPct} />
             <MiniStat icon={BookOpen} tint="#3B82F6" title="Bugünkü soru" value={`${solvedQuestions}/${plannedQuestions}`} hint="soru çözüldü" progress={questionPct} />
             <MiniStat icon={Clock} tint="#F59E0B" title="Bugünkü süre" value={formatDuration(todayMinutes)} hint="Hedef: 5 saat" progress={timePct} />
           </View>
-
-          <Card tone="primary" onPress={() => router.push('/kronometre')} style={styles.focusCard}>
-            <View style={[styles.focusIcon, { backgroundColor: colors.primary }]}><Timer size={22} color="#FFFFFF" /></View>
-            <View style={{ flex: 1 }}>
-              <Text variant="subheading">{stats.activePomodoroMinutes ? `Odak oturumu sürüyor · ${stats.activePomodoroMinutes} dk` : 'Odak oturumu başlat'}</Text>
-              <Text variant="caption" color="textMuted">{stats.streakQualified ? 'Bugünkü seri hedefin tamamlandı! 🔥' : `Seri için bugün ${Math.max(0, 30 - stats.todayMinutes)} dakika daha odaklan.`}</Text>
-            </View>
-            <ChevronRight size={18} color={colors.primary} />
-          </Card>
 
           <SectionHeader title="Bugünkü Program" action="Tümünü gör" onAction={() => router.push('/program')} />
           <Card>
@@ -252,7 +263,7 @@ export default function DashboardScreen() {
           </Card>
 
           {todayTasks.length === 0 ? <Button title="Bugün için görev ekle" icon={Plus} variant="soft" onPress={() => router.push('/program')} style={{ marginTop: space.md }} /> : null}
-        </Animated.View>
+        </View>
       )}
     </Screen>
   );
@@ -261,10 +272,10 @@ export default function DashboardScreen() {
 function MiniStat({ icon: Icon, tint, title, value, hint, progress }: { icon: typeof Calendar; tint: string; title: string; value: string; hint: string; progress?: number }) {
   const { colors } = useTheme();
   return (
-    <View style={[styles.mini, { backgroundColor: colors.surface, borderColor: colors.border }]}>
+    <View style={[styles.mini, { backgroundColor: colors.surface, borderColor: colors.border, borderBottomColor: colors.borderStrong }]}>
       <View style={styles.between}>
         <Text variant="captionStrong" color="textMuted" numberOfLines={1} style={{ flex: 1 }}>{title}</Text>
-        <View style={[styles.miniIcon, { backgroundColor: `${tint}1A` }]}><Icon size={15} color={tint} /></View>
+        <View style={[styles.miniIcon, { backgroundColor: tint }]}><Icon size={15} color="#FFFFFF" strokeWidth={2.4} /></View>
       </View>
       <Text variant="number" numberOfLines={1} adjustsFontSizeToFit>{value}</Text>
       <Text variant="caption" color="textMuted" numberOfLines={1}>{hint}</Text>
@@ -277,11 +288,12 @@ const styles = StyleSheet.create({
   goal: { flexDirection: 'row', alignItems: 'center', gap: space.md, padding: space.md, borderRadius: radius.full, borderWidth: 1, overflow: 'hidden', marginBottom: space.lg },
   goalIcon: { width: 34, height: 34, borderRadius: 17, alignItems: 'center', justifyContent: 'center' },
   grid: { flexDirection: 'row', flexWrap: 'wrap', gap: space.md },
-  mini: { flexBasis: '47%', flexGrow: 1, padding: space.lg, borderRadius: radius.md, borderWidth: StyleSheet.hairlineWidth * 2, gap: 2 },
-  miniIcon: { width: 28, height: 28, borderRadius: 9, alignItems: 'center', justifyContent: 'center' },
+  mini: { flexBasis: '47%', flexGrow: 1, padding: space.lg, borderRadius: radius.lg, borderWidth: 1, borderBottomWidth: 3, gap: 2 },
+  miniIcon: { width: 30, height: 30, borderRadius: 10, alignItems: 'center', justifyContent: 'center' },
   between: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: space.sm },
-  focusCard: { flexDirection: 'row', alignItems: 'center', gap: space.md },
-  focusIcon: { width: 44, height: 44, borderRadius: 14, alignItems: 'center', justifyContent: 'center' },
+  heroWrap: { borderRadius: radius.xl, paddingBottom: 4 },
+  hero: { borderRadius: radius.xl, padding: space.xl, flexDirection: 'row', alignItems: 'center', gap: space.md, overflow: 'hidden' },
+  heroCta: { flexDirection: 'row', alignSelf: 'flex-start', alignItems: 'center', gap: 6, height: 38, paddingHorizontal: 14, borderRadius: radius.full, marginTop: space.sm },
   streak: { flexDirection: 'row', alignItems: 'center', gap: space.lg },
   quote: { flexDirection: 'row', alignItems: 'center', gap: space.md },
   quoteIcon: { width: 40, height: 40, borderRadius: 20, alignItems: 'center', justifyContent: 'center' },

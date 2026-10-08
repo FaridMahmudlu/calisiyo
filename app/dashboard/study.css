@@ -519,3 +519,51 @@
 .blocked-user-list small { color: var(--study-muted); font-size: .66rem; }
 #engellenenler .form-error { grid-column: 2; }
 @media (max-width: 760px) { .blocked-user-list, #engellenenler .form-error { grid-column: 1; } }
+
+/* ═══ Calisiyo 2026 design layer — "Canlı motivasiya" ═══
+   Tactile 3D buttons, chunky cards with a darker bottom edge, tinted canvas,
+   stronger type. Kept as an override layer so page markup stays untouched. */
+:root {
+  --study-green: #00a870;
+  --study-green-dark: #008f5f;
+  --study-green-edge: #00744d;
+  --study-green-soft: #e3f7ee;
+  --study-green-border: #bfe9d5;
+  --study-amber: #ffb020;
+  --study-ink: #0d1b2a;
+  --study-muted: #5d6b7c;
+  --study-border: #e1e9e5;
+  --study-border-strong: #cbd7d1;
+  --study-surface: #ffffff;
+  --study-canvas: #f3f7f5;
+  --study-ease: cubic-bezier(.22, 1, .36, 1);
+}
+.study-layout { background: var(--study-canvas); }
+.study-sidebar { border-right-color: var(--study-border); }
+.study-topbar { background: rgba(243, 247, 245, .92); backdrop-filter: saturate(1.4) blur(12px); -webkit-backdrop-filter: saturate(1.4) blur(12px); border-bottom-color: var(--study-border); }
+.study-page-header h1 { font-weight: 850; letter-spacing: -.04em; }
+
+.study-panel { border: 1px solid var(--study-border); border-bottom: 3px solid var(--study-border-strong); border-radius: 18px; box-shadow: 0 6px 18px rgba(13, 27, 42, .035); }
+
+.nav-link { height: 44px; border-radius: 12px; border: 2px solid transparent; font-weight: 650; transition: background .15s var(--study-ease), color .15s var(--study-ease), border-color .15s var(--study-ease); }
+.nav-link:hover { background: #eef5f1; }
+.nav-link.is-active { background: var(--study-green-soft); border-color: var(--study-green-border); color: var(--study-green-dark); font-weight: 800; }
+
+.study-button { min-height: 44px; padding: 0 18px; border: 1.5px solid var(--study-border-strong); border-bottom-width: 3.5px; border-radius: 12px; background: #fff; font-weight: 800; letter-spacing: -.005em; transition: transform .12s var(--study-ease), border-color .15s ease, background .15s ease, box-shadow .15s ease; }
+.study-button:hover:not(:disabled) { transform: translateY(-1px); background: #fbfdfc; border-color: #b8c7c0; }
+.study-button:active:not(:disabled) { transform: translateY(2px); border-bottom-width: 1.5px; margin-bottom: 2px; }
+.study-button-primary { border-color: var(--study-green); border-bottom-color: var(--study-green-edge); background: var(--study-green); color: #fff; }
+.study-button-primary:hover:not(:disabled) { border-color: var(--study-green-dark); border-bottom-color: var(--study-green-edge); background: #04b578; box-shadow: 0 8px 20px rgba(0, 168, 112, .18); }
+.study-button-danger { border-color: #f4c4c3; border-bottom-color: #e59a98; background: #fff; color: #c8323a; }
+.study-button-danger:hover:not(:disabled) { background: #fff5f5; border-color: #eeb0ae; border-bottom-color: #dd8987; }
+
+.study-form input, .study-form select, .study-form textarea { min-height: 46px; border: 1.5px solid var(--study-border); border-radius: 12px; background: #f7faf8; transition: border-color .15s ease, background .15s ease, box-shadow .15s ease; }
+.study-form input:focus, .study-form select:focus, .study-form textarea:focus { background: #fff; border-color: var(--study-green); box-shadow: 0 0 0 4px rgba(0, 168, 112, .12); }
+
+.sidebar-level-card, .study-streak { border-radius: 14px; border-bottom-width: 3px; }
+.avatar { background: linear-gradient(135deg, #14c784, #00704f); }
+
+@media (prefers-reduced-motion: reduce) {
+  .study-button, .nav-link { transition: none; }
+  .study-button:hover:not(:disabled), .study-button:active:not(:disabled) { transform: none; }
+}

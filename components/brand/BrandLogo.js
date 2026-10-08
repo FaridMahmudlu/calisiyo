@@ -26,8 +26,8 @@ export default function BrandLogo({
         className="calisiyo-logo-image"
         src={getLogoSrc()}
         alt="calisiyo logo"
-        width={markOnly ? 32 : 140}
-        height={markOnly ? 32 : 35}
+        width={markOnly ? 32 : 150}
+        height={markOnly ? 32 : 38}
         priority={priority}
       />
     </span>

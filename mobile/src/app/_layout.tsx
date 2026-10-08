@@ -6,6 +6,7 @@ import { NunitoSans_600SemiBold } from '@expo-google-fonts/nunito-sans/600SemiBo
 import { NunitoSans_700Bold } from '@expo-google-fonts/nunito-sans/700Bold';
 import { NunitoSans_800ExtraBold } from '@expo-google-fonts/nunito-sans/800ExtraBold';
 import { DarkTheme, DefaultTheme, Stack, ThemeProvider as NavigationThemeProvider } from 'expo-router';
+import { AppHeader } from '@/components/AppHeader';
 import { useFonts } from 'expo-font';
 import * as SplashScreen from 'expo-splash-screen';
 import { StatusBar } from 'expo-status-bar';
@@ -38,7 +39,8 @@ function RootNavigator() {
       <StatusBar style={scheme === 'dark' ? 'light' : 'dark'} />
       <Stack
         screenOptions={{
-          headerShadowVisible: false,
+          header: (props) => <AppHeader {...props} />,
+headerShadowVisible: false,
           headerTintColor: colors.primary,
           headerTitleStyle: { fontFamily: fonts.bold, color: colors.text },
           headerLargeTitleStyle: { fontFamily: fonts.heavy, color: colors.text },

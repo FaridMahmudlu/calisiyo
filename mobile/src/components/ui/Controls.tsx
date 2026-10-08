@@ -16,14 +16,17 @@ export function Chip({ label, active, onPress, icon: Icon, tone }: { label: stri
     <Pressable
       accessibilityRole="button"
       accessibilityState={{ selected: !!active }}
+      hitSlop={{ top: 4, bottom: 4, left: 2, right: 2 }}
       onPress={() => { Haptics.selectionAsync().catch(() => undefined); onPress?.(); }}
       style={({ pressed }) => [styles.chip, {
         borderColor: active ? accent : colors.border,
-        backgroundColor: active ? colors.primarySoft : pressed ? colors.surfaceMuted : colors.surface,
+        borderBottomColor: active ? accent : colors.borderStrong,
+        backgroundColor: active ? accent : pressed ? colors.surfaceMuted : colors.surface,
+        transform: [{ scale: pressed ? 0.97 : 1 }],
       }]}
     >
-      {Icon ? <Icon size={15} color={active ? accent : colors.textMuted} /> : null}
-      <Text variant="captionStrong" color={active ? colors.primaryPressed : 'textMuted'}>{label}</Text>
+      {Icon ? <Icon size={15} color={active ? '#FFFFFF' : colors.textMuted} /> : null}
+      <Text variant="captionStrong" color={active ? '#FFFFFF' : 'text'}>{label}</Text>
     </Pressable>
   );
 }
@@ -40,9 +43,9 @@ export function Segmented<T extends string | number>({ options, value, onChange 
             accessibilityRole="tab"
             accessibilityState={{ selected: active }}
             onPress={() => { Haptics.selectionAsync().catch(() => undefined); onChange(option.value); }}
-            style={[styles.segment, active && { backgroundColor: colors.surface, shadowColor: colors.shadow }]}
+            style={({ pressed }) => [styles.segment, active && { backgroundColor: colors.surface, shadowColor: colors.shadow, elevation: 2 }, pressed && !active && { opacity: 0.6 }]}
           >
-            <Text variant="captionStrong" color={active ? 'text' : 'textMuted'} numberOfLines={1}>{option.label}</Text>
+            <Text variant="captionStrong" color={active ? 'primaryPressed' : 'textMuted'} numberOfLines={1}>{option.label}</Text>
           </Pressable>
         );
       })}
@@ -159,11 +162,11 @@ export function DateField({ label, value, onChange, mode = 'date', minimumDate, 
 }
 
 const styles = StyleSheet.create({
-  chip: { height: 34, paddingHorizontal: 12, borderRadius: radius.full, borderWidth: 1, flexDirection: 'row', alignItems: 'center', gap: 6 },
-  segmented: { flexDirection: 'row', padding: 3, borderRadius: radius.sm, borderWidth: 1 },
-  segment: { flex: 1, height: 34, borderRadius: radius.xs, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 6, shadowOpacity: 0.08, shadowRadius: 4, shadowOffset: { width: 0, height: 1 } },
+  chip: { height: 38, paddingHorizontal: 14, borderRadius: radius.full, borderWidth: 1.5, borderBottomWidth: 2.5, flexDirection: 'row', alignItems: 'center', gap: 6 },
+  segmented: { flexDirection: 'row', padding: 4, borderRadius: radius.sm, borderWidth: 1 },
+  segment: { flex: 1, height: 38, borderRadius: radius.xs, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 6, shadowOpacity: 0.08, shadowRadius: 4, shadowOffset: { width: 0, height: 1 } },
   row: { flexDirection: 'row', alignItems: 'center', gap: space.md, paddingVertical: space.md },
   listItem: { paddingHorizontal: space.lg, minHeight: 60 },
-  rowIcon: { width: 36, height: 36, borderRadius: 10, alignItems: 'center', justifyContent: 'center' },
-  dateTrigger: { minHeight: 50, paddingHorizontal: 14, borderWidth: 1.5, borderRadius: radius.sm, flexDirection: 'row', alignItems: 'center', gap: 10 },
+  rowIcon: { width: 40, height: 40, borderRadius: 13, alignItems: 'center', justifyContent: 'center' },
+  dateTrigger: { minHeight: 52, paddingHorizontal: 14, borderWidth: 1.5, borderRadius: radius.sm, flexDirection: 'row', alignItems: 'center', gap: 10 },
 });

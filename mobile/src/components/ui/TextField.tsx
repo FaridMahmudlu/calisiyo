@@ -25,7 +25,7 @@ export const TextField = forwardRef<TextInput, TextFieldProps>(function TextFiel
   return (
     <View style={styles.wrap}>
       {label ? <Text variant="captionStrong" color="textMuted">{label}</Text> : null}
-      <View style={[styles.field, multiline && styles.multiline, { borderColor, backgroundColor: colors.surface }]}>
+      <View style={[styles.field, multiline && styles.multiline, { borderColor, backgroundColor: focused ? colors.surface : colors.surfaceMuted }]}>
         {Icon ? <Icon size={18} color={focused ? colors.primary : colors.textSubtle} /> : null}
         <TextInput
           ref={ref}
@@ -41,7 +41,7 @@ export const TextField = forwardRef<TextInput, TextFieldProps>(function TextFiel
           style={[styles.input, { color: colors.text }, multiline && styles.inputMultiline, style]}
         />
         {secure ? (
-          <Pressable accessibilityRole="button" accessibilityLabel={hidden ? 'Şifreyi göster' : 'Şifreyi gizle'} hitSlop={10} onPress={() => setHidden((value) => !value)}>
+          <Pressable accessibilityRole="button" accessibilityLabel={hidden ? 'Şifreyi göster' : 'Şifreyi gizle'} onPress={() => setHidden((value) => !value)} style={styles.eye}>
             {hidden ? <Eye size={18} color={colors.textSubtle} /> : <EyeOff size={18} color={colors.textSubtle} />}
           </Pressable>
         ) : null}
@@ -53,8 +53,9 @@ export const TextField = forwardRef<TextInput, TextFieldProps>(function TextFiel
 
 const styles = StyleSheet.create({
   wrap: { gap: 6 },
-  field: { minHeight: 50, paddingHorizontal: 14, borderRadius: radius.sm, borderWidth: 1.5, flexDirection: 'row', alignItems: 'center', gap: 10 },
+  field: { minHeight: 52, paddingHorizontal: 14, borderRadius: radius.sm, borderWidth: 1.5, flexDirection: 'row', alignItems: 'center', gap: 10 },
   multiline: { alignItems: 'flex-start', paddingVertical: 12 },
   input: { flex: 1, fontFamily: fonts.regular, fontSize: 16, paddingVertical: 12 },
   inputMultiline: { minHeight: 110, paddingVertical: 0 },
+  eye: { width: 44, height: 44, marginRight: -10, alignItems: 'center', justifyContent: 'center' },
 });

@@ -100,7 +100,7 @@ export default function RepeatsScreen() {
           const tint = item.dersler?.renk || colors.primary;
           return (
             <View key={item.id} style={[styles.card, { backgroundColor: item.tamamlandi ? colors.surfaceMuted : colors.surface, borderColor: colors.border, borderLeftColor: tint, opacity: item.tamamlandi ? 0.7 : 1 }]}>
-              <Pressable accessibilityRole="checkbox" accessibilityState={{ checked: item.tamamlandi }} accessibilityLabel={item.tamamlandi ? 'Geri al' : 'Tamamla'} onPress={() => toggle(item)} hitSlop={10}
+              <Pressable accessibilityRole="checkbox" accessibilityState={{ checked: item.tamamlandi }} accessibilityLabel={item.tamamlandi ? 'Geri al' : 'Tamamla'} onPress={() => toggle(item)} hitSlop={8}
                 style={[styles.check, { borderColor: item.tamamlandi ? colors.primary : colors.borderStrong, backgroundColor: item.tamamlandi ? colors.primary : 'transparent' }]}>
                 {item.tamamlandi ? <Check size={15} color="#FFFFFF" strokeWidth={3} /> : null}
               </Pressable>
@@ -137,6 +137,6 @@ export default function RepeatsScreen() {
 
 const styles = StyleSheet.create({
   card: { flexDirection: 'row', alignItems: 'center', gap: space.md, padding: space.lg, borderRadius: radius.md, borderWidth: StyleSheet.hairlineWidth * 2, borderLeftWidth: 4 },
-  check: { width: 28, height: 28, borderRadius: 14, borderWidth: 2, alignItems: 'center', justifyContent: 'center' },
+  check: { width: 32, height: 32, borderRadius: 16, borderWidth: 2.5, alignItems: 'center', justifyContent: 'center' },
   meta: { flexDirection: 'row', alignItems: 'center', gap: 4 },
 });

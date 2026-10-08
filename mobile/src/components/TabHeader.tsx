@@ -27,7 +27,7 @@ export function TabHeader({ title, subtitle, right }: { title: string; subtitle?
         <View style={{ flex: 1 }} />
         {right}
         <IconButton icon={unread ? BellRing : Bell} label={unread ? `${unread} okunmamış bildirim` : 'Bildirimler'} badge={unread} onPress={() => router.push('/bildirimler')} />
-        <Pressable accessibilityRole="button" accessibilityLabel="Profil ve ayarlar" onPress={() => router.push('/ayarlar')} hitSlop={6}>
+        <Pressable accessibilityRole="button" accessibilityLabel="Profil ve ayarlar" onPress={() => router.push('/ayarlar')} style={({ pressed }) => [{ minWidth: 44, minHeight: 44, alignItems: 'center', justifyContent: 'center' }, { opacity: pressed ? 0.7 : 1 }]}>
           <Avatar name={profile?.full_name} size={36} />
         </Pressable>
       </View>
@@ -40,5 +40,5 @@ export function TabHeader({ title, subtitle, right }: { title: string; subtitle?
 const styles = StyleSheet.create({
   wrap: { marginBottom: space.lg },
   row: { flexDirection: 'row', alignItems: 'center', gap: space.sm },
-  pill: { flexDirection: 'row', alignItems: 'center', gap: 5, height: 32, paddingHorizontal: 11, borderRadius: radius.full },
+  pill: { flexDirection: 'row', alignItems: 'center', gap: 6, height: 38, paddingHorizontal: 13, borderRadius: radius.full },
 });

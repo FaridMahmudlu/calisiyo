@@ -25,7 +25,9 @@ export type ButtonProps = {
   accessibilityLabel?: string;
 };
 
-const HEIGHT: Record<Size, number> = { sm: 36, md: 46, lg: 54 };
+const HEIGHT: Record<Size, number> = { sm: 40, md: 50, lg: 56 };
+// Raised variants sit on a darker "edge" that compresses when pressed.
+const EDGE: Record<Size, number> = { sm: 3, md: 4, lg: 4 };
 
 export function Button({
   title, onPress, variant = 'primary', size = 'md', icon: Icon, iconRight: IconRight,
@@ -33,14 +35,16 @@ export function Button({
 }: ButtonProps) {
   const { colors } = useTheme();
   const palette = {
-    primary: { bg: colors.primary, pressed: colors.primaryPressed, fg: colors.onPrimary, border: 'transparent' },
-    secondary: { bg: colors.surface, pressed: colors.surfaceMuted, fg: colors.text, border: colors.border },
-    ghost: { bg: 'transparent', pressed: colors.surfaceMuted, fg: colors.primary, border: 'transparent' },
-    danger: { bg: colors.dangerSoft, pressed: colors.dangerSoft, fg: colors.danger, border: 'transparent' },
-    soft: { bg: colors.primarySoft, pressed: colors.primaryBorder, fg: colors.primaryPressed, border: 'transparent' },
+    primary: { face: colors.primary, edge: colors.primaryEdge, fg: colors.onPrimary, border: colors.primary },
+    secondary: { face: colors.surface, edge: colors.borderStrong, fg: colors.text, border: colors.borderStrong },
+    danger: { face: colors.danger, edge: colors.dangerEdge, fg: '#FFFFFF', border: colors.danger },
+    soft: { face: colors.primarySoft, edge: null, fg: colors.primaryPressed, border: colors.primarySoft },
+    ghost: { face: 'transparent', edge: null, fg: colors.primary, border: 'transparent' },
   }[variant];
   const inactive = disabled || loading;
-  const iconSize = size === 'sm' ? 16 : 18;
+  const iconSize = size === 'sm' ? 16 : 19;
+  const edge = palette.edge && !inactive ? EDGE[size] : 0;
+  const height = HEIGHT[size];
 
   return (
     <Pressable
@@ -48,63 +52,76 @@ export function Button({
       accessibilityLabel={accessibilityLabel || title}
       accessibilityState={{ disabled: inactive, busy: loading }}
       disabled={inactive}
+      hitSlop={size === 'sm' ? 4 : 0}
       onPress={() => {
         if (haptic) Haptics.selectionAsync().catch(() => undefined);
         onPress?.();
       }}
-      style={({ pressed }) => [
-        styles.base,
-        {
-          height: HEIGHT[size],
-          paddingHorizontal: size === 'sm' ? 12 : 18,
-          backgroundColor: pressed ? palette.pressed : palette.bg,
-          borderColor: palette.border,
-          opacity: inactive ? 0.55 : 1,
-          transform: [{ scale: pressed ? 0.98 : 1 }],
-        },
-        fullWidth && styles.fullWidth,
-        style,
-      ]}
+      style={[{ height, borderRadius: radius.sm, opacity: inactive ? 0.5 : 1 }, edge ? { backgroundColor: palette.edge! } : null, fullWidth && styles.fullWidth, style]}
     >
-      {loading ? <ActivityIndicator color={palette.fg} /> : (
-        <View style={styles.content}>
-          {Icon ? <Icon size={iconSize} color={palette.fg} strokeWidth={2.2} /> : null}
-          {title ? <Text variant={size === 'sm' ? 'captionStrong' : 'subheading'} color={palette.fg}>{title}</Text> : null}
-          {children}
-          {IconRight ? <IconRight size={iconSize} color={palette.fg} strokeWidth={2.2} /> : null}
+      {({ pressed }) => (
+        <View
+          style={[
+            styles.face,
+            {
+              height: height - edge,
+              paddingHorizontal: size === 'sm' ? 14 : 20,
+              backgroundColor: palette.face,
+              borderColor: palette.border,
+              borderWidth: variant === 'secondary' ? 1.5 : 0,
+              transform: [{ translateY: pressed && edge ? edge - 1 : 0 }],
+            },
+            !edge && pressed && { backgroundColor: variant === 'ghost' ? colors.surfaceMuted : colors.primaryBorder, transform: [{ scale: 0.98 }] },
+          ]}
+        >
+          {loading ? <ActivityIndicator color={palette.fg} /> : (
+            <View style={styles.content}>
+              {Icon ? <Icon size={iconSize} color={palette.fg} strokeWidth={2.4} /> : null}
+              {title ? <Text variant={size === 'sm' ? 'captionStrong' : 'subheading'} color={palette.fg} numberOfLines={1} style={size !== 'sm' ? { fontFamily: 'NunitoSans_800ExtraBold' } : undefined}>{title}</Text> : null}
+              {children}
+              {IconRight ? <IconRight size={iconSize} color={palette.fg} strokeWidth={2.4} /> : null}
+            </View>
+          )}
         </View>
       )}
     </Pressable>
   );
 }
 
-export function IconButton({ icon: Icon, onPress, label, tone = 'default', size = 40, badge }: {
-  icon: LucideIcon; onPress?: () => void; label: string; tone?: 'default' | 'primary' | 'danger'; size?: number; badge?: number;
+// Visual size is `size`; the touch target is always at least 44x44 (WCAG / HIG).
+export function IconButton({ icon: Icon, onPress, label, tone = 'default', size = 40, badge, filled }: {
+  icon: LucideIcon; onPress?: () => void; label: string; tone?: 'default' | 'primary' | 'danger'; size?: number; badge?: number; filled?: boolean;
 }) {
   const { colors } = useTheme();
   const fg = tone === 'primary' ? colors.primary : tone === 'danger' ? colors.danger : colors.text;
+  const rest = filled ? (tone === 'danger' ? colors.dangerSoft : tone === 'primary' ? colors.primarySoft : colors.surface) : 'transparent';
+  const touch = Math.max(44, size);
   return (
     <Pressable
       accessibilityRole="button"
       accessibilityLabel={label}
-      hitSlop={6}
       onPress={() => { Haptics.selectionAsync().catch(() => undefined); onPress?.(); }}
-      style={({ pressed }) => [styles.icon, { width: size, height: size, backgroundColor: pressed ? colors.surfaceMuted : 'transparent' }]}
+      style={[styles.touch, { width: touch, height: touch }]}
     >
-      <Icon size={20} color={fg} strokeWidth={2.1} />
-      {badge ? (
-        <View style={[styles.badge, { backgroundColor: colors.danger, borderColor: colors.background }]}>
-          <Text variant="label" color="#FFFFFF" style={{ letterSpacing: 0 }}>{badge > 9 ? '9+' : badge}</Text>
+      {({ pressed }) => (
+        <View style={[styles.icon, { width: size, height: size, backgroundColor: pressed ? (filled ? colors.primaryBorder : colors.surfaceSunken) : rest, transform: [{ scale: pressed ? 0.92 : 1 }] }]}>
+          <Icon size={Math.min(22, Math.round(size * 0.5))} color={fg} strokeWidth={2.2} />
+          {badge ? (
+            <View style={[styles.badge, { backgroundColor: colors.danger, borderColor: colors.background }]}>
+              <Text variant="label" color="#FFFFFF" style={{ letterSpacing: 0 }}>{badge > 9 ? '9+' : badge}</Text>
+            </View>
+          ) : null}
         </View>
-      ) : null}
+      )}
     </Pressable>
   );
 }
 
 const styles = StyleSheet.create({
-  base: { borderRadius: radius.sm, borderWidth: 1, alignItems: 'center', justifyContent: 'center' },
+  face: { borderRadius: radius.sm, alignItems: 'center', justifyContent: 'center' },
   content: { flexDirection: 'row', alignItems: 'center', gap: 8 },
   fullWidth: { alignSelf: 'stretch' },
+  touch: { alignItems: 'center', justifyContent: 'center' },
   icon: { borderRadius: radius.full, alignItems: 'center', justifyContent: 'center' },
-  badge: { position: 'absolute', top: 2, right: 0, minWidth: 18, height: 18, paddingHorizontal: 4, borderRadius: 9, borderWidth: 2, alignItems: 'center', justifyContent: 'center' },
+  badge: { position: 'absolute', top: -2, right: -4, minWidth: 18, height: 18, paddingHorizontal: 4, borderRadius: 9, borderWidth: 2, alignItems: 'center', justifyContent: 'center' },
 });

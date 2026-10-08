@@ -383,3 +383,11 @@
 .legal-content a:hover {
   color: #07875f;
 }
+
+/* Calisiyo 2026 design layer: tactile buttons shared with the dashboard. */
+.public-button { border-width: 1.5px; border-bottom-width: 3.5px; border-radius: 12px; font-weight: 800; transition: transform .12s cubic-bezier(.22,1,.36,1), background .15s ease, border-color .15s ease, box-shadow .15s ease; }
+.public-button:hover { transform: translateY(-1px); }
+.public-button:active { transform: translateY(2px); border-bottom-width: 1.5px; margin-bottom: 2px; }
+.public-button.primary, .editorial-landing .public-button.primary { border-color: #00a870; border-bottom-color: #00744d; background: #00a870; color: #fff; }
+.public-button.primary:hover, .editorial-landing .public-button.primary:hover { border-color: #04b578; border-bottom-color: #00744d; background: #04b578; box-shadow: 0 10px 26px rgba(0,168,112,.2); }
+@media (prefers-reduced-motion: reduce) { .public-button, .public-button:hover, .public-button:active { transition: none; transform: none; } }

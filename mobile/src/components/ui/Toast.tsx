@@ -2,7 +2,7 @@ import * as Haptics from 'expo-haptics';
 import { AlertCircle, CheckCircle2, Info } from 'lucide-react-native';
 import { createContext, useCallback, useContext, useMemo, useRef, useState, type ReactNode } from 'react';
 import { Pressable, StyleSheet } from 'react-native';
-import Animated, { FadeInUp, FadeOutUp } from 'react-native-reanimated';
+import Animated, { FadeIn, FadeOut } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTheme } from '@/theme/ThemeProvider';
 import { radius, space } from '@/theme/tokens';
@@ -35,10 +35,10 @@ export function ToastProvider({ children }: { children: ReactNode }) {
     <ToastContext.Provider value={api}>
       {children}
       {toast ? (
-        <Animated.View key={toast.id} entering={FadeInUp.springify()} exiting={FadeOutUp} pointerEvents="box-none" style={[styles.wrap, { top: insets.top + space.sm }]}>
-          <Pressable accessibilityRole="alert" onPress={() => setToast(null)} style={[styles.toast, { backgroundColor: colors.surface, borderColor: colors.border, shadowColor: colors.shadow }]}>
+        <Animated.View key={toast.id} entering={FadeIn.duration(180)} exiting={FadeOut.duration(160)} pointerEvents="box-none" style={[styles.wrap, { bottom: insets.bottom + 96 }]}>
+          <Pressable accessibilityRole="alert" onPress={() => setToast(null)} style={[styles.toast, { backgroundColor: colors.inverseSurface, borderColor: colors.inverseSurface, shadowColor: colors.shadow }]}>
             <Icon size={20} color={tint} />
-            <Text variant="bodyStrong" style={{ flex: 1 }}>{toast.message}</Text>
+            <Text variant="bodyStrong" color={colors.inverseText} style={{ flex: 1 }}>{toast.message}</Text>
           </Pressable>
         </Animated.View>
       ) : null}

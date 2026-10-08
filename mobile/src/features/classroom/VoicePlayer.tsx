@@ -31,7 +31,7 @@ export function VoicePlayer({ uri, tint, onSourceError }: { uri: string; tint?: 
         <View style={[styles.track, { backgroundColor: colors.border }]}><View style={{ width: `${progress * 100}%`, height: '100%', backgroundColor: accent, borderRadius: 2 }} /></View>
         <Text variant="caption" color="textMuted">{failed ? 'Bu ses biçimi cihazda oynatılamıyor' : `${format(status.currentTime)} / ${format(status.duration)}`}</Text>
       </View>
-      <Pressable accessibilityRole="button" accessibilityLabel="Oynatma hızı" onPress={() => { const next = SPEEDS[(SPEEDS.indexOf(speed) + 1) % SPEEDS.length]; setSpeed(next); player.setPlaybackRate(next); }} hitSlop={8}>
+      <Pressable accessibilityRole="button" accessibilityLabel="Oynatma hızı" onPress={() => { const next = SPEEDS[(SPEEDS.indexOf(speed) + 1) % SPEEDS.length]; setSpeed(next); player.setPlaybackRate(next); }} style={{ minWidth: 44, minHeight: 44, alignItems: 'center', justifyContent: 'center' }}>
         <Text variant="captionStrong" color={accent}>{speed}x</Text>
       </Pressable>
     </View>
