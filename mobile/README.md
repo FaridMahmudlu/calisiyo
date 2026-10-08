@@ -11,11 +11,15 @@ cp .env.example .env.local   # then fill in the values
 npx expo start               # Expo Go only covers screens without custom native code
 ```
 
-Native features (widgets, Live Activity, Android live timer notification, Google Sign-In, biometrics) need a development build:
+Native features (widgets, Live Activity, Android live timer notification, Google Sign-In, biometrics) need a native build. Install a release build on a USB-connected Android phone locally (Android SDK + Android Studio JBR as `JAVA_HOME`):
 
 ```bash
-npx eas-cli@latest build -p android --profile development
+npx expo prebuild -p android
+cd android && ./gradlew app:assembleRelease -PreactNativeArchitectures=arm64-v8a
+adb install -r app/build/outputs/apk/release/app-release.apk
 ```
+
+Or build an installable APK in the cloud: `npm run build:android:preview`.
 
 ### Environment variables
 
@@ -29,7 +33,7 @@ npx eas-cli@latest build -p android --profile development
 | `EXPO_PUBLIC_SENTRY_DSN` | EAS env | Optional crash reporting (no PII). |
 | `SENTRY_ORG`, `SENTRY_PROJECT`, `SENTRY_AUTH_TOKEN` | EAS env (token as secret) | Optional source map upload. |
 | `EXPO_PUBLIC_POSTHOG_KEY`, `EXPO_PUBLIC_POSTHOG_HOST` | EAS env | Optional analytics, only after user consent. |
-| `EAS_PROJECT_ID`, `EXPO_OWNER` | EAS env | Set after `eas init`; enables EAS Update. |
+| `EAS_PROJECT_ID`, `EXPO_OWNER` | optional | Defaults are set in `app.config.ts` (`@faridmahmudluu/calisiyo`). |
 
 ## Verification
 
@@ -42,12 +46,11 @@ npx expo export --platform android --platform ios --output-dir .expo-export-chec
 
 ## Releasing to Google Play
 
-1. `npx eas-cli@latest login`, then `npx eas-cli@latest init` (writes the project ID; set `EAS_PROJECT_ID`).
-2. Add the env vars above in the EAS dashboard (environment: production).
-3. Build: `npm run build:android:production` (AAB; EAS creates and stores the upload keystore).
-4. In Play Console, create the app, finish the store listing, the content rating questionnaire, Data safety, and the account deletion URL (`https://calisiyo.com.tr/dashboard/ayarlar`).
-5. Upload the first AAB manually to the **Internal testing** track. After that, create a Play service account, save its key as `google-play-service-account.json` (git-ignored) and use `npm run submit:android`.
-6. Ship JS-only fixes with `npx eas-cli@latest update --channel production`.
+1. The EAS project (`@faridmahmudluu/calisiyo`) and the `EXPO_PUBLIC_*` variables for all environments are already set up.
+2. Build: `npm run build:android:production` (AAB). The upload keystore is stored on EAS, so never create a new one.
+3. In Play Console, create the app, finish the store listing, the content rating questionnaire, Data safety, and the account deletion URL (`https://calisiyo.com.tr/hesap-silme`).
+4. Upload the first AAB manually to the **Internal testing** track. After that, create a Play service account, save its key as `google-play-service-account.json` (git-ignored) and use `npm run submit:android`.
+5. Ship JS-only fixes with `npx eas-cli@latest update --channel production`.
 
 ## iOS (later)
 

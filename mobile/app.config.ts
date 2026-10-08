@@ -4,6 +4,9 @@ import path from 'node:path';
 import type { ConfigContext, ExpoConfig } from 'expo/config';
 
 const BUNDLE_ID = 'tr.com.calisiyo.app';
+// Public EAS identifiers (not secrets); env vars can override them for forks.
+const EAS_PROJECT_ID = process.env.EAS_PROJECT_ID || 'c11460fc-a5c0-4a03-b70e-a6d5cc658137';
+const EXPO_OWNER = process.env.EXPO_OWNER || 'faridmahmudluu';
 const BRAND_GREEN = '#00A870';
 const googleServicesFile = process.env.GOOGLE_SERVICES_JSON
   || (fs.existsSync(path.join(__dirname, 'google-services.json')) ? './google-services.json' : undefined);
@@ -13,16 +16,14 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
   ...config,
   name: 'Calisiyo',
   slug: 'calisiyo',
-  owner: process.env.EXPO_OWNER || undefined,
+  owner: EXPO_OWNER,
   version: '1.0.0',
   orientation: 'portrait',
   icon: './assets/images/icon.png',
   scheme: 'calisiyo',
   userInterfaceStyle: 'automatic',
   runtimeVersion: { policy: 'appVersion' },
-  updates: process.env.EAS_PROJECT_ID
-    ? { url: `https://u.expo.dev/${process.env.EAS_PROJECT_ID}` }
-    : undefined,
+  updates: { url: `https://u.expo.dev/${EAS_PROJECT_ID}` },
   ios: {
     bundleIdentifier: BUNDLE_ID,
     supportsTablet: true,
@@ -149,6 +150,6 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
     reactCompiler: true,
   },
   extra: {
-    eas: process.env.EAS_PROJECT_ID ? { projectId: process.env.EAS_PROJECT_ID } : undefined,
+    eas: { projectId: EAS_PROJECT_ID },
   },
 });
