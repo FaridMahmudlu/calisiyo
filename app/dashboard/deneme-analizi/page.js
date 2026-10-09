@@ -117,7 +117,7 @@ export default function DenemeAnaliziPage() {
     }
     const enteredDetails = Object.entries(form.detaylar).filter(([, detail]) => ['dogru', 'yanlis'].some((field) => detail[field] !== ''));
     if (!enteredDetails.length) return setError('Analiz için en az bir ders sonucu girmelisin.');
-    const invalidDetail = enteredDetails.some(([courseId, detail]) => (
+    const invalidDetail = enteredDetails.find(([courseId, detail]) => (
       ['dogru', 'yanlis'].some((field) => {
         if (detail[field] === '') return false;
         const value = Number(detail[field]);
@@ -128,7 +128,10 @@ export default function DenemeAnaliziPage() {
         return !Number(course?.question_count || 0) || total > Number(course.question_count);
       })()
     ));
-    if (invalidDetail) return setError('Doğru ve yanlış değerleri negatif olmayan tam sayı olmalı; toplamları dersin soru sayısını aşmamalıdır.');
+    if (invalidDetail) {
+      const course = dersler.find((item) => item.id === invalidDetail[0]);
+      return setError(`${course?.ad || 'Ders'} için doğru ve yanlış değerleri negatif olmayan tam sayı olmalı; toplamları dersin soru sayısını aşmamalıdır.`);
+    }
 
     setSaving(true);
 
@@ -314,12 +317,14 @@ export default function DenemeAnaliziPage() {
                     <span className="ders-input-name" style={{ color: d.renk }}>{d.ikon} {d.ad}</span>
                     <div className="ders-input-fields">
                       <input className="input ders-input-mini" aria-label={`${d.ad} doğru`} type="number" step="1" placeholder="D"
+                        disabled={!d.question_count}
                         value={form.detaylar[d.id]?.dogru || ''}
                         onChange={(e) => setForm({
                           ...form,
                           detaylar: { ...form.detaylar, [d.id]: { ...form.detaylar[d.id], dogru: e.target.value } }
                         })} />
                       <input className="input ders-input-mini" aria-label={`${d.ad} yanlış`} type="number" step="1" placeholder="Y"
+                        disabled={!d.question_count}
                         value={form.detaylar[d.id]?.yanlis || ''}
                         onChange={(e) => setForm({
                           ...form,

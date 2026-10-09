@@ -66,12 +66,15 @@ export default function ExamAnalysisScreen() {
     if (duration !== null && (!Number.isInteger(duration) || duration < 1 || duration > 600)) return toast.error('Deneme süresi 1 ile 600 dakika arasında olmalıdır.');
     const entered = Object.entries(form.detaylar).filter(([, detail]) => detail.dogru !== '' || detail.yanlis !== '');
     if (!entered.length) return toast.error('Analiz için en az bir ders sonucu girmelisin.');
-    const invalid = entered.some(([courseId, detail]) => {
+    const invalid = entered.find(([courseId, detail]) => {
       const course = courses.find((item) => item.id === courseId);
       const total = Number(detail.dogru || 0) + Number(detail.yanlis || 0);
       return !Number(course?.question_count || 0) || total > Number(course?.question_count);
     });
-    if (invalid) return toast.error('Doğru ve yanlış toplamı dersin soru sayısını aşmamalıdır.');
+    if (invalid) {
+      const course = courses.find((item) => item.id === invalid[0]);
+      return toast.error(`${course?.ad || 'Ders'} için doğru ve yanlış toplamı dersin soru sayısını aşmamalıdır.`);
+    }
     setSaving(true);
     const { error } = await supabase.rpc('create_exam_with_details', {
       p_exam_type: activeTab, p_publisher: form.yayin.trim(), p_exam_date: form.tarih, p_duration_minutes: duration,
