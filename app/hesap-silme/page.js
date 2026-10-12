@@ -56,6 +56,15 @@ export default function AccountDeletionPage() {
             <li><strong>Kimliğinden ayrılarak saklanır:</strong> yasal saklama yükümlülüğü bulunan ödeme ve fatura kayıtları, ilgili mevzuatın öngördüğü süre boyunca saklanır.</li>
             <li>Silme işlemi geri alınamaz. Aktif bir ücretli paketin varsa kalan süresi silme ile birlikte sona erer.</li>
           </ul>
+
+          <h2 id="veri-silme">5. Hesabını silmeden verilerini silme</h2>
+          <p>Hesabını korurken belirli verilerini dilediğin zaman silebilirsin:</p>
+          <ol>
+            <li><strong>Uygulama veya web içinden:</strong> görevlerini (Program), notlarını (Not Defteri), denemelerini (Deneme Analizi), yapamadığın sorularını, kaynaklarını, tekrarlarını ve sınıflarda gönderdiğin mesajları ilgili kaydın menüsündeki <strong>Sil</strong> seçeneğiyle kalıcı olarak silebilirsin.</li>
+            <li><strong>E-posta ile:</strong> hesabına kayıtlı e-posta adresinden <a href={`mailto:${contact.supportEmail}?subject=Veri%20silme%20talebi`}>{contact.supportEmail}</a> adresine
+              <strong> &quot;Veri silme talebi&quot;</strong> konulu bir e-posta gönder ve silinmesini istediğin verileri belirt (ör. tüm çalışma süresi kayıtları, istatistikler, yüklenen dosyalar). Kimliğini doğruladıktan sonra talebini en geç 30 gün içinde tamamlarız.</li>
+          </ol>
+          <p>Seçtiğin veriler sistemlerimizden kalıcı olarak silinir; hesabın ve diğer verilerin olduğu gibi kalır. Yasal saklama yükümlülüğü bulunan ödeme ve fatura kayıtları ilgili mevzuatın öngördüğü süre boyunca saklanır.</p>
         </section>
       </div>
 
