@@ -12,6 +12,8 @@ export type TimerState = {
   sessionKey: string;
   studyDate: string;
   courseId: string;
+  // App-only: course name shown on the Live Update (the web ignores it).
+  courseLabel?: string;
   resourceId: string;
   running: boolean;
 };
@@ -56,6 +58,7 @@ export function readTimerState(userId: string): TimerState | null {
       sessionKey: String(stored.sessionKey || ''),
       studyDate: String(stored.studyDate || ''),
       courseId: String(stored.courseId || ''),
+      courseLabel: stored.courseId ? String(stored.courseLabel || '') : '',
       resourceId: String(stored.resourceId || ''),
       running: Boolean(stored.running && stored.deadline),
     };

@@ -5,6 +5,7 @@ import { LifeBuoy, LogOut, RefreshCw, ShieldAlert } from 'lucide-react-native';
 import { useEffect } from 'react';
 import { StyleSheet, View } from 'react-native';
 import { BrandMark } from '@/components/brand/BrandMark';
+import { markLaunchReady } from '@/components/brand/launch';
 import { Button, Dialog, Spinner, Text } from '@/components/ui';
 import { claimPendingCreatorCode } from '@/features/auth/creatorCode';
 import { signOutGoogle } from '@/features/auth/social';
@@ -53,6 +54,7 @@ function AppNavigator() {
   useWidgetSync(ready);
   useLiveTimerActions(ready ? account.profile?.id : undefined, timerAlerts);
   useLaunchLink(ready && !!account.user?.user_metadata?.alan_secimi);
+  useEffect(() => { if (account.status !== 'loading') markLaunchReady(); }, [account.status]);
 
   useEffect(() => onBeforeSignOut(async () => {
     await unregisterDeviceForPush().catch(() => undefined);

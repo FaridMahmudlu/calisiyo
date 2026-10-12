@@ -1,11 +1,13 @@
 package expo.modules.livetimer
 
 import android.app.AlarmManager
+import android.app.Notification
 import android.app.NotificationChannel
 import android.app.NotificationManager
 import android.app.PendingIntent
 import android.content.Context
 import android.content.Intent
+import android.graphics.drawable.Icon
 import android.net.Uri
 import android.os.Build
 import android.os.Bundle
@@ -14,12 +16,18 @@ import androidx.core.app.NotificationCompat
 import androidx.core.app.NotificationManagerCompat
 import org.json.JSONArray
 import org.json.JSONObject
+import java.text.SimpleDateFormat
+import java.time.Duration
+import java.time.Instant
+import java.util.Date
+import java.util.Locale
 
 // A running or paused Kronometre stage, mirrored natively so the ongoing
 // notification, its buttons and the end alert keep working without JS.
 data class TimerSession(
   val title: String,
   val text: String,
+  val next: String,
   val endsAt: Long,
   val remainingMs: Long,
   val totalSeconds: Int,
@@ -28,7 +36,22 @@ data class TimerSession(
   val alertTitle: String,
   val alertBody: String,
   val alert: Boolean,
-)
+) {
+  fun toJson(): JSONObject = JSONObject()
+    .put("title", title).put("text", text).put("next", next).put("endsAt", endsAt)
+    .put("remainingMs", remainingMs).put("totalSeconds", totalSeconds)
+    .put("isBreak", isBreak).put("running", running)
+    .put("alertTitle", alertTitle).put("alertBody", alertBody).put("alert", alert)
+
+  companion object {
+    fun fromJson(json: JSONObject) = TimerSession(
+      json.optString("title"), json.optString("text"), json.optString("next"),
+      json.optLong("endsAt"), json.optLong("remainingMs"), json.optInt("totalSeconds"),
+      json.optBoolean("isBreak"), json.optBoolean("running"),
+      json.optString("alertTitle"), json.optString("alertBody"), json.optBoolean("alert", true),
+    )
+  }
+}
 
 object LiveTimerNotifier {
   const val ACTION_PAUSE = "expo.modules.livetimer.PAUSE"
@@ -49,26 +72,12 @@ object LiveTimerNotifier {
   private val AMBER = 0xFFF59E0B.toInt()
 
   fun save(context: Context, session: TimerSession) {
-    val json = JSONObject()
-      .put("title", session.title).put("text", session.text).put("endsAt", session.endsAt)
-      .put("remainingMs", session.remainingMs).put("totalSeconds", session.totalSeconds)
-      .put("isBreak", session.isBreak).put("running", session.running)
-      .put("alertTitle", session.alertTitle).put("alertBody", session.alertBody).put("alert", session.alert)
-    prefs(context).edit().putString(KEY_SESSION, json.toString()).apply()
+    prefs(context).edit().putString(KEY_SESSION, session.toJson().toString()).apply()
   }
 
   fun load(context: Context): TimerSession? {
     val raw = prefs(context).getString(KEY_SESSION, null) ?: return null
-    return try {
-      val json = JSONObject(raw)
-      TimerSession(
-        json.getString("title"), json.getString("text"), json.getLong("endsAt"), json.getLong("remainingMs"),
-        json.getInt("totalSeconds"), json.getBoolean("isBreak"), json.getBoolean("running"),
-        json.optString("alertTitle"), json.optString("alertBody"), json.optBoolean("alert", true),
-      )
-    } catch (_: Exception) {
-      null
-    }
+    return try { TimerSession.fromJson(JSONObject(raw)) } catch (_: Exception) { null }
   }
 
   fun clear(context: Context) {
@@ -93,34 +102,44 @@ object LiveTimerNotifier {
 
   fun showRunning(context: Context, session: TimerSession) {
     ensureChannel(context)
-    val builder = base(context, session)
-      .setContentTitle(session.title)
-      .setContentText(session.text)
-      .setShowWhen(true)
-      .setWhen(session.endsAt)
-      .setUsesChronometer(true)
-      .setChronometerCountDown(true)
-      .setCategory(NotificationCompat.CATEGORY_STOPWATCH)
-      .addAction(0, "Duraklat", action(context, ACTION_PAUSE))
-      .addExtras(Bundle().apply { putBoolean(EXTRA_REQUEST_PROMOTED_ONGOING, true) })
-    if (session.isBreak) builder.addAction(0, "Molayı geç", action(context, ACTION_SKIP_BREAK))
+    val end = clock(session.endsAt)
+    val summary = listOfNotNull("Bitiş $end", session.next.takeIf { it.isNotBlank() }?.let { "sonra $it" }).joinToString(" · ")
     val remaining = session.endsAt - System.currentTimeMillis()
-    if (remaining > 0) builder.setTimeoutAfter(remaining + 60_000)
-    post(context, NOTIFICATION_ID, builder)
+    val notification = metricNotification(context, session, summary) ?: run {
+      val builder = compat(context, session)
+        .setContentTitle(session.title)
+        .setContentText(session.text)
+        .setSubText(summary)
+        .setStyle(NotificationCompat.BigTextStyle().bigText("${session.text}\n$summary"))
+        .setShowWhen(true)
+        .setWhen(session.endsAt)
+        .setUsesChronometer(true)
+        .setChronometerCountDown(true)
+        .setCategory(NotificationCompat.CATEGORY_STOPWATCH)
+        .addAction(0, "Duraklat", action(context, ACTION_PAUSE))
+      if (session.isBreak) builder.addAction(0, "Molayı geç", action(context, ACTION_SKIP_BREAK))
+      if (remaining > 0) builder.setTimeoutAfter(remaining + 60_000)
+      builder.build()
+    }
+    post(context, NOTIFICATION_ID, notification)
   }
 
   fun showPaused(context: Context, session: TimerSession) {
     ensureChannel(context)
     val left = formatClock(session.remainingMs)
-    val builder = base(context, session)
-      .setContentTitle("${session.title} · Duraklatıldı")
-      .setContentText("$left kaldı · devam etmek için dokun")
-      .setShowWhen(false)
-      .setCategory(NotificationCompat.CATEGORY_STATUS)
-      .addAction(0, "Devam et", action(context, ACTION_RESUME))
-      .addExtras(Bundle().apply { putString(EXTRA_SHORT_CRITICAL_TEXT, "⏸ $left") })
-    if (session.isBreak) builder.addAction(0, "Molayı geç", action(context, ACTION_SKIP_BREAK))
-    post(context, NOTIFICATION_ID, builder)
+    val notification = metricNotification(context, session, "Duraklatıldı · $left kaldı") ?: run {
+      val builder = compat(context, session)
+        .setContentTitle("${session.title} · Duraklatıldı")
+        .setContentText("$left kaldı · devam etmek için dokun")
+        .setSubText(session.text)
+        .setShowWhen(false)
+        .setCategory(NotificationCompat.CATEGORY_STATUS)
+        .addAction(0, "Devam et", action(context, ACTION_RESUME))
+        .addExtras(Bundle().apply { putString(EXTRA_SHORT_CRITICAL_TEXT, "⏸ $left") })
+      if (session.isBreak) builder.addAction(0, "Molayı geç", action(context, ACTION_SKIP_BREAK))
+      builder.build()
+    }
+    post(context, NOTIFICATION_ID, notification)
   }
 
   fun showFinished(context: Context, session: TimerSession) {
@@ -135,7 +154,7 @@ object LiveTimerNotifier {
       .setCategory(NotificationCompat.CATEGORY_ALARM)
       .setPriority(NotificationCompat.PRIORITY_HIGH)
       .setContentIntent(open(context))
-    post(context, ALERT_NOTIFICATION_ID, builder)
+    post(context, ALERT_NOTIFICATION_ID, builder.build())
   }
 
   fun cancel(context: Context) {
@@ -156,7 +175,58 @@ object LiveTimerNotifier {
     context.getSystemService(AlarmManager::class.java)?.cancel(finishIntent(context))
   }
 
-  private fun base(context: Context, session: TimerSession) = NotificationCompat.Builder(context, CHANNEL_ID)
+  // Android 17+: MetricStyle lets the system draw a live countdown on the lock
+  // screen, status-bar chip, AOD and Samsung Now Bar. Built reflectively so the
+  // module still compiles against SDK 36; returns null on older versions.
+  private fun metricNotification(context: Context, session: TimerSession, summary: String): Notification? {
+    if (Build.VERSION.SDK_INT < 37) return null
+    return try {
+      val metric = Class.forName("android.app.Notification\$Metric")
+      val value = Class.forName("android.app.Notification\$Metric\$MetricValue")
+      val difference = Class.forName("android.app.Notification\$Metric\$TimeDifference")
+      val fixedText = Class.forName("android.app.Notification\$Metric\$FixedText").getConstructor(CharSequence::class.java)
+      val newMetric = metric.getConstructor(value, CharSequence::class.java)
+      val format = difference.getField("FORMAT_CHRONOMETER").getInt(null)
+      val countdown = if (session.running) {
+        difference.getMethod("forTimer", Instant::class.java, Int::class.javaPrimitiveType).invoke(null, Instant.ofEpochMilli(session.endsAt), format)
+      } else {
+        difference.getMethod("forPausedTimer", Duration::class.java, Int::class.javaPrimitiveType).invoke(null, Duration.ofMillis(session.remainingMs), format)
+      }
+      val style = Class.forName("android.app.Notification\$MetricStyle").getConstructor().newInstance()
+      val add = style.javaClass.getMethod("addMetric", metric)
+      add.invoke(style, newMetric.newInstance(countdown, "Kalan"))
+      add.invoke(style, newMetric.newInstance(fixedText.newInstance(if (session.running) clock(session.endsAt) else "Durdu"), if (session.running) "Bitiş" else "Durum"))
+      if (session.next.isNotBlank()) add.invoke(style, newMetric.newInstance(fixedText.newInstance(session.next), "Sonra"))
+
+      val icon = Icon.createWithResource(context, smallIcon(context))
+      val builder = Notification.Builder(context, CHANNEL_ID)
+        .setSmallIcon(smallIcon(context))
+        .setColor(if (session.isBreak) AMBER else GREEN)
+        .setContentTitle(if (session.running) session.title else "${session.title} · Duraklatıldı")
+        .setContentText(summary)
+        .setSubText(session.text)
+        .setOngoing(true)
+        .setOnlyAlertOnce(true)
+        .setVisibility(Notification.VISIBILITY_PUBLIC)
+        .setCategory(if (session.running) Notification.CATEGORY_STOPWATCH else Notification.CATEGORY_STATUS)
+        .setContentIntent(open(context))
+        .setStyle(style as Notification.Style)
+        .addExtras(Bundle().apply { putBoolean(EXTRA_REQUEST_PROMOTED_ONGOING, true) })
+      if (session.running) {
+        builder.addAction(Notification.Action.Builder(icon, "Duraklat", action(context, ACTION_PAUSE)).build())
+        val remaining = session.endsAt - System.currentTimeMillis()
+        if (remaining > 0) builder.setTimeoutAfter(remaining + 60_000)
+      } else {
+        builder.addAction(Notification.Action.Builder(icon, "Devam et", action(context, ACTION_RESUME)).build())
+      }
+      if (session.isBreak) builder.addAction(Notification.Action.Builder(icon, "Molayı geç", action(context, ACTION_SKIP_BREAK)).build())
+      builder.build()
+    } catch (_: Throwable) {
+      null
+    }
+  }
+
+  private fun compat(context: Context, session: TimerSession) = NotificationCompat.Builder(context, CHANNEL_ID)
     .setSmallIcon(smallIcon(context))
     .setColor(if (session.isBreak) AMBER else GREEN)
     .setColorized(false)
@@ -166,11 +236,12 @@ object LiveTimerNotifier {
     .setVisibility(NotificationCompat.VISIBILITY_PUBLIC)
     .setPriority(NotificationCompat.PRIORITY_LOW)
     .setContentIntent(open(context))
+    .addExtras(Bundle().apply { putBoolean(EXTRA_REQUEST_PROMOTED_ONGOING, true) })
 
-  private fun post(context: Context, id: Int, builder: NotificationCompat.Builder) {
+  private fun post(context: Context, id: Int, notification: Notification) {
     if (!NotificationManagerCompat.from(context).areNotificationsEnabled()) return
     try {
-      NotificationManagerCompat.from(context).notify(id, builder.build())
+      NotificationManagerCompat.from(context).notify(id, notification)
     } catch (_: SecurityException) {
       // POST_NOTIFICATIONS was revoked; the in-app timer keeps working.
     }
@@ -194,6 +265,8 @@ object LiveTimerNotifier {
     return PendingIntent.getBroadcast(context, ACTION_FINISHED.hashCode(), intent, PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE)
   }
 
+  private fun clock(at: Long) = SimpleDateFormat("HH:mm", Locale("tr", "TR")).format(Date(at))
+
   private fun formatClock(ms: Long): String {
     val total = ((ms + 999) / 1000).coerceAtLeast(0)
     val hours = total / 3600
@@ -216,7 +289,7 @@ object LiveTimerNotifier {
     val channel = NotificationChannel(CHANNEL_ID, "Canlı Kronometre", NotificationManager.IMPORTANCE_LOW).apply {
       description = "Çalışan odak veya mola süresini bildirimde gösterir"
       setShowBadge(false)
-      lockscreenVisibility = android.app.Notification.VISIBILITY_PUBLIC
+      lockscreenVisibility = Notification.VISIBILITY_PUBLIC
     }
     manager.createNotificationChannel(channel)
   }

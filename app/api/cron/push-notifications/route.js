@@ -34,7 +34,8 @@ export async function GET(request) {
   const admin = createAdminClient();
   const { data: notifications, error } = await admin.from('notifications')
     .select('id,user_id,title,body,action_url,created_at,profiles!inner(notifications_enabled)')
-    .eq('profiles.notifications_enabled', true).is('push_dispatched_at', null)
+    // Already-read rows are activity logs (e.g. a finished focus session); they never become pushes.
+    .eq('profiles.notifications_enabled', true).is('push_dispatched_at', null).is('read_at', null)
     .order('created_at', { ascending: true }).limit(100);
   if (error) return Response.json({ ok: false, message: 'Bildirim kuyruğu okunamadı.' }, { status: 500 });
   const userIds = [...new Set((notifications || []).map((item) => item.user_id))];

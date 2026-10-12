@@ -8,7 +8,7 @@ import { presetFor, type TimerState } from './store';
 import impl from './surfaceImpl';
 
 export type TimerSurfaceState = {
-  endsAt: number; mode: 'focus' | 'break'; title: string; subtitle: string; totalSeconds: number;
+  endsAt: number; mode: 'focus' | 'break'; title: string; subtitle: string; next: string; totalSeconds: number;
   remainingSeconds: number; alertTitle: string; alertBody: string; alert: boolean;
 };
 
@@ -29,15 +29,19 @@ export async function stopTimerSurface() {
 function describe(state: TimerState, alert: boolean): TimerSurfaceState {
   const p = presetFor(state);
   const totalSeconds = (state.breakMode ? p.breakMinutes : p.work) * 60;
+  const course = state.breakMode ? '' : state.courseLabel || '';
   return {
     endsAt: state.deadline || 0,
     mode: state.breakMode ? 'break' : 'focus',
     title: state.breakMode ? 'Mola' : 'Odak oturumu',
-    subtitle: state.breakMode ? `${p.breakMinutes} dk mola` : `${p.work} dk çalışma`,
+    subtitle: state.breakMode ? `${p.breakMinutes} dk mola` : [course, `${p.work} dk odak`].filter(Boolean).join(' · '),
+    next: state.breakMode ? `${p.work} dk odak` : `${p.breakMinutes} dk mola`,
     totalSeconds,
     remainingSeconds: Math.max(0, state.timeLeft),
-    alertTitle: state.breakMode ? 'Mola bitti' : 'Odak oturumu tamamlandı',
-    alertBody: state.breakMode ? 'Hazırsan yeni odak oturumuna başlayabilirsin.' : `${p.work} dakikalık çalışma istatistiklerine kaydedilecek. Uygulamayı açarak molaya geç.`,
+    alertTitle: state.breakMode ? 'Mola bitti' : 'Odak oturumu bitti',
+    alertBody: state.breakMode
+      ? `Yeni ${p.work} dakikalık odak oturumuna hazırsan Kronometre’yi aç.`
+      : `${p.work} dakika çalıştın${course ? ` (${course})` : ''}. Şimdi ${p.breakMinutes} dakika mola ver.`,
     alert,
   };
 }

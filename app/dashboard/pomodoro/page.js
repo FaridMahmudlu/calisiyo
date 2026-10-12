@@ -125,24 +125,26 @@ export default function PomodoroPage() {
 
   const notifyPomodoroStage = useCallback(async (completedBreak) => {
     if (profile?.notifications_enabled === false || profile?.study_preferences?.pomodoro === false) return;
-    const title = completedBreak ? 'Mola bitti' : 'Odak oturumu tamamlandı';
+    const title = completedBreak ? 'Mola bitti' : 'Odak oturumu bitti';
     const body = completedBreak
-      ? 'Hazırsan yeni odak oturumuna başlayabilirsin.'
-      : `${preset.work} dakikalık çalışma istatistiklerine kaydedildi.`;
+      ? `Hazırsan yeni ${preset.work} dakikalık odak oturumunu başlat.`
+      : `${preset.work} dakikalık çalışman istatistiklerine eklendi. Şimdi ${preset.breakMinutes} dakika mola ver.`;
     const uniqueId = globalThis.crypto?.randomUUID?.() || `${Date.now()}-${completedBreak ? 'break' : 'focus'}`;
+    // Activity log only: the page is open, so it is stored as read (no badge, no push).
     const { error } = await supabase.from('notifications').insert({
       user_id: profile.id,
-      kind: 'reminder',
+      kind: completedBreak ? 'reminder' : 'success',
       title,
       body,
       action_url: '/dashboard/pomodoro',
       dedupe_key: `pomodoro-${uniqueId}`,
+      read_at: new Date().toISOString(),
     });
     if (error) setError('Kronometre bildirimi oluşturulamadı.');
     if (typeof Notification !== 'undefined' && Notification.permission === 'granted') {
       new Notification(title, { body, tag: uniqueId });
     }
-  }, [preset.work, profile, setError, supabase]);
+  }, [preset.breakMinutes, preset.work, profile, setError, supabase]);
 
   const finishStage = useCallback(async () => {
     if (finishedRef.current) return;

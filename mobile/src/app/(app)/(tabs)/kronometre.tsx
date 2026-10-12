@@ -109,7 +109,7 @@ export default function TimerScreen() {
       {state.running ? <Notice tone="success">Kilit ekranından süreni takip edebilirsin; süre dolduğunda bildirim alırsın. Dikkat dağıtan bildirimleri kapatmanı öneririz.</Notice> : null}
 
       <Card style={{ gap: space.md, marginTop: space.lg }}>
-        <Select label="Konu / ders" value={state.courseId} onChange={timer.setCourse} placeholder="Ders seç (isteğe bağlı)"
+        <Select label="Konu / ders" value={state.courseId} onChange={(id) => timer.setCourse(id, courses.data?.find((course) => course.id === id)?.ad)} placeholder="Ders seç (isteğe bağlı)"
           options={[{ value: '', label: 'Ders seçilmesin' }, ...(courses.data || []).map((course) => ({ value: course.id, label: course.ad, description: course.sinav_turu }))]} />
         <Select label="Kaynak" value={state.resourceId} onChange={timer.setResource} placeholder="Kaynak seç (isteğe bağlı)"
           options={[{ value: '', label: 'Kaynak seçilmesin' }, ...(resources.data || []).map((resource) => ({ value: resource.id, label: resourceName(resource) || 'Kaynak' }))]} />

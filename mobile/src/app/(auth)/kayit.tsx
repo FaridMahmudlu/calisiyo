@@ -30,6 +30,7 @@ export default function SignupScreen() {
   const [error, setError] = useState('');
   const [confirmationSent, setConfirmationSent] = useState(false);
   const [codeState, setCodeState] = useState<CreatorCodeState>('idle');
+  const [showCode, setShowCode] = useState(false);
   const claimRef = useRef<string | null>(null);
   const validationId = useRef(0);
 
@@ -135,8 +136,8 @@ export default function SignupScreen() {
 
   return (
     <AuthScaffold
-      title="Hesap oluştur"
-      subtitle={step === 1 ? 'E-posta veya sosyal hesabınla ücretsiz başla.' : 'Hazırlandığın sınav yılını ve alanı seç.'}
+      title={step === 1 ? 'Hesap oluştur' : 'Sana özel planı hazırlayalım'}
+      subtitle={step === 1 ? 'Ücretsiz başla; bir dakikadan kısa sürer.' : 'YKS yılını ve alanını seç; derslerin ve programın buna göre hazırlanır.'}
       error={error}
       footer={step === 1 ? (
         <View style={{ flexDirection: 'row', gap: 6 }}>
@@ -146,7 +147,15 @@ export default function SignupScreen() {
       ) : undefined}
     >
       <View style={styles.steps} accessibilityLabel={`Adım ${step} / 2`}>
-        {[1, 2].map((item) => <View key={item} style={[styles.step, { backgroundColor: item <= step ? colors.primary : colors.border }]} />)}
+        {['Hesap', 'Sınav ve alan'].map((label, index) => {
+          const active = index + 1 <= step;
+          return (
+            <View key={label} style={{ flex: 1, gap: 6 }}>
+              <View style={[styles.step, { backgroundColor: active ? colors.primary : colors.border }]} />
+              <Text variant="caption" color={active ? 'primaryPressed' : 'textSubtle'}>{index + 1}. {label}</Text>
+            </View>
+          );
+        })}
       </View>
 
       {step === 1 ? (
@@ -156,19 +165,27 @@ export default function SignupScreen() {
           <TextField label="E-posta" icon={Mail} value={form.email} onChangeText={(email) => setForm({ ...form, email })} keyboardType="email-address" autoCapitalize="none" autoComplete="email" textContentType="emailAddress" />
           <TextField label="Şifre" icon={Lock} secure value={form.password} onChangeText={(password) => setForm({ ...form, password })} autoComplete="new-password" textContentType="newPassword" hint={`En az ${PASSWORD_MIN_LENGTH} karakter; büyük/küçük harf, rakam ve özel karakter kullan.`} />
           <TextField label="Şifreyi doğrula" icon={Lock} secure value={form.confirmPassword} onChangeText={(confirmPassword) => setForm({ ...form, confirmPassword })} autoComplete="new-password" textContentType="newPassword" />
-          <TextField
-            label="İçerik üretici kodun var mı? (İsteğe bağlı)"
-            icon={BadgePercent}
-            value={form.creatorCode}
-            onChangeText={resetCode}
-            onBlur={checkCode}
-            autoCapitalize="characters"
-            autoCorrect={false}
-            maxLength={64}
-            placeholder="Örn. MELIKE20"
-            error={codeState === 'invalid' || codeState === 'limited' ? CODE_MESSAGES[codeState] : undefined}
-            hint={codeState === 'valid' || codeState === 'checking' ? CODE_MESSAGES[codeState] : 'Varsa içerik üreticisinin sana özel kodunu girebilirsin.'}
-          />
+          {showCode || form.creatorCode ? (
+            <TextField
+              label="İçerik üretici kodu (isteğe bağlı)"
+              icon={BadgePercent}
+              value={form.creatorCode}
+              onChangeText={resetCode}
+              onBlur={checkCode}
+              autoCapitalize="characters"
+              autoCorrect={false}
+              autoFocus={showCode && !form.creatorCode}
+              maxLength={64}
+              placeholder="Örn. MELIKE20"
+              error={codeState === 'invalid' || codeState === 'limited' ? CODE_MESSAGES[codeState] : undefined}
+              hint={codeState === 'valid' || codeState === 'checking' ? CODE_MESSAGES[codeState] : 'İçerik üreticisinin sana verdiği indirim kodu.'}
+            />
+          ) : (
+            <Pressable accessibilityRole="button" hitSlop={8} onPress={() => setShowCode(true)} style={styles.codeLink}>
+              <BadgePercent size={16} color={colors.primary} />
+              <Text variant="captionStrong" color="primary">İçerik üretici kodum var</Text>
+            </Pressable>
+          )}
           <Pressable
             accessibilityRole="checkbox"
             accessibilityState={{ checked: form.consent }}
@@ -184,17 +201,18 @@ export default function SignupScreen() {
               <Text variant="captionStrong" color="primary" onPress={() => openWebPage('/kvkk')}>KVKK Aydınlatma Metni</Text>’ni okudum, kabul ediyorum.
             </Text>
           </Pressable>
-          <Button title="Devam Et" size="lg" onPress={next} loading={codeState === 'checking'} />
+          <Button title="Devam et" size="lg" onPress={next} loading={codeState === 'checking'} />
         </>
       ) : (
         <>
-          <Text variant="label" color="textMuted">YKS yılı</Text>
+          <Text variant="label" color="textMuted">Hangi yıl sınava gireceksin?</Text>
           <YearPicker value={form.yksYear} onChange={(yksYear) => setForm({ ...form, yksYear })} />
-          <Text variant="label" color="textMuted" style={{ marginTop: space.sm }}>Alan</Text>
+          <Text variant="label" color="textMuted" style={{ marginTop: space.sm }}>Alanın</Text>
           <AlanPicker value={form.alanSecimi} onChange={(alanSecimi) => setForm({ ...form, alanSecimi })} />
+          <Text variant="caption" color="textSubtle">Bu bilgileri istediğin zaman Ayarlar’dan değiştirebilirsin.</Text>
           <View style={styles.actions}>
             <Button title="Geri" variant="secondary" size="lg" onPress={() => setStep(1)} style={{ flex: 1 }} />
-            <Button title={loading ? 'Oluşturuluyor…' : 'Hesabı Oluştur'} size="lg" loading={loading} onPress={submit} style={{ flex: 2 }} />
+            <Button title={loading ? 'Hazırlanıyor…' : 'Hesabı oluştur'} size="lg" loading={loading} onPress={submit} style={{ flex: 2 }} />
           </View>
         </>
       )}
@@ -204,6 +222,7 @@ export default function SignupScreen() {
 
 const styles = StyleSheet.create({
   steps: { flexDirection: 'row', gap: space.sm },
+  codeLink: { flexDirection: 'row', alignItems: 'center', gap: 6, alignSelf: 'flex-start' },
   step: { flex: 1, height: 4, borderRadius: 2 },
   consent: { flexDirection: 'row', gap: space.md, alignItems: 'flex-start' },
   checkbox: { width: 22, height: 22, borderRadius: radius.xs - 2, borderWidth: 2, alignItems: 'center', justifyContent: 'center', marginTop: 1 },

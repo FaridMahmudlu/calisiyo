@@ -10,8 +10,8 @@ import { AppHeader } from '@/components/AppHeader';
 import { useFonts } from 'expo-font';
 import * as SplashScreen from 'expo-splash-screen';
 import { StatusBar } from 'expo-status-bar';
-import { useEffect } from 'react';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
+import { LaunchAnimation } from '@/components/brand/LaunchAnimation';
 import { DialogHost, ToastProvider } from '@/components/ui';
 import { AnalyticsConsentGate } from '@/features/privacy/AnalyticsConsent';
 import { wrapRoot } from '@/lib/telemetry';
@@ -27,10 +27,7 @@ function RootNavigator() {
   const { session, initializing } = useAuth();
   const { colors, scheme } = useTheme();
 
-  useEffect(() => {
-    if (!initializing) SplashScreen.hideAsync().catch(() => undefined);
-  }, [initializing]);
-
+  // The native splash is hidden by LaunchAnimation, which takes over seamlessly.
   if (initializing) return null;
 
   const base = scheme === 'dark' ? DarkTheme : DefaultTheme;
@@ -82,6 +79,7 @@ function RootLayout() {
             </AuthProvider>
           </QueryProvider>
           <DialogHost />
+          <LaunchAnimation />
         </ToastProvider>
       </ThemeProvider>
     </GestureHandlerRootView>

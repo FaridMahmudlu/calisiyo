@@ -42,13 +42,14 @@ export default function CompleteProfileScreen() {
   };
 
   return (
-    <AuthScaffold title="Profilini tamamla" subtitle="Sana doğru dersleri gösterebilmemiz için son iki bilgiyi seç." error={error} back={false}>
+    <AuthScaffold title="Sana özel planı hazırlayalım" subtitle="YKS yılını ve alanını seç; derslerin ve programın buna göre hazırlanır." error={error} back={false}>
       <TextField label="Ad Soyad" icon={UserRound} value={form.fullName} onChangeText={(fullName) => setForm({ ...form, fullName })} autoComplete="name" />
-      <Text variant="label" color="textMuted">YKS yılı</Text>
+      <Text variant="label" color="textMuted">Hangi yıl sınava gireceksin?</Text>
       <YearPicker value={form.yksYear} onChange={(yksYear) => setForm({ ...form, yksYear })} />
-      <Text variant="label" color="textMuted" style={{ marginTop: space.sm }}>Alan</Text>
+      <Text variant="label" color="textMuted" style={{ marginTop: space.sm }}>Alanın</Text>
       <AlanPicker value={form.alanSecimi} onChange={(alanSecimi) => setForm({ ...form, alanSecimi })} />
-      <Button title={loading ? 'Hazırlanıyor…' : 'Çalışmaya Başla'} size="lg" loading={loading} onPress={submit} />
+      <Text variant="caption" color="textSubtle">Bu bilgileri istediğin zaman Ayarlar’dan değiştirebilirsin.</Text>
+      <Button title={loading ? 'Hazırlanıyor…' : 'Çalışmaya başla'} size="lg" loading={loading} onPress={submit} />
       <Button title="Farklı hesapla giriş yap" variant="ghost" onPress={signOut} />
     </AuthScaffold>
   );

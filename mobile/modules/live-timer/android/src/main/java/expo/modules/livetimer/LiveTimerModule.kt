@@ -10,7 +10,26 @@ import android.provider.Settings
 import expo.modules.kotlin.exception.Exceptions
 import expo.modules.kotlin.modules.Module
 import expo.modules.kotlin.modules.ModuleDefinition
+import expo.modules.kotlin.records.Field
+import expo.modules.kotlin.records.Record
 import java.lang.ref.WeakReference
+
+// What the app shows for a Kronometre stage (see TimerSurfaceState in JS).
+class TimerPayload : Record {
+  @Field val title: String = ""
+  @Field val text: String = ""
+  @Field val next: String = ""
+  @Field val endsAt: Double = 0.0
+  @Field val remainingSeconds: Int = 0
+  @Field val totalSeconds: Int = 0
+  @Field val isBreak: Boolean = false
+  @Field val alertTitle: String = ""
+  @Field val alertBody: String = ""
+  @Field val alert: Boolean = true
+
+  fun toSession(running: Boolean, endsAt: Long, remainingMs: Long) =
+    TimerSession(title, text, next, endsAt, remainingMs, totalSeconds, isBreak, running, alertTitle, alertBody, alert)
+}
 
 // Ongoing Kronometre notification with a native countdown chronometer and
 // Duraklat / Devam et / Molayı geç buttons. On Android 16+ it is promoted to a
@@ -30,15 +49,16 @@ class LiveTimerModule : Module() {
     OnStartObserving { listening = true }
     OnStopObserving { listening = false }
 
-    AsyncFunction("start") { title: String, text: String, endsAt: Double, isBreak: Boolean, totalSeconds: Int, alertTitle: String, alertBody: String, alert: Boolean ->
-      val session = TimerSession(title, text, endsAt.toLong(), (endsAt.toLong() - System.currentTimeMillis()).coerceAtLeast(0), totalSeconds, isBreak, true, alertTitle, alertBody, alert)
+    AsyncFunction("start") { payload: TimerPayload ->
+      val endsAt = payload.endsAt.toLong()
+      val session = payload.toSession(running = true, endsAt = endsAt, remainingMs = (endsAt - System.currentTimeMillis()).coerceAtLeast(0))
       LiveTimerNotifier.save(context, session)
       LiveTimerNotifier.scheduleFinish(context, session.endsAt)
       LiveTimerNotifier.showRunning(context, session)
     }
 
-    AsyncFunction("pause") { title: String, text: String, remainingSeconds: Int, isBreak: Boolean, totalSeconds: Int, alertTitle: String, alertBody: String, alert: Boolean ->
-      val session = TimerSession(title, text, 0, remainingSeconds * 1000L, totalSeconds, isBreak, false, alertTitle, alertBody, alert)
+    AsyncFunction("pause") { payload: TimerPayload ->
+      val session = payload.toSession(running = false, endsAt = 0, remainingMs = payload.remainingSeconds * 1000L)
       LiveTimerNotifier.cancelFinish(context)
       LiveTimerNotifier.save(context, session)
       LiveTimerNotifier.showPaused(context, session)

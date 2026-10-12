@@ -64,18 +64,19 @@ export function useFocusTimer(profile: Profile | null, { onRecorded, onError }: 
         if (error) onError(`Oturum istatistiklere kaydedilemedi: ${error.message}`);
         else onRecorded();
       }
+      // Activity log only: the user is in the app, so it is stored as read (no badge, no push).
       if (notificationsAllowed && userId) {
         await supabase.from('notifications').insert({
-          user_id: userId, kind: 'reminder', title: 'Odak oturumu tamamlandı', body: `${p.work} dakikalık çalışma istatistiklerine kaydedildi.`,
-          action_url: '/dashboard/pomodoro', dedupe_key: `pomodoro-${Crypto.randomUUID()}`,
+          user_id: userId, kind: 'success', title: 'Odak oturumu bitti', body: `${p.work} dakikalık çalışman istatistiklerine eklendi. Şimdi ${p.breakMinutes} dakika mola ver.`,
+          action_url: '/dashboard/pomodoro', dedupe_key: `pomodoro-${Crypto.randomUUID()}`, read_at: new Date().toISOString(),
         });
       }
       update({ running: false, deadline: null, breakMode: true, timeLeft: p.breakMinutes * 60 });
     } else {
       if (notificationsAllowed && userId) {
         await supabase.from('notifications').insert({
-          user_id: userId, kind: 'reminder', title: 'Mola bitti', body: 'Hazırsan yeni odak oturumuna başlayabilirsin.',
-          action_url: '/dashboard/pomodoro', dedupe_key: `pomodoro-${Crypto.randomUUID()}`,
+          user_id: userId, kind: 'reminder', title: 'Mola bitti', body: `Hazırsan yeni ${p.work} dakikalık odak oturumunu başlat.`,
+          action_url: '/dashboard/pomodoro', dedupe_key: `pomodoro-${Crypto.randomUUID()}`, read_at: new Date().toISOString(),
         });
       }
       update({ running: false, deadline: null, breakMode: false, timeLeft: p.work * 60, sessionKey: '', studyDate: '' });
@@ -133,7 +134,11 @@ export function useFocusTimer(profile: Profile | null, { onRecorded, onError }: 
       const safeBreak = Math.min(60, Math.max(1, Math.round(breakMinutes) || 5));
       return resetTo({ custom: { work: safeWork, breakMinutes: safeBreak }, customActive: true, timeLeft: safeWork * 60 });
     },
-    setCourse: (courseId: string) => update({ courseId }),
+    setCourse: (courseId: string, courseLabel = '') => {
+      const next = { ...stateRef.current, courseId, courseLabel: courseId ? courseLabel : '' };
+      update({ courseId, courseLabel: next.courseLabel });
+      if (next.running) syncSurfaces(next).catch(() => undefined);
+    },
     setResource: (resourceId: string) => update({ resourceId }),
     skipBreak: () => resetTo({ timeLeft: presetFor(stateRef.current).work * 60 }),
   };

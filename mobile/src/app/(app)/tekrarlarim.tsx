@@ -67,7 +67,7 @@ export default function RepeatsScreen() {
       const date = parseLocalDate(form.tekrar_tarihi);
       const [h, m] = form.tekrar_saati.split(':').map(Number);
       date.setHours(h, m, 0, 0);
-      scheduleLocalReminder({ id: `repeat-${data.id}`, title: 'Tekrar zamanı', body: form.konu.trim(), date, route: '/tekrarlarim' }).catch(() => undefined);
+      scheduleLocalReminder({ id: `repeat-${data.id}`, title: 'Tekrar zamanı', body: `“${form.konu.trim()}” konusunu şimdi tekrar et.`, date, route: '/tekrarlarim' }).catch(() => undefined);
     }
     setOpen(false);
     setForm(EMPTY);

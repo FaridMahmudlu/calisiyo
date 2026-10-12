@@ -39,8 +39,8 @@ export async function POST(request) {
     rows.push({
       user_id: user.id,
       kind: 'reminder',
-      title: 'Bugünün planı hazır',
-      body: `Tamamlanmayı bekleyen ${taskResult.count} çalışma görevin var.`,
+      title: `Bugün ${taskResult.count} görevin var`,
+      body: 'Günlük planını aç ve ilk göreve başla.',
       action_url: '/dashboard/gunluk-program',
       dedupe_key: `daily-plan-${date}`,
     });
@@ -49,8 +49,8 @@ export async function POST(request) {
     rows.push({
       user_id: user.id,
       kind: 'reminder',
-      title: 'Tekrar zamanı',
-      body: `${repeatResult.count} konu tekrarın bugün veya daha önce planlandı.`,
+      title: `Tekrar zamanı: ${repeatResult.count} konu`,
+      body: 'Tekrar tarihi gelen konuların hazır. Unutmadan tekrar etmek için dokun.',
       action_url: '/dashboard/tekrarlarim',
       dedupe_key: `repeat-reminder-${date}`,
     });
