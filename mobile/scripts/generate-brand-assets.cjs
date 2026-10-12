@@ -46,7 +46,7 @@ function featureGraphic() {
     <rect width="1024" height="500" fill="url(#fg)"/>
     ${motif({ cx: 900, cy: 250, r: 190, w: 92, track: 'rgba(255,255,255,0.10)', accent: 'rgba(255,194,71,0.85)' })}
     ${placedWordmark({ cx: 372, cy: 214, width: 560, colors: VARIANTS.white })}
-    <text x="94" y="338" font-family="Segoe UI, Arial, sans-serif" font-size="36" font-weight="600" fill="#E3FFF2">YKS çalışma koçun</text>
+    <text x="94" y="338" font-family="Segoe UI, Arial, sans-serif" font-size="36" font-weight="600" fill="#E3FFF2">YKS çalışma planın</text>
   </svg>`;
 }
 

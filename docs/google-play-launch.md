@@ -4,7 +4,7 @@ Paket adı: `tr.com.planliyo.app` · targetSdk 36 · minSdk 24 · Expo SDK 57 ·
 
 ## 1. Mağaza girişi (Store listing · Türkçe)
 
-**Uygulama adı (30):** `Planliyo: YKS Çalışma Koçu`
+**Uygulama adı (30):** `Planliyo: YKS Çalışma Planı`
 
 **Kısa açıklama (80):** `YKS programı, kronometre, deneme analizi ve çalışma sınıfları tek uygulamada.`
 
