@@ -41,9 +41,9 @@ export function LaunchAnimation() {
       exit.set(withTiming(1, { duration: 180 }, finish));
       return;
     }
-    fill.set(withTiming(1, { duration: 560, easing: Easing.inOut(Easing.cubic) }));
-    scale.set(withSequence(withTiming(1.06, { duration: 560, easing: Easing.out(Easing.cubic) }), withTiming(1.22, { duration: 360, easing: Easing.in(Easing.cubic) })));
-    exit.set(withDelay(620, withTiming(1, { duration: 320, easing: Easing.in(Easing.quad) }, finish)));
+    fill.set(withTiming(1, { duration: 700, easing: Easing.inOut(Easing.cubic) }));
+    scale.set(withSequence(withTiming(1.06, { duration: 700, easing: Easing.out(Easing.cubic) }), withTiming(1.2, { duration: 380, easing: Easing.in(Easing.cubic) })));
+    exit.set(withDelay(760, withTiming(1, { duration: 340, easing: Easing.in(Easing.quad) }, finish)));
   }, [ready, timedOut, reduceMotion, fill, scale, exit]);
 
   const arcProps = useAnimatedProps(() => ({ strokeDashoffset: CIRCUMFERENCE * (1 - fill.value) }));
