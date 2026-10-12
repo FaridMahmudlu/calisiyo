@@ -5,6 +5,15 @@ import LiveTimer, { type LiveTimerAction } from '../../../modules/live-timer';
 import { emitTimerChange, presetFor, readTimerState, writeTimerState, type TimerState } from './store';
 import { syncTimerSurfaces } from './surface';
 
+// Android 16+ Live Updates (status-bar chip, lock screen, Samsung Now Bar) can be turned off per app.
+export function liveUpdatesStatus(): 'on' | 'off' | 'unsupported' {
+  return Platform.OS === 'android' && LiveTimer ? LiveTimer.liveUpdatesStatus() : 'unsupported';
+}
+
+export function openLiveUpdateSettings() {
+  return LiveTimer?.openLiveUpdateSettings().catch(() => undefined);
+}
+
 // Asks once (then every 3 days at most) for exact alarms so the stage-end alert is on time.
 export async function ensureExactTimerAlarms() {
   if (Platform.OS !== 'android' || !LiveTimer || LiveTimer.canScheduleExactAlarms()) return;

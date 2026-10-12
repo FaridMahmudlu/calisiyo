@@ -1,7 +1,7 @@
 import { router, Stack } from 'expo-router';
 import { Bell, CheckCheck, Clock3, Settings, Sparkles, Target, Timer } from 'lucide-react-native';
 import { FlatList, Pressable, RefreshControl, StyleSheet, View } from 'react-native';
-import { Button, EmptyState, ErrorState, IconButton, SkeletonCards, Text } from '@/components/ui';
+import { Button, EmptyState, ErrorState, IconButton, SkeletonCards, Text, useToast } from '@/components/ui';
 import { useNotifications, type AppNotification } from '@/features/notifications/useNotifications';
 import { appRouteFromWebPath } from '@/lib/routes';
 import { useTheme } from '@/theme/ThemeProvider';
@@ -19,13 +19,18 @@ function relativeTime(value: string) {
 
 export default function NotificationsScreen() {
   const { colors } = useTheme();
+  const toast = useToast();
   const { items, unread, isLoading, isError, error, refetch, isRefetching, markRead, markAllRead } = useNotifications();
 
   const open = async (item: AppNotification) => {
-    if (!item.read_at) await markRead(item.id);
+    if (!item.read_at) await markRead(item.id).catch((reason: Error) => toast.error(reason.message));
     const route = appRouteFromWebPath(item.action_url);
     if (route) router.push(route as never);
   };
+
+  const readAll = () => markAllRead()
+    .then(() => toast.success('Tüm bildirimler okundu olarak işaretlendi.'))
+    .catch((reason: Error) => toast.error(reason.message));
 
   return (
     <View style={{ flex: 1, backgroundColor: colors.background }}>
@@ -45,7 +50,7 @@ export default function NotificationsScreen() {
         ListHeaderComponent={(
           <View style={styles.header}>
             <Text variant="body" color="textMuted" style={{ flex: 1 }}>{unread ? `${unread} yeni gelişme` : 'Her şey güncel'}</Text>
-            <Button title="Tümünü oku" icon={CheckCheck} size="sm" variant="ghost" disabled={!unread} onPress={markAllRead} />
+            <Button title="Tümünü oku" icon={CheckCheck} size="sm" variant="ghost" disabled={!unread} onPress={readAll} />
           </View>
         )}
         ListEmptyComponent={isLoading ? <SkeletonCards count={5} /> : isError ? <ErrorState message={(error as Error).message} onRetry={refetch} /> : (

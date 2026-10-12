@@ -10,6 +10,8 @@ declare class LiveTimerModule extends NativeModule<{ onAction: (event: LiveTimer
   consumePendingActions(): LiveTimerAction[];
   canScheduleExactAlarms(): boolean;
   openExactAlarmSettings(): Promise<void>;
+  liveUpdatesStatus(): 'on' | 'off' | 'unsupported';
+  openLiveUpdateSettings(): Promise<void>;
 }
 
 // Null in Expo Go or on platforms without the native module.

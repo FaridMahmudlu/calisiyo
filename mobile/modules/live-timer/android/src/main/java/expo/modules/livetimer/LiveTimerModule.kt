@@ -1,6 +1,7 @@
 package expo.modules.livetimer
 
 import android.app.AlarmManager
+import android.app.NotificationManager
 import android.content.Context
 import android.content.Intent
 import android.net.Uri
@@ -58,6 +59,22 @@ class LiveTimerModule : Module() {
       Build.VERSION.SDK_INT < Build.VERSION_CODES.S || context.getSystemService(AlarmManager::class.java)?.canScheduleExactAlarms() == true
     }
 
+    // Android 16+: whether the user lets this app post Live Updates (status chip, lock screen).
+    Function("liveUpdatesStatus") {
+      if (Build.VERSION.SDK_INT < 36) return@Function "unsupported"
+      if (context.getSystemService(NotificationManager::class.java)?.canPostPromotedNotifications() == true) "on" else "off"
+    }
+
+    AsyncFunction<Unit>("openLiveUpdateSettings") {
+      val fallback = Intent(Settings.ACTION_APP_NOTIFICATION_SETTINGS).putExtra(Settings.EXTRA_APP_PACKAGE, context.packageName)
+      val intent = if (Build.VERSION.SDK_INT >= 36) Intent(ACTION_MANAGE_PROMOTED).putExtra(Settings.EXTRA_APP_PACKAGE, context.packageName) else fallback
+      try {
+        context.startActivity(intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK))
+      } catch (_: Exception) {
+        context.startActivity(fallback.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK))
+      }
+    }
+
     AsyncFunction<Unit>("openExactAlarmSettings") {
       if (Build.VERSION.SDK_INT < Build.VERSION_CODES.S) return@AsyncFunction
       val intent = Intent(Settings.ACTION_REQUEST_SCHEDULE_EXACT_ALARM, Uri.parse("package:${context.packageName}"))
@@ -67,6 +84,8 @@ class LiveTimerModule : Module() {
   }
 
   companion object {
+    private const val ACTION_MANAGE_PROMOTED = "android.settings.MANAGE_APP_PROMOTED_NOTIFICATIONS"
+
     @Volatile private var current: WeakReference<LiveTimerModule>? = null
 
     // Delivers a notification button tap to JS if the app is running and listening.

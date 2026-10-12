@@ -1,3 +1,6 @@
+'use no memo';
+// Widget renderers call these components as plain functions (no React runtime),
+// so the React Compiler must not add memo hooks here.
 import { HStack, Image, ProgressView, Spacer, Text, VStack } from '@expo/ui/swift-ui';
 import { font, foregroundStyle, frame, monospacedDigit, padding, tint } from '@expo/ui/swift-ui/modifiers';
 import { createLiveActivity, type LiveActivityEnvironment } from 'expo-widgets';

@@ -1,3 +1,6 @@
+'use no memo';
+// Widget renderers call these components as plain functions (no React runtime),
+// so the React Compiler must not add memo hooks here.
 import { Gauge, HStack, Image, Link, Spacer, Text, VStack } from '@expo/ui/swift-ui';
 import { background, containerBackground, cornerRadius, font, foregroundStyle, gaugeStyle, padding, tint, widgetURL } from '@expo/ui/swift-ui/modifiers';
 import { createWidget, type WidgetEnvironment } from 'expo-widgets';

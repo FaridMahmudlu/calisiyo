@@ -1,14 +1,16 @@
 import * as Application from 'expo-application';
+import * as Device from 'expo-device';
 import { Stack } from 'expo-router';
-import { Ban, Bell, Check, Database, Download, Eye, FileText, Fingerprint, LockKeyhole, LogOut, Monitor, Moon, Save, Smartphone, Sun, Trash2, UserRound } from 'lucide-react-native';
+import { Ban, Bell, Check, Database, Download, Eye, FileText, Fingerprint, LayoutDashboard, LockKeyhole, LogOut, Monitor, Moon, Radio, Save, Smartphone, Sun, Trash2, UserRound, Zap } from 'lucide-react-native';
 import { useEffect, useState } from 'react';
-import { Linking, Pressable, StyleSheet, View } from 'react-native';
+import { AppState, Linking, Pressable, StyleSheet, View } from 'react-native';
 import { PASSWORD_MIN_LENGTH, passwordValidationMessage } from '@shared/utils/password';
-import { Button, Card, IconButton, ListItem, Screen, SectionHeader, Sheet, SwitchRow, Text, TextField, useToast } from '@/components/ui';
+import { Button, Card, Dialog, IconButton, ListItem, Screen, SectionHeader, Sheet, SwitchRow, Text, TextField, useToast } from '@/components/ui';
 import { AlanPicker, YearPicker } from '@/features/auth/AlanPicker';
 import { isDeviceRegisteredForPush, notificationPermission, registerDeviceForPush, unregisterDeviceForPush } from '@/features/notifications/push';
 import { useBlockActions, useBlockedUsers } from '@/features/moderation/moderation';
 import { useBiometric } from '@/features/security/BiometricGate';
+import { liveUpdatesStatus, openLiveUpdateSettings } from '@/features/timer/liveActions';
 import { api } from '@/lib/api';
 import { LEGAL_LINKS, openWebPage } from '@/lib/browser';
 import { shareTextFile } from '@/lib/share';
@@ -19,6 +21,7 @@ import { useAccount } from '@/providers/AccountProvider';
 import { useAuth } from '@/providers/AuthProvider';
 import { useTheme, type ThemePreference } from '@/theme/ThemeProvider';
 import { radius, space } from '@/theme/tokens';
+import { canPinWidgets, pinWidget, type PinnableWidget } from '@/widgets/pin';
 
 const DATA_TABLES = ['profiles', 'gunluk_gorevler', 'kaynaklarim', 'yapamadiklari', 'tekrarlar', 'denemeler', 'deneme_detaylari', 'calisma_suresi', 'notlar', 'konu_takibi', 'notifications'];
 const DELETE_CONFIRMATION = 'HESABIMI SIL';
@@ -52,6 +55,28 @@ export default function SettingsScreen() {
 
   useEffect(() => { notificationPermission().then(setPermission).catch(() => undefined); }, [pushState]);
   const patch = <T extends object>(setter: (value: T) => void, value: T) => { setter(value); setDirty(true); };
+
+  // Live Update access can change in system settings while the screen is open.
+  const [liveStatus, setLiveStatus] = useState(liveUpdatesStatus);
+  useEffect(() => {
+    const subscription = AppState.addEventListener('change', (status) => { if (status === 'active') setLiveStatus(liveUpdatesStatus()); });
+    return () => subscription.remove();
+  }, []);
+
+  const addWidget = async (widget: PinnableWidget) => {
+    if (!(await pinWidget(widget))) toast.show('Ana ekranda boş bir alana uzun bas, “Widget’lar”a dokun ve listeden Planliyo’yu seç.');
+  };
+
+  // Samsung keeps the Now Bar closed to third-party Live Updates unless this developer option is on.
+  const isSamsung = /samsung/i.test(Device.manufacturer || '');
+  const openLiveSettings = () => {
+    if (!isSamsung) { openLiveUpdateSettings(); return; }
+    Dialog.alert('Canlı kronometre ve Now Bar', 'Çalışan süren durum çubuğunda, kilit ekranında ve bildirim panelinde canlı görünür. Samsung, kilit ekranının altındaki Now Bar’ı şimdilik yalnızca onayladığı uygulamalara açıyor. Planliyo’yu orada da görmek istersen: Ayarlar → Geliştirici seçenekleri → “Tüm uygulamalar için canlı bildirimler”i aç.', [
+      { text: 'Kapat', style: 'cancel' },
+      { text: 'Canlı bildirim ayarları', onPress: openLiveUpdateSettings },
+      { text: 'Geliştirici seçenekleri', onPress: () => { Linking.sendIntent('android.settings.APPLICATION_DEVELOPMENT_SETTINGS').catch(() => Linking.openSettings()); } },
+    ], { icon: Radio, tone: 'info' });
+  };
 
   const save = async () => {
     if (form.fullName.trim().length < 2) return toast.error('Ad soyad en az 2 karakter olmalıdır.');
@@ -168,6 +193,23 @@ export default function SettingsScreen() {
           </View>
         ) : null}
       </Card>
+
+      {canPinWidgets ? (
+        <>
+          <SectionHeader title="Ana ekran ve kilit ekranı" />
+          <Card padded={false} style={{ overflow: 'hidden' }}>
+            <ListItem icon={LayoutDashboard} title="Bugün widget’ı" subtitle="Serin, bugünkü odak süren, görevlerin ve hızlı başlat düğmesi." chevron={false}
+              onPress={() => addWidget('today')} right={<Text variant="captionStrong" color="primary">Ekle</Text>} />
+            <ListItem icon={Zap} iconColor={colors.warning} title="Hızlı Odak widget’ı" subtitle="Tek dokunuşla odak oturumu başlatır." chevron={false}
+              onPress={() => addWidget('quickFocus')} right={<Text variant="captionStrong" color="primary">Ekle</Text>} />
+            {liveStatus !== 'unsupported' ? (
+              <ListItem icon={Radio} iconColor={colors.info} title="Canlı kronometre"
+                subtitle={liveStatus === 'on' ? `Açık · Süren durum çubuğunda ve kilit ekranında görünür.${isSamsung ? ' Now Bar için dokun.' : ''}` : 'Kapalı · Açmak için dokun.'}
+                onPress={openLiveSettings} />
+            ) : null}
+          </Card>
+        </>
+      ) : null}
 
       <SectionHeader title="Güvenlik" />
       <Card padded={false} style={{ overflow: 'hidden' }}>

@@ -8,6 +8,11 @@ import { useAccount } from '@/providers/AccountProvider';
 
 export type AppNotification = { id: string; kind: string; title: string; body: string; action_url: string | null; read_at: string | null; created_at: string };
 
+// Opening a push notification from the system tray counts as reading it.
+export async function markNotificationRead(id: string) {
+  await supabase.from('notifications').update({ read_at: new Date().toISOString() }).eq('id', id).is('read_at', null);
+}
+
 const TABLES = ['notifications'];
 
 export function useNotifications() {
@@ -42,14 +47,22 @@ export function useNotifications() {
   const refetch = query.refetch;
   useRealtimeRefresh({ tables: TABLES, userId, onChange: refetch });
 
-  const setRead = useCallback((ids: string[] | 'all') => {
+  // Optimistic, but the update is always sent and rolled back if the server rejects it.
+  const setRead = useCallback(async (ids: string[] | 'all') => {
+    if (!userId) return;
     const readAt = new Date().toISOString();
-    queryClient.setQueryData<AppNotification[]>(['notifications', userId], (items = []) => items.map((item) => (
+    const cacheKey = ['notifications', userId];
+    const previous = queryClient.getQueryData<AppNotification[]>(cacheKey);
+    queryClient.setQueryData<AppNotification[]>(cacheKey, (items = []) => items.map((item) => (
       ids === 'all' || ids.includes(item.id) ? { ...item, read_at: item.read_at || readAt } : item
     )));
-    let request = supabase.from('notifications').update({ read_at: readAt }).eq('user_id', userId!).is('read_at', null);
+    let request = supabase.from('notifications').update({ read_at: readAt }).eq('user_id', userId).is('read_at', null);
     if (ids !== 'all') request = request.in('id', ids);
-    return request;
+    const { error } = await request;
+    if (error) {
+      queryClient.setQueryData(cacheKey, previous);
+      throw new Error('Bildirimler okundu olarak işaretlenemedi. Bağlantını kontrol edip tekrar dene.');
+    }
   }, [queryClient, userId]);
 
   const items = query.data || [];

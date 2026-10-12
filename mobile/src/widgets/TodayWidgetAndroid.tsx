@@ -1,3 +1,6 @@
+'use no memo';
+// Widget renderers call these components as plain functions (no React runtime),
+// so the React Compiler must not add memo hooks here.
 import { FlexWidget, OverlapWidget, SvgWidget, TextWidget } from 'react-native-android-widget';
 import type { WidgetSnapshot } from './snapshot';
 import { DAILY_GOAL_MINUTES, focusButton, progressRing } from './widgetArt';
