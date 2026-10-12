@@ -43,7 +43,8 @@ let client: PostHog | null = null;
 
 function analyticsClient() {
   if (!env.posthogKey || consent !== 'accepted') return null;
-  client ??= new PostHog(env.posthogKey, { host: env.posthogHost, personProfiles: 'identified_only', captureAppLifecycleEvents: true });
+  // disableGeoip: no IP-derived location is stored (Play Data safety declares no location data).
+  client ??= new PostHog(env.posthogKey, { host: env.posthogHost, personProfiles: 'identified_only', captureAppLifecycleEvents: true, disableGeoip: true });
   return client;
 }
 
