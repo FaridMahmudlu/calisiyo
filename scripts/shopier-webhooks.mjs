@@ -6,6 +6,9 @@ const token = String(process.env.SHOPIER_ACCESS_TOKEN || '').trim();
 const siteUrl = String(process.env.NEXT_PUBLIC_SITE_URL || '').trim().replace(/\/$/, '');
 const callbackUrl = `${siteUrl}/api/billing/shopier/webhook`;
 const createMissing = process.argv.includes('--create');
+// --prune removes webhooks for the same events that point to an old callback
+// (e.g. after a domain move). It only runs once the current callback is complete.
+const pruneStale = process.argv.includes('--prune');
 const outputFlag = process.argv.indexOf('--secret-output');
 const secretOutput = outputFlag >= 0 ? process.argv[outputFlag + 1] : '';
 
@@ -40,6 +43,15 @@ const missing = SHOPIER_WEBHOOK_EVENTS.filter((event) => !existing.some(
   (hook) => hook.event === event && String(hook.url || '').replace(/\/$/, '') === callbackUrl,
 ));
 if (!missing.length) {
+  const stale = existing.filter((hook) => SHOPIER_WEBHOOK_EVENTS.includes(hook.event) && String(hook.url || '').replace(/\/$/, '') !== callbackUrl);
+  if (pruneStale) {
+    for (const hook of stale) {
+      await client.deleteWebhook(hook.id);
+      console.log(JSON.stringify({ deleted: hook.id, event: hook.event, url: hook.url }));
+    }
+  } else if (stale.length) {
+    console.log(`Eski adrese bağlı ${stale.length} webhook var; kaldırmak için --prune kullan.`);
+  }
   console.log('Gerekli Shopier webhookları zaten kayıtlı; yeni kayıt oluşturulmadı.');
   process.exit(0);
 }
