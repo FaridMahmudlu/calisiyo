@@ -32,7 +32,7 @@ export default function SifreYenilePage() {
   return (
     <main className="auth-shell auth-single">
       <section className="auth-card confirmation-card recovery-card">
-        <Link href="/" className="public-brand confirmation-brand" aria-label="calisiyo ana sayfa"><BrandLogo priority /></Link>
+        <Link href="/" className="public-brand confirmation-brand" aria-label="planliyo ana sayfa"><BrandLogo priority /></Link>
         <span className="confirmation-icon">{saved ? <CheckCircle2 size={26} /> : <Lock size={26} />}</span>
         <h2>{saved ? 'Şifren güncellendi' : 'Yeni şifre oluştur'}</h2>
         <p>{saved ? 'Yeni şifrenle hesabına güvenle devam edebilirsin.' : 'En az 10 karakter; büyük/küçük harf, rakam ve özel karakter içeren yeni şifreni gir.'}</p>

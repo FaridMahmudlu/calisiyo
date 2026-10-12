@@ -28,7 +28,7 @@ class LiveTimerModule : Module() {
       ensureChannel()
       val endsAtMillis = endsAt.toLong()
       val accent = if (isBreak) 0xFFF59E0B.toInt() else 0xFF00A870.toInt()
-      val launch = Intent(Intent.ACTION_VIEW, Uri.parse("calisiyo://kronometre")).apply {
+      val launch = Intent(Intent.ACTION_VIEW, Uri.parse("planliyo://kronometre")).apply {
         setPackage(context.packageName)
         flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP
       }

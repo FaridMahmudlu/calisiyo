@@ -45,7 +45,7 @@ export function BiometricGate({ active, children }: { active: boolean; children:
     if (prompting.current) return;
     prompting.current = true;
     LocalAuthentication.authenticateAsync({
-      promptMessage: 'Calisiyo’yu aç',
+      promptMessage: 'Planliyo’yu aç',
       cancelLabel: 'Vazgeç',
       fallbackLabel: 'Cihaz şifresini kullan',
       disableDeviceFallback: false,
@@ -93,7 +93,7 @@ export function BiometricGate({ active, children }: { active: boolean; children:
       {locked && active && enabled ? (
         <Animated.View entering={FadeIn} exiting={FadeOut} style={[StyleSheet.absoluteFill, styles.lock, { backgroundColor: colors.background }]}>
           <View style={[styles.icon, { backgroundColor: colors.primarySoft }]}><LockKeyhole size={30} color={colors.primary} /></View>
-          <Text variant="title" align="center">Calisiyo kilitli</Text>
+          <Text variant="title" align="center">Planliyo kilitli</Text>
           <Text variant="body" color="textMuted" align="center">Devam etmek için {hardware.label.toLocaleLowerCase('tr-TR')} ile doğrula.</Text>
           <Button title="Kilidi aç" icon={Fingerprint} onPress={unlock} style={{ marginTop: space.lg, minWidth: 200 }} />
         </Animated.View>

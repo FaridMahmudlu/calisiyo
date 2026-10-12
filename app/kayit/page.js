@@ -209,7 +209,7 @@ export default function KayitPage() {
   return (
     <main className="auth-shell">
       <section className="auth-side">
-        <Link href="/" className="public-brand" aria-label="calisiyo ana sayfa"><BrandLogo priority /></Link>
+        <Link href="/" className="public-brand" aria-label="planliyo ana sayfa"><BrandLogo priority /></Link>
         <div>
           <span className="public-kicker">İlk adım</span>
           <h1>Çalışma sistemini alanına göre kur.</h1>
@@ -224,7 +224,7 @@ export default function KayitPage() {
 
       <section className="auth-form-panel">
         <div className="auth-card signup-card">
-          <Link href="/" className="public-brand auth-mobile-brand" aria-label="calisiyo ana sayfa"><BrandLogo priority /></Link>
+          <Link href="/" className="public-brand auth-mobile-brand" aria-label="planliyo ana sayfa"><BrandLogo priority /></Link>
           <div className="step-indicator"><span className="is-active">1</span><i /><span className={step === 2 ? 'is-active' : ''}>2</span></div>
           <h2>Hesap oluştur</h2>
           <p>{step === 1 ? 'E-posta veya sosyal hesabınla ücretsiz başla.' : 'Hazırlandığın alanı seç.'}</p>

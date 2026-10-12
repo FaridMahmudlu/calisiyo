@@ -115,7 +115,7 @@ export function ClassroomChat({ groupId, userId, canChat, isOwner, messages, onE
 
   const startRecording = async () => {
     const permission = await requestRecordingPermissionsAsync();
-    if (!permission.granted) return onError('Mikrofon izni kapalı. Ayarlar’dan Calisiyo için mikrofona izin verebilirsin.');
+    if (!permission.granted) return onError('Mikrofon izni kapalı. Ayarlar’dan Planliyo için mikrofona izin verebilirsin.');
     setAttachment(null);
     await setAudioModeAsync({ allowsRecording: true, playsInSilentMode: true });
     await recorder.prepareToRecordAsync();

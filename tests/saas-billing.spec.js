@@ -34,13 +34,13 @@ test.describe('SaaS pricing, legal and billing safety', () => {
     await page.setViewportSize({ width: 1440, height: 1000 });
     await page.goto('/paketler');
     await expect(page.getByRole('heading', { name: /İki plan/ })).toBeVisible();
-    await expect(page.getByRole('heading', { name: 'calisiyo ücretsiz' })).toBeVisible();
-    await expect(page.getByRole('heading', { name: 'calisiyo plus' })).toBeVisible();
+    await expect(page.getByRole('heading', { name: 'planliyo ücretsiz' })).toBeVisible();
+    await expect(page.getByRole('heading', { name: 'planliyo plus' })).toBeVisible();
     const plusCard = page.locator('.pricing-card.is-popular');
     await expect(plusCard.getByText(/₺2\.500/)).toBeVisible();
     await page.getByRole('button', { name: /YKS 2028/ }).click();
     await expect(plusCard.getByText(/₺4\.500/)).toBeVisible();
-    await expect(page.getByRole('link', { name: 'calisiyo.destek@gmail.com' })).toBeVisible();
+    await expect(page.getByRole('link', { name: 'destek@planliyo.com.tr' })).toBeVisible();
     await expect(page.getByText(/Şehit ve gazi yakınlarından/)).toBeVisible();
     await expect(page.getByRole('dialog', { name: 'Çerez tercihleri' })).toBeVisible();
     expect(analyticsRequests).toHaveLength(0);
@@ -106,7 +106,7 @@ test.describe('SaaS pricing, legal and billing safety', () => {
     await expect(page).toHaveURL(/\/dashboard\/abonelik\?plan=plus_2027/);
     await expect(page.getByRole('heading', { name: 'İki plan, tek net seçim' })).toBeVisible();
     await page.getByRole('button', { name: /Satın al/ }).click();
-    await expect(page.getByRole('dialog', { name: /calisiyo plus · YKS 2027/ })).toBeVisible();
+    await expect(page.getByRole('dialog', { name: /planliyo plus · YKS 2027/ })).toBeVisible();
     await expect(page.getByRole('button', { name: /Shopier ile ödemeye geç/ })).toBeDisabled();
     await expect(page.getByText('Satışa hazırlık tamamlanıyor')).toBeVisible();
     const billing = await page.evaluate(async () => (await fetch('/api/billing')).json());

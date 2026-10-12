@@ -127,7 +127,7 @@ export default function SignupScreen() {
   if (confirmationSent) {
     return (
       <AuthScaffold title="E-postanı kontrol et" subtitle={`Hesabını etkinleştirmek için ${form.email} adresine gönderilen bağlantıya dokun.`} back={false}>
-        <Notice tone="success" icon={MailCheck}>Bağlantıyı bu telefonda açarsan Calisiyo otomatik olarak giriş yapar.</Notice>
+        <Notice tone="success" icon={MailCheck}>Bağlantıyı bu telefonda açarsan Planliyo otomatik olarak giriş yapar.</Notice>
         <Button title="Giriş sayfasına dön" variant="secondary" size="lg" onPress={() => router.replace('/giris')} />
       </AuthScaffold>
     );

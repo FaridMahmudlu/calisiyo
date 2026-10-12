@@ -1,10 +1,10 @@
-# Calisiyo SEO, AEO ve AI arama hazırlığı
+# Planliyo SEO, AEO ve AI arama hazırlığı
 
 Son doğrulama: 30 Ağustos 2026
 
 ## Tek canonical varlık kaynağı
 
-Üretimdeki canonical origin `NEXT_PUBLIC_SITE_URL` değeridir (`https://calisiyo.com.tr`). Değişken tanımlı değilse fallback da `https://calisiyo.com.tr` olur. Eski `calisiyo-theta.vercel.app` ve `www.calisiyo.com.tr` hostları `next.config.mjs` içinde `/api` dışındaki tüm yollar için 308 ile `https://calisiyo.com.tr` adresine yönlendirilir. İsim, destek adresi, logo, sosyal görsel, canonical origin ve isteğe bağlı resmî sosyal hesaplar `lib/seo/site.js` üzerinden üretilir.
+Üretimdeki canonical origin `NEXT_PUBLIC_SITE_URL` değeridir (`https://planliyo.com.tr`). Değişken tanımlı değilse fallback da `https://planliyo.com.tr` olur. `next.config.mjs` içindeki `BRAND_HOSTS` listesinde olup canonical olmayan her host (`www.planliyo.com.tr`, eski `calisiyo.com.tr`, `www.calisiyo.com.tr`, `calisiyo-theta.vercel.app` ve yedek alan adları) `/api` dışındaki tüm yollar için 308 ile canonical origin'e yönlendirilir. Canonical host `NEXT_PUBLIC_SITE_URL` değerinden türetildiği için alan adı geçişi yalnızca bu değişkeni güncelleyip yeniden dağıtarak yapılır; `/api` her hostta erişilebilir kalır (eski uygulama sürümleri ve webhook'lar bozulmaz). İsim, destek adresi, logo, sosyal görsel, canonical origin ve isteğe bağlı resmî sosyal hesaplar `lib/seo/site.js` üzerinden üretilir.
 
 `NEXT_PUBLIC_OFFICIAL_SOCIAL_URLS`, yalnızca doğrulanmış HTTPS profil URL'lerinin virgülle ayrılmış listesi olmalıdır. Boşsa Organization şemasına yapay `sameAs` eklenmez.
 
@@ -124,8 +124,8 @@ Kod deposu dışında tamamlanması gerekenler:
 2. Yeni canonical property'yi Google Search Console ve Bing Webmaster Tools içinde doğrula; sitemap'i iki platforma da gönder.
 3. Ana sayfa, Özellikler, Rehber ve Paketler gibi öncelikli URL'leri incele; indeksleme ve Core Web Vitals durumunu zaman içinde izle.
 4. IndexNow kullanılacaksa anahtar üret, aynı origin üzerinde anahtar dosyasını yayınla ve yalnızca anlamlı değişikliklerden sonra bildirim gönder.
-5. Otterly veya kullanılan başka izleme aracındaki marka adını “Calisiyo” yap; Türkçe/Türkiye odaklı gerçek kullanıcı sorularını takip et.
-6. Yalnızca gerçekten Calisiyo'ya ait sosyal profil URL'lerini `NEXT_PUBLIC_OFFICIAL_SOCIAL_URLS` içine ekle.
+5. Otterly veya kullanılan başka izleme aracındaki marka adını “Planliyo” yap; Türkçe/Türkiye odaklı gerçek kullanıcı sorularını takip et.
+6. Yalnızca gerçekten Planliyo'ya ait sosyal profil URL'lerini `NEXT_PUBLIC_OFFICIAL_SOCIAL_URLS` içine ekle.
 7. Gerçek eğitim üreticileri, öğretmenler ve topluluklarla doğrulanabilir iş birlikleri kur; sahte bağlantı, yorum veya atıf üretme.
 8. Google, Bing ve ChatGPT kaynaklı organik görünürlük/atıfları düzenli aralıklarla izle. Hiçbir teknik değişiklik sıralama veya atıf garantisi vermez.
 

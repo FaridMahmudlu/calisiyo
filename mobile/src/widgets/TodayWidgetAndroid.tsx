@@ -11,14 +11,14 @@ export function TodayWidgetAndroid({ snapshot, compact }: { snapshot: WidgetSnap
   if (!snapshot.signedIn) {
     return (
       <FlexWidget clickAction="OPEN_APP" style={{ height: 'match_parent', width: 'match_parent', backgroundColor: '#FFFFFF', borderRadius: 22, padding: 14, justifyContent: 'center' }}>
-        <TextWidget text="Calisiyo" style={{ fontSize: 16, fontWeight: '700', color: GREEN }} />
+        <TextWidget text="Planliyo" style={{ fontSize: 16, fontWeight: '700', color: GREEN }} />
         <TextWidget text="Giriş yaparak serini burada gör." style={{ fontSize: 12, color: MUTED, marginTop: 4 }} />
       </FlexWidget>
     );
   }
   const goalPct = Math.min(100, Math.round((snapshot.todayMinutes / 30) * 100));
   return (
-    <FlexWidget clickAction="OPEN_URI" clickActionData={{ uri: 'calisiyo://' }}
+    <FlexWidget clickAction="OPEN_URI" clickActionData={{ uri: 'planliyo://' }}
       style={{ height: 'match_parent', width: 'match_parent', backgroundColor: '#FFFFFF', borderRadius: 22, padding: 14, flexDirection: 'column', justifyContent: 'space-between' }}>
       <FlexWidget style={{ flexDirection: 'row', alignItems: 'center', width: 'match_parent', justifyContent: 'space-between' }}>
         <FlexWidget style={{ flexDirection: 'row', alignItems: 'center' }}>
@@ -38,10 +38,10 @@ export function TodayWidgetAndroid({ snapshot, compact }: { snapshot: WidgetSnap
       </FlexWidget>
       {!compact ? (
         <FlexWidget style={{ flexDirection: 'row', width: 'match_parent' }}>
-          <FlexWidget clickAction="OPEN_URI" clickActionData={{ uri: 'calisiyo://kronometre' }} style={{ backgroundColor: GREEN, borderRadius: 14, paddingHorizontal: 12, paddingVertical: 6 }}>
+          <FlexWidget clickAction="OPEN_URI" clickActionData={{ uri: 'planliyo://kronometre' }} style={{ backgroundColor: GREEN, borderRadius: 14, paddingHorizontal: 12, paddingVertical: 6 }}>
             <TextWidget text="▶ Kronometre" style={{ fontSize: 12, fontWeight: '700', color: '#FFFFFF' }} />
           </FlexWidget>
-          <FlexWidget clickAction="OPEN_URI" clickActionData={{ uri: 'calisiyo://program' }} style={{ backgroundColor: '#EEF2F6', borderRadius: 14, paddingHorizontal: 12, paddingVertical: 6, marginLeft: 8 }}>
+          <FlexWidget clickAction="OPEN_URI" clickActionData={{ uri: 'planliyo://program' }} style={{ backgroundColor: '#EEF2F6', borderRadius: 14, paddingHorizontal: 12, paddingVertical: 6, marginLeft: 8 }}>
             <TextWidget text="Bugünkü plan" style={{ fontSize: 12, fontWeight: '700', color: INK }} />
           </FlexWidget>
         </FlexWidget>

@@ -8,9 +8,9 @@ self.addEventListener('activate', (event) => {
 
 self.addEventListener('push', (event) => {
   const payload = event.data ? event.data.json() : {};
-  event.waitUntil(self.registration.showNotification(payload.title || 'calisiyo', {
+  event.waitUntil(self.registration.showNotification(payload.title || 'planliyo', {
     body: payload.body || 'Yeni bir bildirimin var.',
-    icon: '/brand/calisiyo-mark-192.png',
+    icon: '/brand/planliyo-mark-192.png',
     badge: '/brand/favicon-48x48.png',
     tag: payload.tag || 'calisiyo-notification',
     data: { url: payload.url || '/dashboard' },

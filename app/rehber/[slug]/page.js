@@ -23,7 +23,7 @@ export async function generateMetadata({ params }) {
     description: guide.description,
     alternates: { canonical: `/rehber/${guide.slug}` },
     openGraph: {
-      title: `${guide.title} · calisiyo`,
+      title: `${guide.title} · planliyo`,
       description: guide.description,
       url: `/rehber/${guide.slug}`,
       type: 'article',
@@ -92,7 +92,7 @@ export default async function GuidePage({ params }) {
           <span className="public-kicker">{guide.kicker}</span>
           <h1>{guide.title}</h1>
           <p className="guide-lead">{guide.summary}</p>
-          <div className="content-hero-meta"><Link href="/hakkimizda">Calisiyo Editoryal</Link><time dateTime={guide.updatedAt}>Güncellendi: {formatEditorialDate(guide.updatedAt)}</time></div>
+          <div className="content-hero-meta"><Link href="/hakkimizda">Planliyo Editoryal</Link><time dateTime={guide.updatedAt}>Güncellendi: {formatEditorialDate(guide.updatedAt)}</time></div>
         </header>
 
         <div className="guide-article-layout">
@@ -101,7 +101,7 @@ export default async function GuidePage({ params }) {
             <section className="guide-direct-answer" aria-label="Kısa cevap"><span>Kısa cevap</span><p>{guide.answer}</p></section>
             {guide.sections.map((section, index) => <GuideSection key={section.title} section={section} index={index} />)}
 
-            {feature && <aside className="guide-feature-link"><span>Calisiyo’da uygula</span><h2>{feature.shortTitle}</h2><p>{feature.description}</p><Link href={`/ozellikler/${feature.slug}`}>Özelliği incele <PiArrowRight /></Link></aside>}
+            {feature && <aside className="guide-feature-link"><span>Planliyo’da uygula</span><h2>{feature.shortTitle}</h2><p>{feature.description}</p><Link href={`/ozellikler/${feature.slug}`}>Özelliği incele <PiArrowRight /></Link></aside>}
 
             {guide.sources.length > 0 && <section className="guide-sources" aria-labelledby="kaynaklar"><h2 id="kaynaklar">Resmî kaynak</h2>{guide.sources.map((source) => <p key={source.href}><PiLink /><span><a href={source.href} target="_blank" rel="noopener noreferrer">{source.label}</a><small>{source.note}</small></span></p>)}</section>}
 

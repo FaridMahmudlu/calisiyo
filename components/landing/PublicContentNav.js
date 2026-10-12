@@ -4,7 +4,7 @@ import BrandLogo from '@/components/brand/BrandLogo';
 export default function PublicContentNav() {
   return (
     <nav className="story-nav content-nav" aria-label="Ana navigasyon">
-      <Link href="/" className="public-brand" aria-label="calisiyo ana sayfa"><BrandLogo priority /></Link>
+      <Link href="/" className="public-brand" aria-label="planliyo ana sayfa"><BrandLogo priority /></Link>
       <div className="story-nav-links">
         <Link href="/ozellikler">Özellikler</Link>
         <Link href="/rehber">Rehber</Link>

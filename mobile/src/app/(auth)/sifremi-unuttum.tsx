@@ -33,7 +33,7 @@ export default function ForgotPasswordScreen() {
     >
       {sent ? (
         <View style={{ gap: 16 }}>
-          <Notice tone="success" icon={MailCheck}>Bağlantıyı bu telefonda açtığında Calisiyo uygulaması açılır ve yeni şifreni belirleyebilirsin.</Notice>
+          <Notice tone="success" icon={MailCheck}>Bağlantıyı bu telefonda açtığında Planliyo uygulaması açılır ve yeni şifreni belirleyebilirsin.</Notice>
           <Button title="Giriş sayfasına dön" variant="secondary" size="lg" onPress={() => router.replace('/giris')} />
         </View>
       ) : (

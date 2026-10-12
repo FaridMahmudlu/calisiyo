@@ -1,4 +1,4 @@
-# calisiyo Shopier yayına alma kontrol listesi
+# planliyo Shopier yayına alma kontrol listesi
 
 Ücretli satış, aşağıdaki koşulların tamamı doğrulanana kadar uygulamadaki readiness kapısı tarafından kapalı tutulur. Shopier Personal Access Token ve webhook tokenları hiçbir zaman GitHub'a, tarayıcıya veya `NEXT_PUBLIC_` değişkenine yazılmamalıdır.
 
@@ -7,7 +7,7 @@
 - Shopier hesabındaki satıcı kimliğiyle uyumlu resmi ad-soyad; şirketleşme halinde ticari unvan
 - Vergi kimlik veya MERSİS bilgisi yalnızca satıcının hukuki/vergi statüsünde zorunluysa
 - Shopier hesabında doğrulanmış mağaza/ödeme bilgileri
-- `calisiyo.destek@gmail.com`, telefon ve açık adres
+- `destek@planliyo.com.tr`, telefon ve açık adres
 - Shopier ürün fiyatlarının sırasıyla 2.500 TRY ve 4.500 TRY olması
 
 ## 2. Server-only production değişkenleri
@@ -15,7 +15,7 @@
 ```text
 CALISIYO_LEGAL_NAME=<resmi ad/unvan>
 CALISIYO_TAX_OR_MERSIS_NUMBER=<resmi vergi veya MERSİS numarası>
-CALISIYO_SUPPORT_EMAIL=calisiyo.destek@gmail.com
+CALISIYO_SUPPORT_EMAIL=destek@planliyo.com.tr
 SHOPIER_ACCESS_TOKEN=<Personal Access Token>
 SHOPIER_PRODUCT_ID_2027=<API ürün kimliği>
 SHOPIER_PRODUCT_ID_2028=<API ürün kimliği>
@@ -47,7 +47,7 @@ doğrulama bayrakları `true` yapılmalıdır.
 Production endpoint:
 
 ```text
-POST https://calisiyo.com.tr/api/billing/shopier/webhook
+POST https://planliyo.com.tr/api/billing/shopier/webhook
 ```
 
 Gerekli olaylar `order.created` ve `refund.updated` olaylarıdır. Önce mevcut kayıtları güvenli biçimde denetle:

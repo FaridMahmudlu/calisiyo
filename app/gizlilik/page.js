@@ -5,7 +5,7 @@ import { getLegalBusinessConfig } from '@/lib/billing/config';
 
 export const metadata = {
   title: 'Gizlilik Politikası',
-  description: 'calisiyo YKS Çalışma Koçu platformunun gizlilik politikası ve kişisel veri işleme esasları.',
+  description: 'planliyo YKS Çalışma Koçu platformunun gizlilik politikası ve kişisel veri işleme esasları.',
   alternates: { canonical: '/gizlilik' },
 };
 
@@ -14,7 +14,7 @@ export default function GizlilikPage() {
   return (
     <main className="story-landing">
       <nav className="story-nav" aria-label="Ana navigasyon">
-        <Link href="/" className="public-brand" aria-label="calisiyo ana sayfa">
+        <Link href="/" className="public-brand" aria-label="planliyo ana sayfa">
           <BrandLogo priority />
         </Link>
         <div className="landing-auth">
@@ -33,11 +33,11 @@ export default function GizlilikPage() {
         <section className="legal-content">
           <h2>1. Giriş ve Kapsam</h2>
           <p>
-            <strong>calisiyo</strong> (“Platform”), YKS (TYT, AYT, YDT) sınavlarına hazırlanan öğrencilerin çalışma programlarını düzenlemelerini, çalışma sürelerini ve deneme sonuçlarını takip etmelerini sağlayan dijital çalışma koçu hizmetidir. İşbu Gizlilik Politikası, calisiyo’yu ziyaret eden ve kullanan tüm kullanıcılarımızın (“Kullanıcı”) kişisel verilerinin nasıl toplandığını, kullanıldığını, saklandığını ve korunduğunu açıklamaktadır.
+            <strong>planliyo</strong> (“Platform”), YKS (TYT, AYT, YDT) sınavlarına hazırlanan öğrencilerin çalışma programlarını düzenlemelerini, çalışma sürelerini ve deneme sonuçlarını takip etmelerini sağlayan dijital çalışma koçu hizmetidir. İşbu Gizlilik Politikası, planliyo’yu ziyaret eden ve kullanan tüm kullanıcılarımızın (“Kullanıcı”) kişisel verilerinin nasıl toplandığını, kullanıldığını, saklandığını ve korunduğunu açıklamaktadır.
           </p>
 
           <h2>2. Toplanan Kişisel Veriler</h2>
-          <p>calisiyo platformunda hizmet sunabilmek amacıyla yalnızca gerekli olan veriler toplanmaktadır:</p>
+          <p>planliyo platformunda hizmet sunabilmek amacıyla yalnızca gerekli olan veriler toplanmaktadır:</p>
           <ul>
             <li><strong>Kimlik ve İletişim Bilgileri:</strong> Ad soyad, e-posta adresi, şifrelenmiş kimlik doğrulama parolası.</li>
             <li><strong>Akademik ve Alan Seçim Verileri:</strong> YKS hazırlık alanı (Sayısal, Eşit Ağırlık, Sözel, Dil), hedef üniversite/bölüm bilgileri.</li>
@@ -57,7 +57,7 @@ export default function GizlilikPage() {
 
           <h2>4. 18 Yaş Altı Kullanıcılar ve Veli Bildirimi</h2>
           <p>
-            calisiyo, YKS sınavına hazırlanan 18 yaş altı lise öğrencileri tarafından da kullanılmaktadır. 18 yaşından küçük kullanıcılarımızın platforma kaydolurken velilerinin veya kanuni temsilcilerinin bilgisi dahlinde hareket ettikleri kabul edilir. 18 yaş altı kullanıcılarımızdan yalnızca eğitim ve çalışma takibi için zorunlu olan asgari kişisel veriler talep edilmektedir.
+            planliyo, YKS sınavına hazırlanan 18 yaş altı lise öğrencileri tarafından da kullanılmaktadır. 18 yaşından küçük kullanıcılarımızın platforma kaydolurken velilerinin veya kanuni temsilcilerinin bilgisi dahlinde hareket ettikleri kabul edilir. 18 yaş altı kullanıcılarımızdan yalnızca eğitim ve çalışma takibi için zorunlu olan asgari kişisel veriler talep edilmektedir.
           </p>
 
           <h2>5. Üçüncü Taraflarla Veri Paylaşımı</h2>

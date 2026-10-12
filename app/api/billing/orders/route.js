@@ -74,7 +74,7 @@ export async function POST(request) {
   const number = orderNumber();
   const { hash } = createLegalSnapshot({
     planCode: plan.code,
-    planName: `calisiyo plus · ${plan.label}`,
+    planName: `planliyo plus · ${plan.label}`,
     billingPeriod,
     amount: payableAmount,
     orderNumber: number,

@@ -384,7 +384,7 @@
   color: #07875f;
 }
 
-/* Calisiyo 2026 design layer: tactile buttons shared with the dashboard. */
+/* Planliyo 2026 design layer: tactile buttons shared with the dashboard. */
 .public-button { border-width: 1.5px; border-bottom-width: 3.5px; border-radius: 12px; font-weight: 800; transition: transform .12s cubic-bezier(.22,1,.36,1), background .15s ease, border-color .15s ease, box-shadow .15s ease; }
 .public-button:hover { transform: translateY(-1px); }
 .public-button:active { transform: translateY(2px); border-bottom-width: 1.5px; margin-bottom: 2px; }

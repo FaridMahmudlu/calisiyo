@@ -115,7 +115,7 @@ export async function GET() {
     progress: bootstrap?.progress || null,
     adminRole: bootstrap?.adminRole || null,
     liveStreak: bootstrap?.liveStreak || null,
-    currentPlan: bootstrap?.currentPlan || { code: 'baslangic', name: 'calisiyo ücretsiz', status: 'free', entitlements: {} },
+    currentPlan: bootstrap?.currentPlan || { code: 'baslangic', name: 'planliyo ücretsiz', status: 'free', entitlements: {} },
     contentProducer: bootstrap?.contentProducer || { active: false, status: 'not_enrolled' },
     partial: Boolean(bootstrapError),
   });
@@ -289,7 +289,7 @@ export async function DELETE(request) {
     console.error('Account deletion failed', { code: deleteError.code || deleteError.status || 'unknown' });
     return Response.json({
       ok: false,
-      message: 'Hesabın silinemedi. Yönetici hesapları ve açık işlemler için calisiyo.destek@gmail.com adresine yazabilirsin.',
+      message: 'Hesabın silinemedi. Yönetici hesapları ve açık işlemler için destek@planliyo.com.tr adresine yazabilirsin.',
     }, { status: 409 });
   }
   return Response.json({ ok: true });

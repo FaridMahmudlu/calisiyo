@@ -173,7 +173,7 @@ export async function POST(request) {
       return Response.json({ ok: true, application: data, message: 'Başvuru gerekçesiyle birlikte reddedildi.' });
     }
     if (action === 'confirm_code') {
-      if (body.scopeConfirmed !== true) return Response.json({ ok: false, message: 'Kodun yalnızca iki calisiyo ürününe uygulandığını Shopier panelinde doğrulamalısın.' }, { status: 400 });
+      if (body.scopeConfirmed !== true) return Response.json({ ok: false, message: 'Kodun yalnızca iki planliyo ürününe uygulandığını Shopier panelinde doğrulamalısın.' }, { status: 400 });
       const providerDiscountId = String(body.providerDiscountId || '').trim();
       const { data: producerRows, error: producerError } = await session.supabase.rpc('admin_list_content_producers');
       if (producerError) throw producerError;

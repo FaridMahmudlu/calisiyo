@@ -23,7 +23,7 @@ npx expo install --fix      # fix incompatible package versions
 
 Run lint and typecheck before declaring any task done.
 
-## Project-specific notes (Calisiyo)
+## Project-specific notes (Planliyo)
 
 - Verify with `npm run typecheck`, `npm run lint`, `npx expo-doctor` and a bundle check: `npx expo export --platform android --platform ios --output-dir .expo-export-check` (delete the folder afterwards).
 - React Compiler lint rules are enforced: no `Date.now()`/refs during render (use `useNow` from `src/hooks/useNow.ts`), and no synchronous setState in effects (put updates in `.then` callbacks or derive the values).

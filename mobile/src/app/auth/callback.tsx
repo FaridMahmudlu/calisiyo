@@ -6,7 +6,7 @@ import { supabase } from '@/lib/supabase';
 import { useTheme } from '@/theme/ThemeProvider';
 import { space } from '@/theme/tokens';
 
-// Handles calisiyo://auth/callback links from confirmation and password-reset
+// Handles planliyo://auth/callback links from confirmation and password-reset
 // emails that were requested in the app (PKCE verifier lives on this device).
 export default function AuthCallbackScreen() {
   const { colors } = useTheme();

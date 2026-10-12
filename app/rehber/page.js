@@ -9,10 +9,10 @@ import { absoluteUrl, SITE } from '@/lib/seo/site';
 
 export const metadata = {
   title: 'YKS Çalışma Rehberi',
-  description: 'YKS çalışma programı, konu takibi, deneme analizi ve çalışma süresi için gerçek kayıtlara dayalı, uygulanabilir Calisiyo rehberleri.',
+  description: 'YKS çalışma programı, konu takibi, deneme analizi ve çalışma süresi için gerçek kayıtlara dayalı, uygulanabilir Planliyo rehberleri.',
   alternates: { canonical: '/rehber' },
   openGraph: {
-    title: 'YKS Çalışma Rehberi · calisiyo',
+    title: 'YKS Çalışma Rehberi · planliyo',
     description: 'Planını kurmak, çalışma kayıtlarını anlamak ve sonraki adımını belirlemek için uygulanabilir YKS rehberleri.',
     url: '/rehber',
   },
@@ -60,7 +60,7 @@ export default function GuideHubPage() {
       <PublicContentNav />
       <header className="content-hero section-shell">
         <nav className="content-breadcrumb" aria-label="İçerik yolu"><ol><li><Link href="/">Ana sayfa</Link></li><li aria-current="page">Rehber</li></ol></nav>
-        <span className="public-kicker"><PiBooks /> Calisiyo Rehber</span>
+        <span className="public-kicker"><PiBooks /> Planliyo Rehber</span>
         <h1>YKS çalışma düzenini<br />adım adım kur.</h1>
         <p>Genel motivasyon cümleleri yerine uygulanabilir çalışma kararları. Program, konu, deneme ve süre kayıtlarını aynı düzen içinde nasıl kullanacağını açık örneklerle öğren.</p>
         <div className="content-hero-meta"><time dateTime={CONTENT_UPDATED_AT}>Son güncelleme: {formatEditorialDate(CONTENT_UPDATED_AT)}</time><span>{GUIDES.length} özgün rehber</span></div>
@@ -80,10 +80,10 @@ export default function GuideHubPage() {
       </section>
 
       <section className="content-trust-band section-shell">
-        <div><span>Şeffaf hesaplama</span><h2>Calisiyo verileri neyi gösterir, neyi göstermez?</h2><p>Çalışma süresi, seri, deneme neti ve program uyumu gibi göstergelerin hangi gerçek kayıtlardan oluştuğunu açıkça incele.</p></div>
+        <div><span>Şeffaf hesaplama</span><h2>Planliyo verileri neyi gösterir, neyi göstermez?</h2><p>Çalışma süresi, seri, deneme neti ve program uyumu gibi göstergelerin hangi gerçek kayıtlardan oluştuğunu açıkça incele.</p></div>
         <Link className="public-button" href="/metodoloji">Metodolojiyi gör <PiArrowRight /></Link>
       </section>
-      <section className="guide-feature-directory section-shell"><div><span>Rehberden ürüne</span><h2>Okuduğun yöntemi Calisiyo araçlarıyla uygula.</h2></div><Link className="public-button" href="/ozellikler">Tüm özellikleri incele <PiArrowRight /></Link></section>
+      <section className="guide-feature-directory section-shell"><div><span>Rehberden ürüne</span><h2>Okuduğun yöntemi Planliyo araçlarıyla uygula.</h2></div><Link className="public-button" href="/ozellikler">Tüm özellikleri incele <PiArrowRight /></Link></section>
       <PublicFooter />
     </main>
   );

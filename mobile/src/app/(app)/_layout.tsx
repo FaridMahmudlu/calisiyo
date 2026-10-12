@@ -38,7 +38,7 @@ function AppNavigator() {
   useEffect(() => {
     if (!ready) return;
     claimPendingCreatorCode().then((ok) => {
-      if (!ok) Alert.alert('Kod ilişkilendirilemedi', 'Hesabın oluşturuldu ancak içerik üretici kodun hesabına güvenli biçimde ilişkilendirilemedi. Tam fiyatlı ödeme başlatılmadı. Yardım için calisiyo.destek@gmail.com adresine yazabilirsin.');
+      if (!ok) Alert.alert('Kod ilişkilendirilemedi', 'Hesabın oluşturuldu ancak içerik üretici kodun hesabına güvenli biçimde ilişkilendirilemedi. Tam fiyatlı ödeme başlatılmadı. Yardım için destek@planliyo.com.tr adresine yazabilirsin.');
     });
   }, [ready]);
 

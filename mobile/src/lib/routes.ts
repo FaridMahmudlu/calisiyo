@@ -12,7 +12,7 @@ const TAB_ROUTES: Record<string, string> = {
 export function appRouteFromWebPath(path?: string | null): Href | null {
   if (!path || typeof path !== 'string') return null;
   let pathname = path;
-  try { pathname = new URL(path, 'https://calisiyo.com.tr').pathname; } catch { return null; }
+  try { pathname = new URL(path, 'https://planliyo.com.tr').pathname; } catch { return null; }
   if (TAB_ROUTES[pathname]) return TAB_ROUTES[pathname] as Href;
   const classroom = pathname.match(/^\/dashboard\/arkadaslar\/([0-9a-f-]{36})$/i);
   if (classroom) return `/sinif/${classroom[1]}` as Href;

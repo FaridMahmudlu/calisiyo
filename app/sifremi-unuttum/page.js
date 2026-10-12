@@ -31,7 +31,7 @@ export default function SifremiUnuttumPage() {
   return (
     <main className="auth-shell auth-single">
       <section className="auth-card confirmation-card recovery-card">
-        <Link href="/" className="public-brand confirmation-brand" aria-label="calisiyo ana sayfa"><BrandLogo priority /></Link>
+        <Link href="/" className="public-brand confirmation-brand" aria-label="planliyo ana sayfa"><BrandLogo priority /></Link>
         <span className="confirmation-icon"><Mail size={26} /></span>
         <h2>{sent ? 'E-postanı kontrol et' : 'Şifreni yenile'}</h2>
         <p>{sent ? `${email} adresine güvenli şifre yenileme bağlantısı gönderdik.` : 'Hesabına bağlı e-posta adresini gir; sana güvenli bir yenileme bağlantısı gönderelim.'}</p>

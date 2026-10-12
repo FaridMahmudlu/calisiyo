@@ -27,7 +27,7 @@ export default function AvatarStudio({ open, onClose, initialAvatar, name, onSav
         </aside>
 
         <section className="sprite-model-picker">
-          <header><span>Görünüm koleksiyonu</span><h3>Seni en iyi yansıtan karakteri seç</h3><p>Karakterler calisiyo için özel üretilmiş, pikselsiz ve 3/4 üst görünüşlü sprite setleridir.</p></header>
+          <header><span>Görünüm koleksiyonu</span><h3>Seni en iyi yansıtan karakteri seç</h3><p>Karakterler planliyo için özel üretilmiş, pikselsiz ve 3/4 üst görünüşlü sprite setleridir.</p></header>
           <div aria-label="3 kız ve 3 erkek karakter koleksiyonu">
             {Object.entries(AVATAR_MODELS).map(([key, option]) => (
               <button type="button" key={key} className={model === key ? 'is-selected' : ''} onClick={() => setModel(key)}>

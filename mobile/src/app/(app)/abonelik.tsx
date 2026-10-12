@@ -18,7 +18,7 @@ type Billing = { currentPlan?: { code: string; name: string; status: string; tri
 const longDate = (value: string) => new Intl.DateTimeFormat('tr-TR', { dateStyle: 'long' }).format(new Date(value));
 
 // Package status screen. Purchases are not offered inside the app (store
-// payment policies); Plus bought on calisiyo.com.tr unlocks here automatically.
+// payment policies); Plus bought on planliyo.com.tr unlocks here automatically.
 export default function PackageScreen() {
   const { colors } = useTheme();
   const toast = useToast();
@@ -34,7 +34,7 @@ export default function PackageScreen() {
     setBusy('trial');
     try {
       await api('/api/billing/trial', { method: 'POST', body: { planCode: selected } });
-      toast.success('7 günlük calisiyo plus denemen başladı. Süre sonunda otomatik ücret alınmaz.');
+      toast.success('7 günlük planliyo plus denemen başladı. Süre sonunda otomatik ücret alınmaz.');
       await Promise.all([query.refetch(), reload()]);
     } catch (error) { toast.error((error as Error).message); }
     finally { setBusy(''); }
@@ -57,7 +57,7 @@ export default function PackageScreen() {
             <View style={[styles.icon, { backgroundColor: colors.surface }]}><CreditCard size={22} color={colors.primary} /></View>
             <View style={{ flex: 1 }}>
               <Text variant="caption" color="textMuted">Mevcut paketin</Text>
-              <Text variant="heading">{plan?.name || 'calisiyo ücretsiz'}</Text>
+              <Text variant="heading">{plan?.name || 'planliyo ücretsiz'}</Text>
               <Text variant="caption" color="textMuted">{trialActive ? `Deneme ${longDate((plan as any).trialEndsAt)} tarihinde biter` : (plan as any)?.periodEnd ? `${longDate((plan as any).periodEnd)} tarihine kadar etkin` : 'Süresiz ücretsiz temel erişim'}</Text>
             </View>
             <Badge label={trialActive ? 'Deneme' : plan?.status === 'active' ? 'Etkin' : 'Ücretsiz'} tone={plan?.code === 'baslangic' ? 'muted' : 'primary'} />
@@ -82,7 +82,7 @@ export default function PackageScreen() {
               ) : <Button title={plan?.code === 'baslangic' ? 'Mevcut paketin' : 'Her zaman kullanılabilir'} icon={CheckCircle2} variant="secondary" disabled />}
             </Card>
           ))}
-          <Notice tone="info" icon={ShieldCheck}>Hesabına tanımlı Plus erişimi, giriş yaptığın her cihazda otomatik olarak açılır. Şehit ve gazi yakınlarından ücret tahsil edilmemektedir; calisiyo.destek@gmail.com</Notice>
+          <Notice tone="info" icon={ShieldCheck}>Hesabına tanımlı Plus erişimi, giriş yaptığın her cihazda otomatik olarak açılır. Şehit ve gazi yakınlarından ücret tahsil edilmemektedir; destek@planliyo.com.tr</Notice>
 
           <SectionHeader title="Erişim geçmişi" subtitle="Hesabına tanımlı paket işlemlerin" />
           {(query.data?.orders || []).length === 0 ? (

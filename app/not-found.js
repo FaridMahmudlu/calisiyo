@@ -3,7 +3,7 @@ import { PiArrowLeft, PiCompass } from 'react-icons/pi';
 import BrandLogo from '@/components/brand/BrandLogo';
 
 export const metadata = {
-  title: 'Sayfa Bulunamadı (404) – calisiyo',
+  title: 'Sayfa Bulunamadı (404) – planliyo',
   robots: { index: false, follow: false },
 };
 
@@ -12,7 +12,7 @@ export default function NotFound() {
     <main className="story-landing auth-single" style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
       <section className="auth-card confirmation-card" style={{ maxWidth: '520px', padding: '48px 36px' }}>
         <div className="confirmation-brand">
-          <Link href="/" aria-label="calisiyo ana sayfa">
+          <Link href="/" aria-label="planliyo ana sayfa">
             <BrandLogo priority />
           </Link>
         </div>

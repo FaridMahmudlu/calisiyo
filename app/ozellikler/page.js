@@ -8,9 +8,9 @@ import { absoluteUrl, SITE } from '@/lib/seo/site';
 
 export const metadata = {
   title: 'YKS Çalışma Uygulaması Özellikleri',
-  description: 'Calisiyo’nun YKS planlama, YouTube kampı aktarımı, Kronometre, istatistik, deneme, konu takibi ve canlı çalışma sınıfı özelliklerini incele.',
+  description: 'Planliyo’nun YKS planlama, YouTube kampı aktarımı, Kronometre, istatistik, deneme, konu takibi ve canlı çalışma sınıfı özelliklerini incele.',
   alternates: { canonical: '/ozellikler' },
-  openGraph: { title: 'Calisiyo özellikleri', description: 'YKS çalışma düzenini planlamak, uygulamak ve gerçek kayıtlarla takip etmek için Calisiyo araçları.', url: '/ozellikler' },
+  openGraph: { title: 'Planliyo özellikleri', description: 'YKS çalışma düzenini planlamak, uygulamak ve gerçek kayıtlarla takip etmek için Planliyo araçları.', url: '/ozellikler' },
 };
 
 export default function FeaturesPage() {
@@ -30,12 +30,12 @@ export default function FeaturesPage() {
       <PublicContentNav />
       <header className="content-hero section-shell">
         <nav className="content-breadcrumb" aria-label="İçerik yolu"><ol><li><Link href="/">Ana sayfa</Link></li><li aria-current="page">Özellikler</li></ol></nav>
-        <span className="public-kicker"><PiSparkle /> Calisiyo özellikleri</span>
+        <span className="public-kicker"><PiSparkle /> Planliyo özellikleri</span>
         <h1>Planla. Çalış.<br />Gerçeği gör.</h1>
         <p>Programından çalışma sürene, denemenden arkadaşlarınla ortak odağa kadar YKS düzeninin farklı parçalarını aynı hesapta bir araya getir.</p>
       </header>
 
-      <section className="feature-index section-shell" aria-label="Calisiyo özellikleri">
+      <section className="feature-index section-shell" aria-label="Planliyo özellikleri">
         {FEATURES.map((feature, index) => (
           <article className="feature-index-row" key={feature.slug}>
             <span className="feature-index-number" aria-hidden="true">{String(index + 1).padStart(2, '0')}</span>

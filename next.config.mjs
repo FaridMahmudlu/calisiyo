@@ -1,5 +1,17 @@
 import { withSentryConfig } from '@sentry/nextjs';
 
+const SITE_ORIGIN = (() => {
+  try { return new URL(process.env.NEXT_PUBLIC_SITE_URL || 'https://planliyo.com.tr').origin; } catch { return 'https://planliyo.com.tr'; }
+})();
+const CANONICAL_HOST = new URL(SITE_ORIGIN).host;
+// Every host we own. All but the canonical one redirect page requests; /api
+// stays reachable on each host so older app builds and webhooks keep working.
+const BRAND_HOSTS = [
+  'planliyo.com.tr', 'www.planliyo.com.tr',
+  'calisiyo.com.tr', 'www.calisiyo.com.tr', 'calisiyo-theta.vercel.app',
+  'planliyo.info', 'www.planliyo.info', 'planliyo.online', 'www.planliyo.online',
+];
+
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   poweredByHeader: false,
@@ -13,10 +25,10 @@ const nextConfig = {
     root: process.cwd(),
   },
   async redirects() {
-    return ['calisiyo-theta.vercel.app', 'www.calisiyo.com.tr'].map((host) => ({
+    return BRAND_HOSTS.filter((host) => host !== CANONICAL_HOST).map((host) => ({
       source: '/:path((?!api(?:/|$)).*)',
       has: [{ type: 'host', value: host }],
-      destination: 'https://calisiyo.com.tr/:path',
+      destination: `${SITE_ORIGIN}/:path`,
       permanent: true,
     }));
   },

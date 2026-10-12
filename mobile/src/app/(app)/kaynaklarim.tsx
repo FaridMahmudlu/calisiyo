@@ -269,7 +269,7 @@ export default function ResourcesScreen() {
       </Sheet>
 
       <PremiumInfo open={premiumOpen} onClose={() => setPremiumOpen(false)} feature="YouTube çalışma planı limitleri"
-        description="calisiyo ücretsiz planında ayda 2 YouTube içeriğini görevlere dönüştürebilirsin. Plus bu aylık limiti genişletir."
+        description="planliyo ücretsiz planında ayda 2 YouTube içeriğini görevlere dönüştürebilirsin. Plus bu aylık limiti genişletir."
         benefits={['Plus ile ayda 30 YouTube planı', 'Kaldığın video ve dakikadan devam et', 'Video ve oynatma listelerini günlük görevlere böl']} />
     </Screen>
   );

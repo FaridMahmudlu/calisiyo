@@ -5,7 +5,7 @@ import PublicFooter from '@/components/landing/PublicFooter';
 
 export const metadata = {
   title: 'Paketler ve Fiyatlar',
-  description: 'calisiyo ücretsiz ve calisiyo plus YKS çalışma koçu planlarını karşılaştır. Plus’ı 7 gün ücretsiz dene.',
+  description: 'planliyo ücretsiz ve planliyo plus YKS çalışma koçu planlarını karşılaştır. Plus’ı 7 gün ücretsiz dene.',
   alternates: { canonical: '/paketler' },
 };
 
@@ -13,7 +13,7 @@ export default function PaketlerPage() {
   return (
     <main className="story-landing public-pricing-page">
       <nav className="story-nav" aria-label="Ana navigasyon">
-        <Link href="/" className="public-brand" aria-label="calisiyo ana sayfa"><BrandLogo priority /></Link>
+        <Link href="/" className="public-brand" aria-label="planliyo ana sayfa"><BrandLogo priority /></Link>
         <div className="story-nav-links"><Link href="/rehber">Rehber</Link><Link href="/metodoloji">Metodoloji</Link><Link href="/paketler">Paketler</Link></div>
         <div className="landing-auth"><Link href="/giris">Giriş yap</Link><Link className="public-button primary" href="/kayit">Ücretsiz başla</Link></div>
       </nav>

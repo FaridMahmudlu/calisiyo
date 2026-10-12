@@ -111,7 +111,7 @@ export default function SettingsScreen() {
         const escape = (value: unknown) => `"${String(value ?? '').replaceAll('"', '""')}"`;
         return `# ${table}\n${columns.map(escape).join(',')}\n${rows.map((row: any) => columns.map((column) => escape(typeof row[column] === 'object' ? JSON.stringify(row[column]) : row[column])).join(',')).join('\n')}`;
       }).join('\n\n');
-    try { await shareTextFile(`calisiyo-verilerim-${new Date().toISOString().slice(0, 10)}.${format}`, content, format === 'json' ? 'application/json' : 'text/csv'); }
+    try { await shareTextFile(`planliyo-verilerim-${new Date().toISOString().slice(0, 10)}.${format}`, content, format === 'json' ? 'application/json' : 'text/csv'); }
     catch (error) { toast.error((error as Error).message); }
   };
 
@@ -204,7 +204,7 @@ export default function SettingsScreen() {
         <ListItem icon={LogOut} iconColor={colors.textMuted} title="Güvenli çıkış yap" chevron={false} onPress={signOut} />
         <ListItem icon={Trash2} title="Hesabımı kalıcı olarak sil" subtitle="Hesabın, çalışma kayıtların ve dosyaların silinir." danger onPress={() => { setDeleteText(''); setDeleteOpen(true); }} />
       </Card>
-      <Text variant="caption" color="textSubtle" align="center" style={{ marginTop: space.xl }}>Calisiyo {Application.nativeApplicationVersion || '1.0.0'} ({Application.nativeBuildVersion || 'dev'})</Text>
+      <Text variant="caption" color="textSubtle" align="center" style={{ marginTop: space.xl }}>Planliyo {Application.nativeApplicationVersion || '1.0.0'} ({Application.nativeBuildVersion || 'dev'})</Text>
 
       {dirty ? <Button title={saving ? 'Kaydediliyor…' : 'Değişiklikleri kaydet'} icon={Save} size="lg" loading={saving} onPress={save} style={{ marginTop: space.lg }} /> : null}
 

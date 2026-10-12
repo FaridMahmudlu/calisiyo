@@ -49,7 +49,7 @@ export default function ContentProducerScreen() {
   if (!producer || producer.status === 'not_enrolled') {
     return (
       <Screen keyboard onRefresh={query.refetch}>
-        <Text variant="body" color="textMuted">Calisiyo’yu öğrencilerle buluştur; doğrulanan satışlarını ve kazançlarını şeffaf biçimde takip et.</Text>
+        <Text variant="body" color="textMuted">Planliyo’yu öğrencilerle buluştur; doğrulanan satışlarını ve kazançlarını şeffaf biçimde takip et.</Text>
         {application.status === 'pending' ? (
           <Card tone="primary" style={{ gap: space.sm, marginTop: space.lg }}>
             <Clock3 size={22} color={colors.primary} />
@@ -65,7 +65,7 @@ export default function ContentProducerScreen() {
             <Card tone="muted" style={{ gap: space.md, marginTop: space.lg }}>
               <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}><Gift size={16} color={colors.primary} /><Text variant="label" color="primary">Program avantajları</Text></View>
               <Text variant="heading">Takipçilerine %20 indirim, sana doğrulanmış satış kazancı</Text>
-              <Text variant="caption" color="textMuted">Onaylandığında seçilen YKS dönemi için ücretsiz calisiyo plus erişimi ve kişisel indirim kodun hazırlanır.</Text>
+              <Text variant="caption" color="textMuted">Onaylandığında seçilen YKS dönemi için ücretsiz planliyo plus erişimi ve kişisel indirim kodun hazırlanır.</Text>
               <View style={{ flexDirection: 'row', gap: space.sm }}>
                 {[['₺1.000', 'İlk 3 satışın her biri'], ['₺500', '4. satıştan itibaren'], ['14 gün', 'İade kontrolü sonrası']].map(([value, label]) => (
                   <View key={label} style={{ flex: 1 }}><Text variant="heading" color="primary">{value}</Text><Text variant="caption" color="textMuted">{label}</Text></View>
@@ -79,7 +79,7 @@ export default function ContentProducerScreen() {
               <TextField label="Profil bağlantın" value={form.profileUrl} onChangeText={(profileUrl) => setForm({ ...form, profileUrl })} placeholder="https://youtube.com/@kanalin" autoCapitalize="none" keyboardType="url" maxLength={500} />
               <TextField label="Takipçi / abone sayın" value={form.audienceSize} onChangeText={(audienceSize) => setForm({ ...form, audienceSize: audienceSize.replace(/\D/g, '') })} keyboardType="number-pad" placeholder="Örn. 12500" />
               <TextField label="İçerik alanın" value={form.contentFocus} onChangeText={(contentFocus) => setForm({ ...form, contentFocus })} maxLength={300} placeholder="Örn. YKS Matematik, motivasyon ve deneme analizi" />
-              <TextField label="Neden programa katılmak istiyorsun?" multiline value={form.motivation} onChangeText={(motivation) => setForm({ ...form, motivation })} maxLength={1000} placeholder="Hedef kitleni ve Calisiyo’yu nasıl tanıtacağını kısaca anlat." style={{ minHeight: 100 }} />
+              <TextField label="Neden programa katılmak istiyorsun?" multiline value={form.motivation} onChangeText={(motivation) => setForm({ ...form, motivation })} maxLength={1000} placeholder="Hedef kitleni ve Planliyo’yu nasıl tanıtacağını kısaca anlat." style={{ minHeight: 100 }} />
               <Text variant="captionStrong" color="textMuted">Tercih ettiğin ücretsiz Plus dönemi</Text>
               <Segmented options={[{ value: 'plus_2027', label: 'YKS 2027' }, { value: 'plus_2028', label: 'YKS 2028' }]} value={form.preferredPlanCode} onChange={(preferredPlanCode) => setForm({ ...form, preferredPlanCode })} />
               <Button title={application.status === 'rejected' ? 'Yeniden başvur' : 'Başvuruyu gönder'} icon={Send} size="lg" loading={saving} onPress={() => post({ action: 'submit', ...form, audienceSize: Number(form.audienceSize) })} />

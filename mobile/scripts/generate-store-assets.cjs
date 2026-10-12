@@ -34,7 +34,7 @@ const feature = `<svg xmlns="http://www.w3.org/2000/svg" width="1024" height="50
     <rect x="2" y="2" width="92" height="92" rx="25" fill="#FFFFFF" opacity="0.16"/>
     <g transform="translate(0 -5)">${glyph}</g>
   </g>
-  <text x="420" y="215" font-family="Segoe UI, Arial, sans-serif" font-size="84" font-weight="800" fill="#FFFFFF">calisiyo</text>
+  <text x="420" y="215" font-family="Segoe UI, Arial, sans-serif" font-size="84" font-weight="800" fill="#FFFFFF">planliyo</text>
   <text x="424" y="285" font-family="Segoe UI, Arial, sans-serif" font-size="34" font-weight="600" fill="#E5FFF5">YKS çalışma koçun</text>
   <text x="424" y="340" font-family="Segoe UI, Arial, sans-serif" font-size="26" fill="#D2F5E7">Program · Kronometre · Deneme · Sınıflar</text>
 </svg>`;

@@ -11,10 +11,10 @@ export default async function CreatorCodeErrorPage({ searchParams }) {
   return (
     <main className="auth-shell auth-single">
       <section className="auth-card confirmation-card">
-        <Link href="/" className="public-brand confirmation-brand" aria-label="calisiyo ana sayfa"><BrandLogo priority /></Link>
+        <Link href="/" className="public-brand confirmation-brand" aria-label="planliyo ana sayfa"><BrandLogo priority /></Link>
         <span className="confirmation-icon is-error"><AlertCircle size={26} /></span>
         <h2>Hesabın hazır</h2>
-        <p>Girişin tamamlandı ancak içerik üretici kodun hesabına güvenli biçimde ilişkilendirilemedi. Tam fiyatlı ödeme başlatılmadı. Yardım için <a href="mailto:calisiyo.destek@gmail.com">calisiyo.destek@gmail.com</a> adresine yazabilirsin.</p>
+        <p>Girişin tamamlandı ancak içerik üretici kodun hesabına güvenli biçimde ilişkilendirilemedi. Tam fiyatlı ödeme başlatılmadı. Yardım için <a href="mailto:destek@planliyo.com.tr">destek@planliyo.com.tr</a> adresine yazabilirsin.</p>
         <Link className="public-button primary" href={next}>Hesabıma devam et</Link>
       </section>
     </main>

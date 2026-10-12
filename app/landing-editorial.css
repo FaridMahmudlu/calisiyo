@@ -24,7 +24,7 @@
   gap: 34px;
 }
 
-.editorial-nav .calisiyo-logo-image { width: 100px; }
+.editorial-nav .brand-logo-image { width: 100px; }
 .editorial-nav-links, .editorial-auth { display: flex; align-items: center; gap: 26px; }
 .editorial-nav-links a, .editorial-auth > a:not(.public-button) { color: #53665f; font-size: .76rem; font-weight: 700; text-decoration: none; }
 .editorial-nav-links a:hover, .editorial-auth > a:not(.public-button):hover { color: #07875f; }
@@ -45,8 +45,8 @@
 
 .landing-workspace { margin-top: 70px; min-height: 500px; border: 1px solid #dfe7e3; border-radius: 24px; background: #fff; box-shadow: 0 28px 80px rgba(15,43,34,.1); display: grid; grid-template-columns: 190px minmax(0,1fr) 250px; overflow: hidden; animation: landing-rise .75s .12s both cubic-bezier(.22,1,.36,1); }
 .workspace-sidebar { padding: 26px 18px; border-right: 1px solid #e5ebe8; background: #fbfcfb; display: flex; flex-direction: column; gap: 8px; }
-.workspace-sidebar .calisiyo-logo { margin-bottom: 25px; }
-.workspace-sidebar .calisiyo-logo-image { width: 88px; }
+.workspace-sidebar .brand-logo { margin-bottom: 25px; }
+.workspace-sidebar .brand-logo-image { width: 88px; }
 .workspace-nav { min-height: 40px; padding: 0 11px; border-radius: 9px; color: #6b7c75; display: flex; align-items: center; gap: 9px; font-size: .68rem; font-weight: 680; }
 .workspace-nav svg { width: 16px; color: #07875f; }
 .workspace-nav.is-active { background: #e7f7f0; color: #087957; font-weight: 800; }
@@ -185,7 +185,7 @@
 
 @media (max-width: 720px) {
   .editorial-landing .section-shell, .editorial-landing .pricing-section { width: calc(100% - 30px); }
-  .editorial-nav { min-height: 62px; padding-inline: 15px; }.editorial-nav .calisiyo-logo-image { width: 84px; }.editorial-auth > a:first-child { display: none; }.editorial-auth .public-button { min-height: 38px; padding-inline: 13px; font-size: .68rem; }
+  .editorial-nav { min-height: 62px; padding-inline: 15px; }.editorial-nav .brand-logo-image { width: 84px; }.editorial-auth > a:first-child { display: none; }.editorial-auth .public-button { min-height: 38px; padding-inline: 13px; font-size: .68rem; }
   .editorial-hero { padding-block: 62px 60px; }.editorial-hero h1 { font-size: clamp(3.05rem, 15vw, 4.6rem); }.editorial-hero-copy > p { font-size: .92rem; }.editorial-hero .hero-actions { display: grid; }.editorial-hero .hero-actions .public-button { width: 100%; }.editorial-hero .hero-proof { display: grid; gap: 8px; }
   .landing-workspace { margin-top: 48px; min-height: 0; border-radius: 17px; grid-template-columns: 1fr; }.workspace-sidebar { display: none; }.workspace-agenda { padding: 20px 15px; }.workspace-agenda header { min-height: 64px; }.workspace-agenda header time { display: none; }.agenda-head { display: none; }.agenda-row { min-height: 67px; padding: 0; grid-template-columns: 48px 72px minmax(90px,1fr) 36px 14px; gap: 7px; font-size: .52rem; }.agenda-row strong { font-size: .55rem; }.workspace-edit { font-size: .56rem; }
   .workspace-focus { padding: 20px 15px; grid-template-columns: 1fr auto; }.workspace-focus > strong { grid-column: 1; grid-row: 2; text-align: left; font-size: 2.5rem; }.workspace-focus progress { grid-column: 1; grid-row: 3; }.workspace-focus button { grid-column: 2; grid-row: 2 / 4; }.workspace-focus dl { grid-template-columns: 1fr; }

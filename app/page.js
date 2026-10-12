@@ -4,8 +4,8 @@ import { PLUS_VARIANTS, PUBLIC_PLANS } from '@/lib/billing/plans';
 import { SITE } from '@/lib/seo/site';
 
 export const metadata = {
-  title: { absolute: 'YKS Çalışma Programı ve Koçu · calisiyo' },
-  description: 'YKS çalışma programını oluştur; Kronometre, konu takibi, deneme analizi ve gerçek çalışma istatistiklerini Calisiyo ile tek yerde yönet.',
+  title: { absolute: 'YKS Çalışma Programı ve Koçu · planliyo' },
+  description: 'YKS çalışma programını oluştur; Kronometre, konu takibi, deneme analizi ve gerçek çalışma istatistiklerini Planliyo ile tek yerde yönet.',
   alternates: { canonical: '/' },
   robots: {
     index: true,
@@ -13,7 +13,7 @@ export const metadata = {
     googleBot: { index: true, follow: true, 'max-image-preview': 'large', 'max-snippet': -1, 'max-video-preview': -1 },
   },
   openGraph: {
-    title: 'YKS Çalışma Programı ve Koçu · calisiyo',
+    title: 'YKS Çalışma Programı ve Koçu · planliyo',
     description: 'Planını kur, Kronometre ile çalış ve YKS ilerlemeni gerçek çalışma kayıtlarınla takip et.',
     url: '/',
   },
@@ -44,7 +44,7 @@ export default function HomePage() {
         ],
         offers: [PUBLIC_PLANS[0], ...PLUS_VARIANTS].map((plan) => ({
           '@type': 'Offer',
-          name: `${plan.name || `calisiyo plus · ${plan.label}`} planı`,
+          name: `${plan.name || `planliyo plus · ${plan.label}`} planı`,
           price: String(plan.price || 0),
           priceCurrency: 'TRY',
           url: `${SITE.origin}/paketler`,

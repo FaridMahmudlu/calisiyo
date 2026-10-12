@@ -8,26 +8,26 @@ export default function BrandLogo({
 }) {
   const getLogoSrc = () => {
     if (markOnly) {
-      return '/brand/calisiyo-monogram.svg';
+      return '/brand/planliyo-monogram.svg';
     }
     switch (variant) {
       case 'white':
-        return '/brand/calisiyo-logo-white.svg';
+        return '/brand/planliyo-logo-white.svg';
       case 'black':
-        return '/brand/calisiyo-logo-black.svg';
+        return '/brand/planliyo-logo-black.svg';
       default:
-        return '/brand/calisiyo-logo.svg';
+        return '/brand/planliyo-logo.svg';
     }
   };
 
   return (
-    <span className={`calisiyo-logo ${markOnly ? 'is-mark-only' : ''} ${className}`.trim()}>
+    <span className={`brand-logo ${markOnly ? 'is-mark-only' : ''} ${className}`.trim()}>
       <Image
-        className="calisiyo-logo-image"
+        className="brand-logo-image"
         src={getLogoSrc()}
-        alt="calisiyo logo"
-        width={markOnly ? 32 : 150}
-        height={markOnly ? 32 : 38}
+        alt="Planliyo"
+        width={markOnly ? 32 : 152}
+        height={markOnly ? 32 : 40}
         priority={priority}
       />
     </span>

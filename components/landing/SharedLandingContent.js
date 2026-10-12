@@ -7,11 +7,11 @@ export const NAV_LINKS = [
 ];
 
 export const FAQS = [
-  { question: 'Calisiyo nedir?', answer: 'Calisiyo; YKS çalışma planını, Kronometre kayıtlarını, konu takibini, deneme analizini ve kişisel istatistiklerini tek çalışma alanında birleştiren web uygulamasıdır.' },
+  { question: 'Planliyo nedir?', answer: 'Planliyo; YKS çalışma planını, Kronometre kayıtlarını, konu takibini, deneme analizini ve kişisel istatistiklerini tek çalışma alanında birleştiren web uygulamasıdır.' },
   { question: 'YKS çalışma planı nasıl oluşturulur?', answer: 'Alanını seçtikten sonra ders, konu, tarih, başlangıç saati, süre ve soru hedefini eklersin. Günlük ve haftalık program aynı görevlerden otomatik olarak güncellenir.' },
   { question: 'Kronometre kaydı istatistiklere yansır mı?', answer: 'Evet. Tamamladığın Kronometre ve çalışma kayıtları süre ve günlük seri hesaplarına eklenir; istatistikler yalnızca kaydettiğin gerçek çalışmalardan oluşur.' },
-  { question: 'Calisiyo ücretsiz mi?', answer: 'calisiyo ücretsiz; günlük planlama, Kronometre, temel istatistikler, deneme kaydı ve çalışma sınıfı özelliklerini belirli limitlerle içerir.' },
-  { question: 'calisiyo plus ne sağlar?', answer: 'calisiyo plus; sınırsız istatistik geçmişi ve CSV aktarımıyla daha yüksek deneme, not, YouTube planı ve çalışma sınıfı limitleri sunar. YKS 2027 veya YKS 2028 seçeneğini 7 gün ücretsiz deneyebilirsin.' },
+  { question: 'Planliyo ücretsiz mi?', answer: 'planliyo ücretsiz; günlük planlama, Kronometre, temel istatistikler, deneme kaydı ve çalışma sınıfı özelliklerini belirli limitlerle içerir.' },
+  { question: 'planliyo plus ne sağlar?', answer: 'planliyo plus; sınırsız istatistik geçmişi ve CSV aktarımıyla daha yüksek deneme, not, YouTube planı ve çalışma sınıfı limitleri sunar. YKS 2027 veya YKS 2028 seçeneğini 7 gün ücretsiz deneyebilirsin.' },
   { question: 'Çalışma verilerim güvende mi?', answer: 'Çalışma kayıtların hesabına bağlı tutulur ve başka kullanıcıların özel verilerine erişmesini engelleyen satır düzeyi yetkilendirme kurallarıyla korunur.' },
 ];
 
@@ -34,5 +34,5 @@ export const FOOTER = {
     { label: 'Çerez Politikası', href: '/cerez-politikasi' },
     { label: 'İletişim', href: '/iletisim' },
   ],
-  copyright: '© 2026 calisiyo · YKS Çalışma Koçu',
+  copyright: '© 2026 planliyo · YKS Çalışma Koçu',
 };

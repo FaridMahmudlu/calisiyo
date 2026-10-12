@@ -8,7 +8,7 @@ export function PremiumBadge({ label = 'Premium', onClick, title }) {
   return <button type="button" className="premium-feature-badge" onClick={onClick} title={title || 'Premium plan ayrıntılarını gör'}><Crown size={12} /> {label}</button>;
 }
 
-export default function PremiumFeaturePrompt({ open, onClose, feature, requiredPlan = 'calisiyo plus', currentPlan = 'calisiyo ücretsiz', description, benefits = [] }) {
+export default function PremiumFeaturePrompt({ open, onClose, feature, requiredPlan = 'planliyo plus', currentPlan = 'planliyo ücretsiz', description, benefits = [] }) {
   return (
     <Modal open={open} onClose={onClose} title={`${feature || 'Premium özellik'} · Premium`} description="Bu özellik planına göre açılır veya daha geniş limitlerle kullanılabilir.">
       <div className="premium-prompt">

@@ -1,26 +1,26 @@
-# calisiyo fiyatlandırma gerekçesi
+# planliyo fiyatlandırma gerekçesi
 
 Son pazar kontrolü: **13 Ağustos 2026**
 
-Bu belge, calisiyo paketlerinin neden bu fiyat ve limitlerle konumlandırıldığını kaydeder. Rakipler birebir aynı ürün değildir; fiyatlar yalnızca pazar aralığını anlamak için kullanılmıştır.
+Bu belge, planliyo paketlerinin neden bu fiyat ve limitlerle konumlandırıldığını kaydeder. Rakipler birebir aynı ürün değildir; fiyatlar yalnızca pazar aralığını anlamak için kullanılmıştır.
 
 ## Pazar sinyalleri
 
 | Ürün | Gözlenen teklif | Ürün farkı | Kaynak |
 | --- | ---: | --- | --- |
 | Öğrenci Takip: YKS AI Koç | Aylık Premium ₺99,99; Premium+ Aylık ₺179,99; Premium+ Yıllık ₺1.299,99 | Mobil takip ve AI özellikleri sunan en yakın self-servis karşılaştırmalardan biri | [Apple App Store](https://apps.apple.com/tr/app/%C3%B6%C4%9Frenci-takip-yks-ai-ko%C3%A7/id6458837034) |
-| Kunduz YKS 2027 Full | ₺5.454,99/ay; 11 ay toplam ₺59.999,99 | Birebir insan koçluğu, canlı ders, soru çözümü ve fiziksel/dijital eğitim içeriği içerir; calisiyo ile doğrudan eşdeğer değildir | [Kunduz resmi paket sayfası](https://prod.kunduz.com/tr/paketler/yks-2027-full-paket/) |
+| Kunduz YKS 2027 Full | ₺5.454,99/ay; 11 ay toplam ₺59.999,99 | Birebir insan koçluğu, canlı ders, soru çözümü ve fiziksel/dijital eğitim içeriği içerir; planliyo ile doğrudan eşdeğer değildir | [Kunduz resmi paket sayfası](https://prod.kunduz.com/tr/paketler/yks-2027-full-paket/) |
 | Kunduz YKS 2027 Soru Çözüm | ₺927,99/ay, 11 ay | Eğitmen destekli soru çözümü ve içerik ağırlıklıdır; self-servis planlama aracından farklı maliyet yapısına sahiptir | [Kunduz YKS 2027 paketleri](https://prod.kunduz.com/tr/paketler/yks-2027/) |
 
-## calisiyo konumlandırması
+## planliyo konumlandırması
 
-calisiyo canlı öğretmen veya birebir insan koçu satmaz. Temel değer; planlama, çalışma süresi, kronometre, konu ve tekrar takibi, deneme analizi, gerçek zamanlı çalışma sınıfları ve kullanıcının kendi verilerinden üretilen ilerleme görünümüdür. Bu nedenle fiyatlar insan destekli koçluk paketlerinden belirgin şekilde düşük tutulmuştur.
+planliyo canlı öğretmen veya birebir insan koçu satmaz. Temel değer; planlama, çalışma süresi, kronometre, konu ve tekrar takibi, deneme analizi, gerçek zamanlı çalışma sınıfları ve kullanıcının kendi verilerinden üretilen ilerleme görünümüdür. Bu nedenle fiyatlar insan destekli koçluk paketlerinden belirgin şekilde düşük tutulmuştur.
 
 | Plan | Fiyat | Sabit erişim sonu | Rol |
 | --- | ---: | --- | --- |
 | Başlangıç | Ücretsiz | Süresiz | Ürünü risksiz deneme ve temel çalışma düzenini kurma |
-| calisiyo plus · YKS 2027 | ₺2.500 | 19 Ağustos 2027 | YKS 2027 dönemi için genişletilmiş özellikler |
-| calisiyo plus · YKS 2028 | ₺4.500 | 25 Haziran 2028 | YKS 2028 dönemi için genişletilmiş özellikler |
+| planliyo plus · YKS 2027 | ₺2.500 | 19 Ağustos 2027 | YKS 2027 dönemi için genişletilmiş özellikler |
+| planliyo plus · YKS 2028 | ₺4.500 | 25 Haziran 2028 | YKS 2028 dönemi için genişletilmiş özellikler |
 
 Plus paketleri otomatik yenilenmez ve belirtilen YKS dönemi sonuna kadar sabit erişim verir. Geçerli içerik üretici kodları Shopier ödeme ekranında %20 indirim sağlar; nihai tahsilat tutarı Shopier tarafından gösterilir.
 

@@ -146,7 +146,7 @@ export default function AdminProducersScreen() {
       <Sheet open={!!confirming} onClose={() => setConfirming(null)} title={confirming?.code} subtitle="Shopier doğrulaması"
         footer={<Button title="Doğrula ve etkinleştir" loading={!!busy} disabled={!scopeConfirmed || providerId.length < 2} style={{ flex: 1 }}
           onPress={() => act('confirm_code', { userId: confirming.userId, code: confirming.code, providerDiscountId: providerId, scopeConfirmed: true })} />}>
-        <Text variant="caption" color="textMuted">Shopier panelinde %20, TRY ve yalnızca iki calisiyo ürününe uygulanacak şekilde oluşturduğun kodun provider kimliğini gir.</Text>
+        <Text variant="caption" color="textMuted">Shopier panelinde %20, TRY ve yalnızca iki planliyo ürününe uygulanacak şekilde oluşturduğun kodun provider kimliğini gir.</Text>
         <TextField label="Shopier indirim kimliği" value={providerId} onChangeText={setProviderId} autoCapitalize="none" />
         <SwitchRow title="Kapsam doğrulandı" description="Kodun yalnızca ürün 50041880 ve 50041981 için geçerli olduğunu Shopier panelinde doğruladım." value={scopeConfirmed} onChange={setScopeConfirmed} />
       </Sheet>

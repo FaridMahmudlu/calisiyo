@@ -5,7 +5,7 @@ import { getLegalBusinessConfig } from '@/lib/billing/config';
 
 export const metadata = {
   title: 'Hesap ve Veri Silme',
-  description: 'calisiyo hesabını ve çalışma verilerini uygulamadan, web sitesinden veya e-posta ile kalıcı olarak silme adımları.',
+  description: 'planliyo hesabını ve çalışma verilerini uygulamadan, web sitesinden veya e-posta ile kalıcı olarak silme adımları.',
   alternates: { canonical: '/hesap-silme' },
 };
 
@@ -14,7 +14,7 @@ export default function AccountDeletionPage() {
   return (
     <main className="story-landing">
       <nav className="story-nav" aria-label="Ana navigasyon">
-        <Link href="/" className="public-brand" aria-label="calisiyo ana sayfa">
+        <Link href="/" className="public-brand" aria-label="planliyo ana sayfa">
           <BrandLogo priority />
         </Link>
         <div className="landing-auth">
@@ -26,21 +26,21 @@ export default function AccountDeletionPage() {
       <div className="legal-shell section-shell">
         <span className="public-kicker">Hesap</span>
         <h1>Hesap ve Veri Silme</h1>
-        <p className="legal-subtitle">calisiyo hesabını ve buna bağlı çalışma verilerini istediğin zaman kalıcı olarak silebilirsin.</p>
+        <p className="legal-subtitle">planliyo hesabını ve buna bağlı çalışma verilerini istediğin zaman kalıcı olarak silebilirsin.</p>
 
         <hr className="legal-divider" />
 
         <section className="legal-content">
           <h2>1. Mobil uygulamadan</h2>
           <ol>
-            <li>calisiyo uygulamasını aç ve hesabına giriş yap.</li>
+            <li>planliyo uygulamasını aç ve hesabına giriş yap.</li>
             <li><strong>Daha</strong> sekmesinden <strong>Ayarlar</strong>’a git.</li>
             <li><strong>Hesabımı kalıcı olarak sil</strong> seçeneğine dokun ve onay metnini yazarak işlemi tamamla.</li>
           </ol>
 
           <h2>2. Web sitesinden</h2>
           <ol>
-            <li><Link href="/giris">calisiyo.com.tr/giris</Link> adresinden giriş yap.</li>
+            <li><Link href="/giris">planliyo.com.tr/giris</Link> adresinden giriş yap.</li>
             <li><Link href="/dashboard/ayarlar">Ayarlar</Link> sayfasındaki <strong>Hesabı sil</strong> bölümünü kullan.</li>
           </ol>
 

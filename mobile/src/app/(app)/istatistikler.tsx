@@ -112,7 +112,7 @@ export default function StatisticsScreen() {
     if (!canExport || !stats) return setPremiumOpen(true);
     const rows = [['Tarih', 'Çalışma süresi (dk)', 'Soru', 'Tamamlanan görev'], ...stats.timeline.map((item) => [item.key, item.studyMinutes, item.questions, item.tasks])];
     const csv = `\uFEFF${rows.map((row) => row.map((cell) => `"${String(cell ?? '').replaceAll('"', '""')}"`).join(';')).join('\n')}`;
-    try { await shareTextFile(`calisiyo-ilerleme-${todayStr()}.csv`, csv, 'text/csv'); } catch (error) { toast.error((error as Error).message); }
+    try { await shareTextFile(`planliyo-ilerleme-${todayStr()}.csv`, csv, 'text/csv'); } catch (error) { toast.error((error as Error).message); }
   };
 
   const goalRow = (label: string, current: number, goal: number, format: (value: number) => string) => {

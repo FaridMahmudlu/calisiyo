@@ -21,7 +21,7 @@ export function PremiumInfo({ open, onClose, feature, description, benefits = []
       </View>
       <Card tone="muted" style={{ flexDirection: 'row', justifyContent: 'space-between' }}>
         <View><Text variant="caption" color="textMuted">Mevcut paketin</Text><Text variant="subheading">{currentPlan.name}</Text></View>
-        <View style={{ alignItems: 'flex-end' }}><Text variant="caption" color="textMuted">Geniş limitler</Text><Text variant="subheading" color="gold">calisiyo plus</Text></View>
+        <View style={{ alignItems: 'flex-end' }}><Text variant="caption" color="textMuted">Geniş limitler</Text><Text variant="subheading" color="gold">planliyo plus</Text></View>
       </Card>
       {benefits.map((benefit) => (
         <View key={benefit} style={{ flexDirection: 'row', gap: space.sm, alignItems: 'center' }}>

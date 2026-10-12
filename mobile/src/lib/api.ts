@@ -13,7 +13,7 @@ export class ApiError extends Error {
 
 type ApiOptions = Omit<RequestInit, 'body'> & { body?: unknown; auth?: boolean };
 
-// Calls the shared Next.js API (calisiyo.com.tr/api/*) with the Supabase access
+// Calls the shared Next.js API (planliyo.com.tr/api/*) with the Supabase access
 // token, so mobile and web go through exactly the same server rules.
 export async function api<T = any>(path: string, { body, auth = true, headers, ...init }: ApiOptions = {}): Promise<T> {
   const token = auth ? await getAccessToken() : null;

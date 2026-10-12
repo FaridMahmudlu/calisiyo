@@ -29,7 +29,7 @@ test.describe('Editorial landing page', () => {
     await expect(page.getByRole('heading', { name: /Ücretsiz başla.*plus/ })).toBeVisible();
     await expect(page.locator('canvas')).toHaveCount(0);
     await expect(page.locator('.pricing-premium')).toHaveCount(1);
-    await expect(page.getByRole('link', { name: 'calisiyo.destek@gmail.com' })).toBeVisible();
+    await expect(page.getByRole('link', { name: 'destek@planliyo.com.tr' })).toBeVisible();
 
     await page.getByRole('button', { name: /YKS 2028/ }).click();
     await expect(page.getByText(/4\.500/)).toBeVisible();
@@ -74,7 +74,7 @@ test.describe('Editorial landing page', () => {
     expect(await sitemap.text()).toContain('/paketler');
     const llms = await request.get('/llms.txt');
     expect(llms.ok()).toBeTruthy();
-    expect(await llms.text()).toContain('calisiyo.destek@gmail.com');
+    expect(await llms.text()).toContain('destek@planliyo.com.tr');
 
     const protectedPage = await request.get('/giris', { maxRedirects: 0 });
     expect(protectedPage.headers()['x-robots-tag']).toContain('noindex');

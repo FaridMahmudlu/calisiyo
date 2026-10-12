@@ -39,7 +39,7 @@ export default function GirisPage() {
   return (
     <main className="auth-shell">
       <section className="auth-side">
-        <Link href="/" className="public-brand" aria-label="calisiyo ana sayfa"><BrandLogo priority /></Link>
+        <Link href="/" className="public-brand" aria-label="planliyo ana sayfa"><BrandLogo priority /></Link>
         <div>
           <span className="public-kicker">YKS Çalışma Koçu</span>
           <h1>Planın kaldığın yerden devam ediyor.</h1>
@@ -54,7 +54,7 @@ export default function GirisPage() {
 
       <section className="auth-form-panel">
         <div className="auth-card">
-          <Link href="/" className="public-brand auth-mobile-brand" aria-label="calisiyo ana sayfa"><BrandLogo priority /></Link>
+          <Link href="/" className="public-brand auth-mobile-brand" aria-label="planliyo ana sayfa"><BrandLogo priority /></Link>
           <h2>Tekrar hoş geldin</h2>
           <p>Hesabına giriş yaparak kaldığın yerden devam et.</p>
 

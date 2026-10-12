@@ -1,10 +1,11 @@
-// Generates every Calisiyo brand asset (mobile app icons, web favicons/PWA/OG,
-// Play Store graphics) from the single geometry source in ./brand/marks.cjs.
+// Generates every Planliyo brand asset (mobile app icons, web favicons/PWA/OG,
+// store graphics, the React Native wordmark module) from the single geometry
+// source in ./brand/marks.cjs.
 // Run from mobile/: node scripts/generate-brand-assets.cjs
 const fs = require('fs');
 const path = require('path');
 const sharp = require(path.resolve(__dirname, '../../node_modules/sharp'));
-const { COLORS, mark, gradient, tile, lockup, WORDMARK } = require('./brand/marks.cjs');
+const { COLORS, VARIANTS, WORDMARK, arcPath, ring, placedWordmark, logoSvg, gradient, tile } = require('./brand/marks.cjs');
 
 const mobileOut = (name) => path.resolve(__dirname, '../assets/images', name);
 const webOut = (name) => path.resolve(__dirname, '../../public/brand', name);
@@ -14,13 +15,12 @@ fs.mkdirSync(path.resolve(__dirname, '../store-assets'), { recursive: true });
 // Rasterize at 2x the target size, whatever the SVG's intrinsic width is.
 const densityFor = (svgText, size) => Math.ceil((72 * size * 2) / Number(/width="(\d+(?:\.\d+)?)"/.exec(svgText)?.[1] || 100));
 const png = (svgText, size, file) => sharp(Buffer.from(svgText), { density: densityFor(svgText, size) }).resize(size, size).png().toFile(file);
-const bare = (inner, size = 100) => `<svg xmlns="http://www.w3.org/2000/svg" width="${size}" height="${size}" viewBox="0 0 100 100"><defs>${gradient()}</defs>${inner}</svg>`;
-const centered = (scale, options) => `<g transform="translate(50 50) scale(${scale}) translate(-49 -50)">${mark(options)}</g>`;
+const canvas = (inner, size = 100) => `<svg xmlns="http://www.w3.org/2000/svg" width="${size}" height="${size}" viewBox="0 0 100 100"><defs>${gradient()}</defs>${inner}</svg>`;
 
 // ICO container with embedded PNG images (supported by all modern browsers).
 async function writeIco(file, sizes) {
   const images = await Promise.all(sizes.map((size) => {
-    const svgText = tile({ size, radius: 22, detail: size >= 32, scale: size >= 32 ? 0.86 : 0.92 });
+    const svgText = tile({ size, content: 'ring', ringScale: size < 32 ? 1.1 : 1 });
     return sharp(Buffer.from(svgText), { density: densityFor(svgText, size) }).resize(size, size).png().toBuffer();
   }));
   const header = Buffer.alloc(6 + 16 * images.length);
@@ -37,49 +37,69 @@ async function writeIco(file, sizes) {
   fs.writeFileSync(file, Buffer.concat([header, ...images]));
 }
 
+// Large decorative progress ring used as a background motif.
+const motif = ({ cx, cy, r, w, track, accent }) => `<circle cx="${cx}" cy="${cy}" r="${r}" fill="none" stroke="${track}" stroke-width="${w}"/>`
+  + `<path d="${arcPath(cx, cy, r, WORDMARK.ring.from, WORDMARK.ring.to)}" fill="none" stroke="${accent}" stroke-width="${w}" stroke-linecap="round"/>`;
+
 function featureGraphic() {
-  const s = 0.86;
   return `<svg xmlns="http://www.w3.org/2000/svg" width="1024" height="500" viewBox="0 0 1024 500"><defs>${gradient('fg')}</defs>
     <rect width="1024" height="500" fill="url(#fg)"/>
-    <circle cx="930" cy="40" r="210" fill="#FFFFFF" opacity="0.06"/><circle cx="990" cy="500" r="170" fill="#FFFFFF" opacity="0.05"/>
-    <g transform="translate(90 95) scale(3.1)"><rect x="0" y="0" width="100" height="100" rx="24" fill="#FFFFFF" opacity="0.14"/>${centered(0.86, { lane: COLORS.greenDeep })}</g>
-    <path transform="translate(440 262) scale(${s * 1.25})" d="${WORDMARK.d}" fill="#FFFFFF"/>
-    <text x="446" y="338" font-family="Segoe UI, Arial, sans-serif" font-size="34" font-weight="600" fill="#E3FFF2">YKS çalışma koçun</text>
+    ${motif({ cx: 900, cy: 250, r: 190, w: 92, track: 'rgba(255,255,255,0.10)', accent: 'rgba(255,194,71,0.85)' })}
+    ${placedWordmark({ cx: 372, cy: 214, width: 560, colors: VARIANTS.white })}
+    <text x="94" y="338" font-family="Segoe UI, Arial, sans-serif" font-size="36" font-weight="600" fill="#E3FFF2">YKS çalışma koçun</text>
   </svg>`;
 }
 
 function ogImage() {
-  return `<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="630" viewBox="0 0 1200 630"><defs>${gradient('og')}</defs>
+  return `<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="630" viewBox="0 0 1200 630">
     <rect width="1200" height="630" fill="#F6FBF8"/>
-    <circle cx="1080" cy="80" r="260" fill="${COLORS.green}" opacity="0.07"/><circle cx="1150" cy="620" r="200" fill="${COLORS.amber}" opacity="0.10"/>
-    <g transform="translate(110 150) scale(1.6)"><rect width="100" height="100" rx="24" fill="url(#og)"/>${centered(0.86)}</g>
-    <path transform="translate(300 268) scale(1.18)" d="${WORDMARK.d}" fill="${COLORS.ink}"/>
-    <text x="114" y="440" font-family="Segoe UI, Arial, sans-serif" font-size="46" font-weight="700" fill="${COLORS.ink}">Planla. Odaklan. Gerçek kayıtlarla ilerle.</text>
-    <text x="114" y="500" font-family="Segoe UI, Arial, sans-serif" font-size="30" font-weight="500" fill="#566476">YKS çalışma programı, kronometre, deneme analizi ve çalışma sınıfları</text>
+    ${motif({ cx: 1070, cy: 300, r: 220, w: 104, track: 'rgba(0,168,112,0.09)', accent: 'rgba(255,194,71,0.75)' })}
+    ${placedWordmark({ cx: 410, cy: 220, width: 600, colors: VARIANTS.primary })}
+    <text x="112" y="400" font-family="Segoe UI, Arial, sans-serif" font-size="46" font-weight="700" fill="${COLORS.ink}">Planla. Odaklan. Gerçek kayıtlarla ilerle.</text>
+    <text x="112" y="458" font-family="Segoe UI, Arial, sans-serif" font-size="28" font-weight="500" fill="#566476">YKS çalışma programı, kronometre, deneme analizi ve çalışma sınıfları</text>
+    <text x="112" y="540" font-family="Segoe UI, Arial, sans-serif" font-size="26" font-weight="700" fill="${COLORS.green}">planliyo.com.tr</text>
   </svg>`;
+}
+
+// React Native module with the same geometry (no runtime font dependency).
+function writeNativeWordmark() {
+  const { d, dot, ring: o, box } = WORDMARK;
+  const file = path.resolve(__dirname, '../src/components/brand/wordmark.ts');
+  fs.writeFileSync(file, `// Generated by scripts/generate-brand-assets.cjs from scripts/brand/wordmark-planliyo.json. Do not edit.\n`
+    + `export const WORDMARK = {\n`
+    + `  d: '${d}',\n`
+    + `  dot: { cx: ${dot.cx}, cy: ${dot.cy}, r: ${dot.r} },\n`
+    + `  ring: { cx: ${o.cx}, cy: ${o.cy}, r: ${o.r}, w: ${o.w} },\n`
+    + `  arc: '${arcPath(o.cx, o.cy, o.r, o.from, o.to)}',\n`
+    + `  box: { x: ${box.x1}, y: ${box.y1}, width: ${Number((box.x2 - box.x1).toFixed(2))}, height: ${Number((box.y2 - box.y1).toFixed(2))} },\n`
+    + `} as const;\n\n`
+    + `// Progress ring alone in a 100x100 box (app-icon style mark).\n`
+    + `export const RING_ARC = '${arcPath(50, 50, 27, o.from, o.to)}';\n`);
 }
 
 (async () => {
   // Mobile app (Expo)
-  await png(tile({ size: 1024, radius: 0, scale: 0.8 }), 1024, mobileOut('icon.png'));
-  await png(bare(centered(0.56)), 1024, mobileOut('android-icon-foreground.png'));
-  await png(bare('<rect width="100" height="100" fill="url(#calisiyoBg)"/>'), 1024, mobileOut('android-icon-background.png'));
-  await png(bare(centered(0.56, { detail: false, flag: '#FFFFFF' })), 1024, mobileOut('android-icon-monochrome.png'));
-  await png(tile({ size: 1024, radius: 24, scale: 0.84 }), 1024, mobileOut('splash-icon.png'));
-  await png(tile({ size: 196, radius: 22 }), 196, mobileOut('favicon.png'));
-  await png(bare(centered(0.98, { detail: false, flag: '#FFFFFF' })), 96, mobileOut('notification-icon.png'));
+  await png(tile({ size: 1024, radius: 0, content: 'word', wordWidth: 74 }), 1024, mobileOut('icon.png'));
+  await png(canvas(placedWordmark({ cx: 50, cy: 50.8, width: 58, colors: VARIANTS.white })), 1024, mobileOut('android-icon-foreground.png'));
+  await png(canvas('<rect width="100" height="100" fill="url(#planliyoBg)"/>'), 1024, mobileOut('android-icon-background.png'));
+  await png(canvas(ring({ r: 16.7, w: 13, track: 'rgba(255,255,255,0.45)', accent: '#FFFFFF' })), 1024, mobileOut('android-icon-monochrome.png'));
+  await png(canvas(placedWordmark({ cx: 50, cy: 50, width: 62, colors: VARIANTS.primary })), 1024, mobileOut('splash-icon.png'));
+  await png(canvas(placedWordmark({ cx: 50, cy: 50, width: 62, colors: VARIANTS.white })), 1024, mobileOut('splash-icon-dark.png'));
+  await png(tile({ size: 196, content: 'ring' }), 196, mobileOut('favicon.png'));
+  await png(canvas(ring({ r: 30, w: 22, track: 'rgba(255,255,255,0.45)', accent: '#FFFFFF' })), 96, mobileOut('notification-icon.png'));
+  writeNativeWordmark();
 
   // Web
-  fs.writeFileSync(webOut('calisiyo-mark.svg'), tile({ size: 512 }));
-  fs.writeFileSync(webOut('calisiyo-monogram.svg'), tile({ size: 64 }));
-  fs.writeFileSync(webOut('calisiyo-logo.svg'), lockup({ variant: 'primary' }));
-  fs.writeFileSync(webOut('calisiyo-logo-white.svg'), lockup({ variant: 'white' }));
-  fs.writeFileSync(webOut('calisiyo-logo-black.svg'), lockup({ variant: 'black' }));
-  await png(tile({ size: 512, radius: 0, scale: 0.78 }), 512, webOut('calisiyo-mark-512.png'));
-  await png(tile({ size: 192, radius: 0, scale: 0.78 }), 192, webOut('calisiyo-mark-192.png'));
-  await png(tile({ size: 180, radius: 0, scale: 0.8 }), 180, webOut('apple-touch-icon.png'));
+  fs.writeFileSync(webOut('planliyo-logo.svg'), logoSvg({ variant: 'primary' }));
+  fs.writeFileSync(webOut('planliyo-logo-white.svg'), logoSvg({ variant: 'white' }));
+  fs.writeFileSync(webOut('planliyo-logo-black.svg'), logoSvg({ variant: 'black' }));
+  fs.writeFileSync(webOut('planliyo-mark.svg'), tile({ size: 512, content: 'ring' }));
+  fs.writeFileSync(webOut('planliyo-monogram.svg'), tile({ size: 64, content: 'ring' }));
+  await png(tile({ size: 512, radius: 0, content: 'word', wordWidth: 70 }), 512, webOut('planliyo-mark-512.png'));
+  await png(tile({ size: 192, radius: 0, content: 'word', wordWidth: 70 }), 192, webOut('planliyo-mark-192.png'));
+  await png(tile({ size: 180, radius: 0, content: 'word', wordWidth: 74 }), 180, webOut('apple-touch-icon.png'));
   for (const size of [16, 32, 48]) {
-    const svgText = tile({ size, radius: 22, detail: size >= 32, scale: size >= 32 ? 0.86 : 0.92 });
+    const svgText = tile({ size, content: 'ring', ringScale: size < 32 ? 1.1 : 1 });
     await png(svgText, size, webOut(`favicon-${size}x${size}.png`));
     await png(svgText, size, webOut(`favicon-${size}.png`));
   }
@@ -87,8 +107,9 @@ function ogImage() {
   await writeIco(path.resolve(__dirname, '../../public/favicon.ico'), [16, 32, 48]);
   await sharp(Buffer.from(ogImage()), { density: 144 }).resize(1200, 630).png().toFile(webOut('og-image.png'));
 
-  // Google Play listing
-  await png(tile({ size: 512, radius: 0, scale: 0.8 }), 512, storeOut('play-icon-512.png'));
+  // Store listings and OAuth consent screen
+  await png(tile({ size: 512, radius: 0, content: 'word', wordWidth: 74 }), 512, storeOut('play-icon-512.png'));
   await sharp(Buffer.from(featureGraphic()), { density: 144 }).resize(1024, 500).png().toFile(storeOut('play-feature-graphic.png'));
+  await png(tile({ size: 120, radius: 0, content: 'ring' }), 120, storeOut('google-oauth-logo-120.png'));
   console.log('Brand assets generated.');
 })();

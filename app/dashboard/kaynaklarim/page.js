@@ -537,7 +537,7 @@ export default function KaynaklarimPage() {
           </>}
         </div>
       </Modal>
-      <PremiumFeaturePrompt open={premiumPrompt} onClose={() => setPremiumPrompt(false)} feature="YouTube çalışma planı limitleri" requiredPlan="calisiyo plus" currentPlan={currentPlan?.name || "calisiyo ücretsiz"} description="calisiyo ücretsiz planında ayda 2 YouTube içeriğini görevlere dönüştürebilirsin. Plus bu aylık limiti genişletir." benefits={["Plus ile ayda 30 YouTube planı", "Kaldığın video ve dakikadan devam et", "Video ve oynatma listelerini günlük görevlere böl"]} />
+      <PremiumFeaturePrompt open={premiumPrompt} onClose={() => setPremiumPrompt(false)} feature="YouTube çalışma planı limitleri" requiredPlan="planliyo plus" currentPlan={currentPlan?.name || "planliyo ücretsiz"} description="planliyo ücretsiz planında ayda 2 YouTube içeriğini görevlere dönüştürebilirsin. Plus bu aylık limiti genişletir." benefits={["Plus ile ayda 30 YouTube planı", "Kaldığın video ve dakikadan devam et", "Video ve oynatma listelerini günlük görevlere böl"]} />
     </div>
   );
 }

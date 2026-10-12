@@ -1,6 +1,6 @@
 import LegalPageLayout from '@/components/landing/LegalPageLayout';
 
-export const metadata = { title: 'Çerez Politikası', description: 'calisiyo çerez ve analitik tercihleri.', alternates: { canonical: '/cerez-politikasi' } };
+export const metadata = { title: 'Çerez Politikası', description: 'planliyo çerez ve analitik tercihleri.', alternates: { canonical: '/cerez-politikasi' } };
 
 export default function CookiePolicyPage() {
   return <LegalPageLayout title="Çerez Politikası" subtitle="Sürüm: 3 Eylül 2026">

@@ -8,7 +8,7 @@ import type { AccountPayload, AccountStats, CurrentPlan, Profile } from '@/lib/t
 import { useAuth } from './AuthProvider';
 
 export const ACCOUNT_QUERY_KEY = ['account'] as const;
-const FREE_PLAN: CurrentPlan = { code: 'baslangic', name: 'calisiyo ücretsiz', status: 'free', entitlements: {} };
+const FREE_PLAN: CurrentPlan = { code: 'baslangic', name: 'planliyo ücretsiz', status: 'free', entitlements: {} };
 
 type LiveStats = AccountStats & { streakQualified: boolean; activePomodoroMinutes: number };
 

@@ -17,7 +17,7 @@ async function login(page) {
   await expect(page.locator('.global-error')).toHaveCount(0);
 }
 
-test.describe('Calisiyo production-grade QA journey', () => {
+test.describe('Planliyo production-grade QA journey', () => {
   test.skip(!email || !password, 'QA_EMAIL and QA_PASSWORD are required.');
 
   test('auth validation, Google handoff, protected routes, persistence and logout', async ({ browser }) => {

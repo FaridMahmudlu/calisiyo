@@ -107,8 +107,8 @@ test.describe('curriculum, streak, analysis and continuation regressions', () =>
   test('billing stays at exactly two product cards', async ({ page }) => {
     await page.goto('/dashboard/abonelik');
     await expect(page.locator('.billing-plan-card')).toHaveCount(2);
-    await expect(page.getByRole('heading', { level: 3, name: 'calisiyo ücretsiz' })).toBeVisible();
-    await expect(page.getByRole('heading', { level: 3, name: 'calisiyo plus' })).toBeVisible();
+    await expect(page.getByRole('heading', { level: 3, name: 'planliyo ücretsiz' })).toBeVisible();
+    await expect(page.getByRole('heading', { level: 3, name: 'planliyo plus' })).toBeVisible();
     await expect(page.getByText(/Şehit ve gazi yakınlarından/)).toBeVisible();
   });
 });

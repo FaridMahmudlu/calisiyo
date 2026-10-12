@@ -14,7 +14,7 @@ export default function PublicFooter() {
     <footer className="story-footer">
       <div className="section-shell footer-grid">
         <div>
-          <Link href="/" className="public-brand" aria-label="calisiyo ana sayfa"><BrandLogo /></Link>
+          <Link href="/" className="public-brand" aria-label="planliyo ana sayfa"><BrandLogo /></Link>
           <p>{FOOTER.tagline}</p>
           <a className="support-email" href={`mailto:${SITE.supportEmail}`}><PiEnvelopeSimple /> {SITE.supportEmail}</a>
         </div>

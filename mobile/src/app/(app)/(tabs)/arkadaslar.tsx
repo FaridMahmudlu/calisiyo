@@ -224,7 +224,7 @@ export default function SocialScreen() {
               <Avatar name={profile?.full_name} size={40} />
               <View style={{ flex: 1 }}><Text variant="caption" color="textMuted">Kullanıcı adın</Text><Text variant="subheading">@{identity?.username || 'hazırlanıyor'}</Text></View>
               <IconButton icon={PencilLine} label="Kullanıcı adını düzenle" onPress={() => { setUsernameDraft(identity?.username || ''); setSheet('username'); }} />
-              <IconButton icon={Share2} label="Kullanıcı adını paylaş" onPress={() => Share.share({ message: `Calisiyo’da birlikte çalışalım! Kullanıcı adım: @${identity?.username || ''}` })} />
+              <IconButton icon={Share2} label="Kullanıcı adını paylaş" onPress={() => Share.share({ message: `Planliyo’da birlikte çalışalım! Kullanıcı adım: @${identity?.username || ''}` })} />
               <IconButton icon={ClipboardIcon} label="Arkadaş kodunu kopyala" onPress={async () => { await Clipboard.setStringAsync(hub.profile?.friendCode || identity?.username || ''); toast.success('Kopyalandı'); }} />
             </View>
             <View style={{ flexDirection: 'row', gap: space.sm, alignItems: 'flex-start' }}>

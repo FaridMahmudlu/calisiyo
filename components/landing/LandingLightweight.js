@@ -25,7 +25,7 @@ const chapters = [
 
 function ProductWorkspace() {
   return (
-    <div className="landing-workspace" aria-label="calisiyo çalışma alanı örnek görünümü">
+    <div className="landing-workspace" aria-label="planliyo çalışma alanı örnek görünümü">
       <aside className="workspace-sidebar">
         <BrandLogo />
         <span className="workspace-nav is-active"><PiCalendarBlank /> Bugün</span>
@@ -66,7 +66,7 @@ export default function LandingLightweight() {
   return (
     <main className="editorial-landing">
       <nav className="editorial-nav" aria-label="Ana navigasyon">
-        <Link href="/" className="public-brand" aria-label="calisiyo ana sayfa"><BrandLogo priority /></Link>
+        <Link href="/" className="public-brand" aria-label="planliyo ana sayfa"><BrandLogo priority /></Link>
         <div className="editorial-nav-links">{NAV_LINKS.map((link) => link.href.startsWith('/') ? <Link key={link.href} href={link.href}>{link.label}</Link> : <a key={link.href} href={link.href}>{link.label}</a>)}</div>
         <div className="editorial-auth"><Link href="/giris">Giriş yap</Link><Link className="public-button primary" href="/kayit">Ücretsiz başla</Link></div>
       </nav>
@@ -77,7 +77,7 @@ export default function LandingLightweight() {
           <h1>YKS hazırlığını tek bir <em>net düzende</em> yönet.</h1>
           <p>Planını kur, odaklanarak çalış ve ilerlemeni yalnızca kendi gerçek kayıtlarınla gör. Gereksiz karmaşa olmadan, her gün ne yapacağını bil.</p>
           <div className="hero-actions"><Link className="public-button primary" href="/kayit">Ücretsiz başla <PiArrowRight /></Link><a className="public-button" href="#paketler">Paketleri gör</a></div>
-          <div className="hero-proof"><span><PiCheck /> Kredi kartı gerekmez</span><span><PiCheck /> calisiyo ücretsiz</span><span><PiCheck /> Tüm cihazlarda uyumlu</span></div>
+          <div className="hero-proof"><span><PiCheck /> Kredi kartı gerekmez</span><span><PiCheck /> planliyo ücretsiz</span><span><PiCheck /> Tüm cihazlarda uyumlu</span></div>
         </div>
         <ProductWorkspace />
       </section>
@@ -101,13 +101,13 @@ export default function LandingLightweight() {
 
       <section className="landing-data-band" id="ozellikler">
         <div className="section-shell data-band-grid">
-          <div className="data-band-copy"><span><PiLockKey /> Gerçek veriden görünür ilerleme</span><h2>Rakamların yalnızca sen çalıştıkça oluşur.</h2><p>Calisiyo; program, Kronometre, soru, konu ve deneme kayıtlarını birlikte değerlendirir. Veri yoksa yapay başarı oranı göstermez.</p><div className="data-band-links"><Link href="/metodoloji">Nasıl hesaplandığını gör <PiArrowRight /></Link><Link href="/ozellikler">Tüm özellikleri incele <PiArrowRight /></Link></div></div>
+          <div className="data-band-copy"><span><PiLockKey /> Gerçek veriden görünür ilerleme</span><h2>Rakamların yalnızca sen çalıştıkça oluşur.</h2><p>Planliyo; program, Kronometre, soru, konu ve deneme kayıtlarını birlikte değerlendirir. Veri yoksa yapay başarı oranı göstermez.</p><div className="data-band-links"><Link href="/metodoloji">Nasıl hesaplandığını gör <PiArrowRight /></Link><Link href="/ozellikler">Tüm özellikleri incele <PiArrowRight /></Link></div></div>
           <div className="data-source-panel" aria-label="İstatistik veri kaynakları"><header><PiTrendUp /><div><strong>İlerlemenin kaynakları</strong><small>Örnek veri akışı</small></div></header>{[[PiClock, 'Çalışma sürelerin'], [PiBookOpenText, 'Çözdüğün sorular'], [PiTarget, 'Deneme sonuçların'], [PiListChecks, 'Tamamladığın görevler']].map(([Icon, label]) => <div key={label}><Icon /><span>{label}</span><PiCheck /></div>)}</div>
         </div>
       </section>
 
       <section className="landing-faq section-shell" id="sorular">
-        <header className="editorial-section-heading"><span>Doğrudan cevaplar</span><h2>Calisiyo hakkında sık sorulanlar.</h2><p>Başlamadan önce bilmen gerekenleri kısa ve açık şekilde yanıtladık.</p></header>
+        <header className="editorial-section-heading"><span>Doğrudan cevaplar</span><h2>Planliyo hakkında sık sorulanlar.</h2><p>Başlamadan önce bilmen gerekenleri kısa ve açık şekilde yanıtladık.</p></header>
         <div className="faq-list">{FAQS.map((item, index) => <details key={item.question} open={index === 0}><summary>{item.question}<span>+</span></summary><p>{item.answer}</p></details>)}</div>
       </section>
 

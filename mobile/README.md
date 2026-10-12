@@ -1,6 +1,6 @@
-# Calisiyo Mobile
+# Planliyo Mobile
 
-Android and iOS app for Calisiyo (`tr.com.calisiyo.app`). Built with Expo SDK 57, React Native, TypeScript and Expo Router. It uses the same Supabase project, accounts, RLS policies and Next.js API (`https://calisiyo.com.tr/api/*`, called with bearer tokens) as the web app. Pure business rules are shared from `../lib` through the `@shared/*` alias.
+Android and iOS app for Planliyo (`tr.com.planliyo.app`). Built with Expo SDK 57, React Native, TypeScript and Expo Router. It uses the same Supabase project, accounts, RLS policies and Next.js API (`https://planliyo.com.tr/api/*`, called with bearer tokens) as the web app. Pure business rules are shared from `../lib` through the `@shared/*` alias.
 
 ## Local development
 
@@ -26,7 +26,7 @@ Or build an installable APK in the cloud: `npm run build:android:preview`.
 | Name | Where | Notes |
 | --- | --- | --- |
 | `EXPO_PUBLIC_SUPABASE_URL`, `EXPO_PUBLIC_SUPABASE_ANON_KEY` | `.env.local` / EAS env | Anon key only. Never put the service-role key in the app. |
-| `EXPO_PUBLIC_API_URL` | EAS env | Defaults to `https://calisiyo.com.tr`. |
+| `EXPO_PUBLIC_API_URL` | EAS env | Defaults to `https://planliyo.com.tr`. |
 | `EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID`, `EXPO_PUBLIC_GOOGLE_IOS_CLIENT_ID` | EAS env | Google Sign-In. |
 | `GOOGLE_IOS_URL_SCHEME` | EAS env | Reversed iOS client ID, needed for iOS builds. |
 | `GOOGLE_SERVICES_JSON` | EAS **file** env var | Firebase `google-services.json` (needed for Android push). |
@@ -48,7 +48,7 @@ npx expo export --platform android --platform ios --output-dir .expo-export-chec
 
 1. The EAS project (`@faridmahmudluu/calisiyo`) and the `EXPO_PUBLIC_*` variables for all environments are already set up.
 2. Build: `npm run build:android:production` (AAB). The upload keystore is stored on EAS, so never create a new one.
-3. In Play Console, create the app, finish the store listing, the content rating questionnaire, Data safety, and the account deletion URL (`https://calisiyo.com.tr/hesap-silme`).
+3. In Play Console, create the app, finish the store listing, the content rating questionnaire, Data safety, and the account deletion URL (`https://planliyo.com.tr/hesap-silme`).
 4. Upload the first AAB manually to the **Internal testing** track. After that, create a Play service account, save its key as `google-play-service-account.json` (git-ignored) and use `npm run submit:android`.
 5. Ship JS-only fixes with `npx eas-cli@latest update --channel production`.
 

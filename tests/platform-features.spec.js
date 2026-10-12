@@ -145,7 +145,7 @@ test.describe('XP, social classroom and admin platform features', () => {
     await page.locator('.classroom-chat-composer input[type="file"]').last().setInputFiles({
       name: fileName,
       mimeType: 'text/plain',
-      buffer: Buffer.from('Calisiyo classroom attachment regression'),
+      buffer: Buffer.from('Planliyo classroom attachment regression'),
     });
     await expect(page.locator('.chat-attachment-preview')).toContainText(fileName);
     await page.getByRole('button', { name: 'Mesajı gönder' }).click();
@@ -250,7 +250,7 @@ test.describe('XP, social classroom and admin platform features', () => {
       return;
     }
 
-    await expect(page.getByRole('heading', { name: 'calisiyo’nun nabzı' })).toBeVisible();
+    await expect(page.getByRole('heading', { name: 'planliyo’nun nabzı' })).toBeVisible();
     await expect(page.getByText('Toplam kullanıcı')).toBeVisible();
     await expect(page.getByText('Kullanıcı yönetimi')).toBeVisible();
     await expect(page.locator('.admin-users tbody tr').first()).toBeVisible();
@@ -261,7 +261,7 @@ test.describe('XP, social classroom and admin platform features', () => {
 
     await page.setViewportSize({ width: 390, height: 844 });
     await page.reload();
-    await expect(page.getByRole('heading', { name: 'calisiyo’nun nabzı' })).toBeVisible();
+    await expect(page.getByRole('heading', { name: 'planliyo’nun nabzı' })).toBeVisible();
     await expect.poll(() => page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true);
     await page.getByRole('button', { name: 'Menüyü aç' }).click();
     const mobileNavigation = page.getByRole('navigation', { name: 'Admin menüsü' });

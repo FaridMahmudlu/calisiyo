@@ -30,7 +30,7 @@ export async function GET(request) {
   const publicKey = String(process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY || '');
   const privateKey = String(process.env.VAPID_PRIVATE_KEY || '');
   const webPushReady = Boolean(publicKey && privateKey);
-  if (webPushReady) webpush.setVapidDetails(process.env.VAPID_SUBJECT || 'mailto:calisiyo.destek@gmail.com', publicKey, privateKey);
+  if (webPushReady) webpush.setVapidDetails(process.env.VAPID_SUBJECT || 'mailto:destek@planliyo.com.tr', publicKey, privateKey);
   const admin = createAdminClient();
   const { data: notifications, error } = await admin.from('notifications')
     .select('id,user_id,title,body,action_url,created_at,profiles!inner(notifications_enabled)')

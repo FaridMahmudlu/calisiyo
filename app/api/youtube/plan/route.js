@@ -51,7 +51,7 @@ async function fetchText(url, timeoutMs = 9000) {
   try {
     const response = await fetch(url, {
       signal: controller.signal,
-      headers: { 'user-agent': 'Mozilla/5.0 (compatible; CalisiyoLearningPlanner/1.0)' },
+      headers: { 'user-agent': 'Mozilla/5.0 (compatible; PlanliyoLearningPlanner/1.0)' },
       cache: 'no-store',
     });
     if (!response.ok) throw new Error(`YouTube ${response.status}`);
@@ -74,7 +74,7 @@ async function postJson(url, body, timeoutMs = 9000) {
   try {
     const response = await fetch(url, {
       method: 'POST', signal: controller.signal, cache: 'no-store',
-      headers: { 'content-type': 'application/json', 'user-agent': 'Mozilla/5.0 (compatible; CalisiyoLearningPlanner/1.0)' },
+      headers: { 'content-type': 'application/json', 'user-agent': 'Mozilla/5.0 (compatible; PlanliyoLearningPlanner/1.0)' },
       body: JSON.stringify(body),
     });
     if (!response.ok) throw new Error(`YouTube ${response.status}`);

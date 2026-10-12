@@ -171,7 +171,7 @@ export default function IstatistiklerPage() {
 
   const exportProgress = () => {
     if (!canExport) {
-      setPremiumPrompt({ feature: 'CSV ilerleme raporu', requiredPlan: 'calisiyo plus', description: 'Çalışma süresi, soru ve tamamlanan görev verilerini CSV olarak indirip kendi arşivinde kullanabilirsin.', benefits: ['İlerleme verilerini dışa aktar', 'Kendi analiz dosyanı oluştur', 'Sınırsız istatistik geçmişini koru'] });
+      setPremiumPrompt({ feature: 'CSV ilerleme raporu', requiredPlan: 'planliyo plus', description: 'Çalışma süresi, soru ve tamamlanan görev verilerini CSV olarak indirip kendi arşivinde kullanabilirsin.', benefits: ['İlerleme verilerini dışa aktar', 'Kendi analiz dosyanı oluştur', 'Sınırsız istatistik geçmişini koru'] });
       return;
     }
     const rows = [
@@ -182,14 +182,14 @@ export default function IstatistiklerPage() {
     const url = URL.createObjectURL(new Blob([csv], { type: 'text/csv;charset=utf-8' }));
     const anchor = document.createElement('a');
     anchor.href = url;
-    anchor.download = `calisiyo-ilerleme-${todayStr()}.csv`;
+    anchor.download = `planliyo-ilerleme-${todayStr()}.csv`;
     anchor.click();
     URL.revokeObjectURL(url);
   };
 
   return (
     <motion.div className="page stats-page" initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
-      <PageHeader title="İstatistikler" description="Çalışma, program, deneme ve konu kayıtlarından anlık olarak hesaplanan ilerleme görünümün." actions={<div className="stats-head-actions"><button className={`stats-export ${!canExport ? 'is-premium' : ''}`} onClick={exportProgress} title={!canExport ? 'CSV dışa aktarma calisiyo plus planında' : 'İlerleme verilerini indir'}><Download size={14} /> {canExport ? 'CSV indir' : 'Plus ile indir'}{!canExport && <span>Premium</span>}</button><span className="stats-live"><Activity size={14} /> Canlı veri</span></div>} />
+      <PageHeader title="İstatistikler" description="Çalışma, program, deneme ve konu kayıtlarından anlık olarak hesaplanan ilerleme görünümün." actions={<div className="stats-head-actions"><button className={`stats-export ${!canExport ? 'is-premium' : ''}`} onClick={exportProgress} title={!canExport ? 'CSV dışa aktarma planliyo plus planında' : 'İlerleme verilerini indir'}><Download size={14} /> {canExport ? 'CSV indir' : 'Plus ile indir'}{!canExport && <span>Premium</span>}</button><span className="stats-live"><Activity size={14} /> Canlı veri</span></div>} />
       <div className="stats-toolbar">
         <div className="study-segments stats-range" aria-label="Tarih aralığı">
           <button className={range === 'week' ? 'is-active' : ''} onClick={() => setRange('week')}>7 Gün</button>
@@ -246,7 +246,7 @@ export default function IstatistiklerPage() {
         {stats.exams.length > 0 && <section className="study-panel recent-exams"><div className="stats-card-heading"><div><span>Son sonuçlar</span><h2>Deneme geçmişi</h2></div></div><div className="recent-exam-list">{stats.exams.slice(-4).reverse().map((exam) => <div key={exam.id}><span className="exam-type">{exam.sinav_turu}</span><div><strong>{exam.yayin}</strong><small>{formatDate(exam.tarih)} · {exam.deneme_detaylari?.length || 0} ders</small></div><em>{exam.net.toFixed(1)} net</em></div>)}</div></section>}
       </DataState>
 
-      <PremiumFeaturePrompt open={Boolean(premiumPrompt)} onClose={() => setPremiumPrompt(null)} currentPlan={currentPlan?.name || 'calisiyo ücretsiz'} {...premiumPrompt} />
+      <PremiumFeaturePrompt open={Boolean(premiumPrompt)} onClose={() => setPremiumPrompt(null)} currentPlan={currentPlan?.name || 'planliyo ücretsiz'} {...premiumPrompt} />
 
       <style jsx>{`
         .stats-page { padding-bottom: 20px; }

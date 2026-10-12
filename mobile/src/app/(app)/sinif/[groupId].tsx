@@ -352,7 +352,7 @@ export default function ClassroomScreen() {
         title: room.name,
         headerRight: () => (
           <View style={{ flexDirection: 'row' }}>
-            {room.inviteCode ? <IconButton icon={Share2} label="Davet kodunu paylaş" onPress={() => Share.share({ message: `Calisiyo çalışma sınıfıma katıl: ${room.name}\nDavet kodu: ${room.inviteCode}` })} /> : null}
+            {room.inviteCode ? <IconButton icon={Share2} label="Davet kodunu paylaş" onPress={() => Share.share({ message: `Planliyo çalışma sınıfıma katıl: ${room.name}\nDavet kodu: ${room.inviteCode}` })} /> : null}
             {isOwner ? <IconButton icon={Settings2} label="Sınıfı düzenle" onPress={() => setSettingsOpen(true)} /> : null}
             <IconButton icon={LogOut} label={isOwner ? 'Sınıfı kapat' : 'Sınıftan ayrıl'} tone="danger" onPress={leave} />
           </View>
@@ -471,7 +471,7 @@ export default function ClassroomScreen() {
             <Card tone="muted" style={{ flexDirection: 'row', alignItems: 'center', gap: space.md }}>
               <View style={{ flex: 1 }}><Text variant="caption" color="textMuted">Davet kodu</Text><Text variant="heading">{room.inviteCode}</Text></View>
               <IconButton icon={Copy} label="Kodu kopyala" onPress={async () => { await Clipboard.setStringAsync(room.inviteCode!); toast.success('Davet kodu kopyalandı'); }} />
-              <IconButton icon={Share2} label="Paylaş" onPress={() => Share.share({ message: `Calisiyo çalışma sınıfıma katıl: ${room.name}\nDavet kodu: ${room.inviteCode}` })} />
+              <IconButton icon={Share2} label="Paylaş" onPress={() => Share.share({ message: `Planliyo çalışma sınıfıma katıl: ${room.name}\nDavet kodu: ${room.inviteCode}` })} />
             </Card>
           ) : null}
         </ScrollView>

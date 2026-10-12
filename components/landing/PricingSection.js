@@ -59,7 +59,7 @@ export default function PricingSection({ standalone = false }) {
         <div>{PLUS_VARIANTS.map((variant) => <article key={variant.code}><span>{variant.label}</span><strong>{formatTry(variant.price)}</strong><p>{variant.duration}</p><small>{variant.trialDays} gün ücretsiz deneme · otomatik yenileme yok</small></article>)}</div>
       </section>}
       <p className="pricing-provider-note">Geçerli indirim kodları Shopier ödeme ekranında uygulanır. Nihai ödeme tutarı Shopier ekranında gösterilir.</p>
-      <div className="pricing-trust"><PiShieldCheck /><span>Şehit ve gazi yakınlarından ücret tahsil edilmemektedir. Ayrıntılar için <a href="mailto:calisiyo.destek@gmail.com">destek ekibimize</a> ulaşabilirsin.</span></div>
+      <div className="pricing-trust"><PiShieldCheck /><span>Şehit ve gazi yakınlarından ücret tahsil edilmemektedir. Ayrıntılar için <a href="mailto:destek@planliyo.com.tr">destek ekibimize</a> ulaşabilirsin.</span></div>
     </section>
   );
 }

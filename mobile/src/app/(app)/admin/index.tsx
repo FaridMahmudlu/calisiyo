@@ -15,7 +15,7 @@ const EVENT_LABELS: Record<string, [string, typeof Activity]> = {
   friend_request: ['Arkadaşlık isteği', UsersRound], friend_connected: ['Arkadaşlık kuruldu', UsersRound], study_group_created: ['Sınıf oluşturuldu', GraduationCap], admin_user_status: ['Hesap durumu', ShieldCheck],
 };
 const ROLE_OPTIONS = [{ value: 'student', label: 'Öğrenci', description: 'Yönetim erişimi yok' }, { value: 'moderator', label: 'Moderatör', description: 'Analizleri ve kullanıcıları görüntüler' }, { value: 'admin', label: 'Admin', description: 'Kullanıcı işlemleri ve duyuru yetkisi' }];
-const PLAN_OPTIONS = [{ value: 'baslangic', label: 'calisiyo ücretsiz', description: 'Temel limitler' }, { value: 'plus_2027', label: 'calisiyo plus · YKS 2027', description: '19 Ağustos 2027’ye kadar' }, { value: 'plus_2028', label: 'calisiyo plus · YKS 2028', description: '25 Haziran 2028’e kadar' }];
+const PLAN_OPTIONS = [{ value: 'baslangic', label: 'planliyo ücretsiz', description: 'Temel limitler' }, { value: 'plus_2027', label: 'planliyo plus · YKS 2027', description: '19 Ağustos 2027’ye kadar' }, { value: 'plus_2028', label: 'planliyo plus · YKS 2028', description: '25 Haziran 2028’e kadar' }];
 const AUDIENCE_OPTIONS = [{ value: 'all', label: 'Tüm aktif hesaplar', description: 'Yöneticiler dahil' }, { value: 'active_students', label: 'Yalnızca öğrenciler', description: 'Yönetim rolü olmayanlar' }];
 const DURATIONS = [{ value: '15', label: '15 dakika' }, { value: '60', label: '1 saat' }, { value: '1440', label: '24 saat' }, { value: '10080', label: '7 gün' }, { value: '43200', label: '30 gün' }];
 const MODULES: Record<string, string> = { studySessions: 'Çalışma oturumları', tasksCompleted: 'Tamamlanan görevler', examsAdded: 'Denemeler', reviewsCompleted: 'Tekrarlar', topicsCompleted: 'Konular', notesCreated: 'Notlar', friendConnections: 'Arkadaşlıklar', studyGroups: 'Çalışma sınıfları' };
@@ -224,7 +224,7 @@ export default function AdminDashboardScreen() {
 
             <Card tone="muted" style={{ gap: space.sm }}>
               <Text variant="subheading">Üyelik planı</Text>
-              <Text variant="caption" color="textMuted">{detail.data.plan?.periodEnd ? `${detail.data.plan.name || 'calisiyo plus'} · ${dateTime(detail.data.plan.periodEnd)} tarihine kadar` : 'calisiyo ücretsiz · süresiz temel erişim'}</Text>
+              <Text variant="caption" color="textMuted">{detail.data.plan?.periodEnd ? `${detail.data.plan.name || 'planliyo plus'} · ${dateTime(detail.data.plan.periodEnd)} tarihine kadar` : 'planliyo ücretsiz · süresiz temel erişim'}</Text>
               <Select value={selectedPlan} onChange={setPlanDraft} options={PLAN_OPTIONS} />
               <Button title="Planı kaydet" size="sm" disabled={!isAdmin} loading={busy === 'plan'} onPress={async () => { if (await run('plan', () => supabase.rpc('admin_set_user_plan', { p_user_id: selected.id, p_plan_code: selectedPlan }), 'Kullanıcının planı güncellendi.')) { detail.refetch(); users.refetch(); } }} />
             </Card>

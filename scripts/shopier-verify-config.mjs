@@ -96,14 +96,14 @@ if (!token) {
         && (discount.productIds || []).some((productId) => productIds.has(String(productId)));
     });
     if (conflictingAutomaticDiscounts.length) {
-      fail(`Calisiyo ürünlerini etkileyebilecek ${conflictingAutomaticDiscounts.length} aktif otomatik indirim bulundu.`);
+      fail(`Planliyo ürünlerini etkileyebilecek ${conflictingAutomaticDiscounts.length} aktif otomatik indirim bulundu.`);
     }
     const promoScopeVerified = String(process.env.SHOPIER_PROMO_SCOPE_VERIFIED || '').toLowerCase() === 'true';
     if (promoScopeVerified && unexpectedProducts.length) {
-      fail('Mağazada iki Calisiyo ürünü dışında ürün bulunduğu için mağaza-geneli üretici kodu güvenli değil.');
+      fail('Mağazada iki Planliyo ürünü dışında ürün bulunduğu için mağaza-geneli üretici kodu güvenli değil.');
     }
     if (!promoScopeVerified) {
-      fail('Shopier indirim kodlarının yalnızca iki Calisiyo ürününe uygulanacağı manuel olarak doğrulanmadı.');
+      fail('Shopier indirim kodlarının yalnızca iki Planliyo ürününe uygulanacağı manuel olarak doğrulanmadı.');
     }
     if (String(process.env.SHOPIER_CREATOR_PRODUCTS_VALIDATED || '').toLowerCase() !== 'true') {
       fail('İçerik üretici ürün doğrulama bayrağı etkin değil.');

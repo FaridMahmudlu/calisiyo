@@ -312,7 +312,7 @@ export default function AyarlarPage() {
     const url = URL.createObjectURL(new Blob([content], { type: mime }));
     const anchor = document.createElement('a');
     anchor.href = url;
-    anchor.download = `calisiyo-verilerim-${new Date().toISOString().slice(0, 10)}.${format}`;
+    anchor.download = `planliyo-verilerim-${new Date().toISOString().slice(0, 10)}.${format}`;
     anchor.click();
     URL.revokeObjectURL(url);
   };

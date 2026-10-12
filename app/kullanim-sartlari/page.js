@@ -5,7 +5,7 @@ import { getLegalBusinessConfig } from '@/lib/billing/config';
 
 export const metadata = {
   title: 'Kullanım Şartları',
-  description: 'calisiyo YKS Çalışma Koçu hizmet kullanım şartları ve kuralları.',
+  description: 'planliyo YKS Çalışma Koçu hizmet kullanım şartları ve kuralları.',
   alternates: { canonical: '/kullanim-sartlari' },
 };
 
@@ -14,7 +14,7 @@ export default function KullanimSartlariPage() {
   return (
     <main className="story-landing">
       <nav className="story-nav" aria-label="Ana navigasyon">
-        <Link href="/" className="public-brand" aria-label="calisiyo ana sayfa">
+        <Link href="/" className="public-brand" aria-label="planliyo ana sayfa">
           <BrandLogo priority />
         </Link>
         <div className="landing-auth">
@@ -33,7 +33,7 @@ export default function KullanimSartlariPage() {
         <section className="legal-content">
           <h2>1. Taraf ve Amaç</h2>
           <p>
-            İşbu Kullanım Şartları, <strong>calisiyo</strong> (“Platform”) web sitesi ve dijital araçlarının kullanımı ile ilgili kuralları belirler. Platforma kaydolan veya Platformu kullanan her Kullanıcı, işbu Kullanım Şartları hükümlerini okuduğunu, anladığını ve kabul ettiğini beyan eder.
+            İşbu Kullanım Şartları, <strong>planliyo</strong> (“Platform”) web sitesi ve dijital araçlarının kullanımı ile ilgili kuralları belirler. Platforma kaydolan veya Platformu kullanan her Kullanıcı, işbu Kullanım Şartları hükümlerini okuduğunu, anladığını ve kabul ettiğini beyan eder.
           </p>
 
           <h2>2. Hesap Oluşturma ve Güvenlik</h2>
@@ -53,20 +53,20 @@ export default function KullanimSartlariPage() {
 
           <h2>4. Hizmetin Niteliği ve Sorumluluk Sınırı</h2>
           <p>
-            calisiyo, öğrencilerin YKS hazırlık süreçlerini destekleyen “calisiyo ücretsiz” ve sınav yılına göre sunulan “calisiyo plus” planlarından oluşan dijital planlama ve analiz hizmetidir. Plus 7 gün ücretsiz denenebilir; kullanıcı açıkça satın alma işlemi yapmadıkça otomatik ücret alınmaz. Platformda sunulan istatistikler ve tahminler kullanıcı tarafından girilen gerçek verilere dayanır. calisiyo, sınav başarısı veya resmi sınav sonuçları konusunda herhangi bir hukuki taahhüt veya garanti vermez.
+            planliyo, öğrencilerin YKS hazırlık süreçlerini destekleyen “planliyo ücretsiz” ve sınav yılına göre sunulan “planliyo plus” planlarından oluşan dijital planlama ve analiz hizmetidir. Plus 7 gün ücretsiz denenebilir; kullanıcı açıkça satın alma işlemi yapmadıkça otomatik ücret alınmaz. Platformda sunulan istatistikler ve tahminler kullanıcı tarafından girilen gerçek verilere dayanır. planliyo, sınav başarısı veya resmi sınav sonuçları konusunda herhangi bir hukuki taahhüt veya garanti vermez.
           </p>
           <p>
-            Kayıt sırasında geçerli bir içerik üretici kodunu isteğe bağlı olarak kullanan yeni hesaplara, uygun calisiyo plus ürünlerinde belirtilen indirim uygulanabilir. Kod yalnızca kayıt sırasında bir kez hesaba tanımlanır; başka indirimlerle birleştirilemez ve mevcut hesaplara sonradan eklenemez.
+            Kayıt sırasında geçerli bir içerik üretici kodunu isteğe bağlı olarak kullanan yeni hesaplara, uygun planliyo plus ürünlerinde belirtilen indirim uygulanabilir. Kod yalnızca kayıt sırasında bir kez hesaba tanımlanır; başka indirimlerle birleştirilemez ve mevcut hesaplara sonradan eklenemez.
           </p>
 
           <h2>5. Fikri Mülkiyet Hakları</h2>
           <p>
-            calisiyo ismi, logosu, kaynak kodları, arayüz tasarımı, 3D görsel ögeleri ve yazılım mimarisi üzerindeki tüm fikri mülkiyet hakları calisiyo platformuna aittir. Yazılı izin alınmaksızın kopyalanamaz veya çoğaltılamaz.
+            planliyo ismi, logosu, kaynak kodları, arayüz tasarımı, 3D görsel ögeleri ve yazılım mimarisi üzerindeki tüm fikri mülkiyet hakları planliyo platformuna aittir. Yazılı izin alınmaksızın kopyalanamaz veya çoğaltılamaz.
           </p>
 
           <h2>6. Değişiklikler ve Fesih</h2>
           <p>
-            calisiyo, Kullanım Şartları’nı dilediği zaman güncelleme hakkını saklı tutar. Güncellenmiş şartlar web sitesinde yayınlandığı andan itibaren yürürlüğe girer. Şartlara aykırı davranan kullanıcıların hesapları önceden bildirimde bulunulmaksızın askıya alınabilir veya silinebilir.
+            planliyo, Kullanım Şartları’nı dilediği zaman güncelleme hakkını saklı tutar. Güncellenmiş şartlar web sitesinde yayınlandığı andan itibaren yürürlüğe girer. Şartlara aykırı davranan kullanıcıların hesapları önceden bildirimde bulunulmaksızın askıya alınabilir veya silinebilir.
           </p>
 
           <h2>7. İletişim</h2>

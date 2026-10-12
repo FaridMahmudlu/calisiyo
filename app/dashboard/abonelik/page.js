@@ -54,7 +54,7 @@ export default function BillingPage() {
     const result = await response.json().catch(() => ({}));
     setBusy('');
     if (!response.ok || !result.ok) return setNotice({ type: 'error', message: result.message || 'Ücretsiz deneme başlatılamadı.' });
-    setNotice({ type: 'success', message: '7 günlük calisiyo plus denemen başladı. Süre sonunda otomatik ücret alınmaz.' });
+    setNotice({ type: 'success', message: '7 günlük planliyo plus denemen başladı. Süre sonunda otomatik ücret alınmaz.' });
     await Promise.all([loadBilling(), reloadAccount?.()]);
   };
 
@@ -87,12 +87,12 @@ export default function BillingPage() {
   if (loading) return <div className="billing-loading"><LoaderCircle className="is-spinning" /><span>Paketlerin hazırlanıyor…</span></div>;
 
   return <div className="billing-page">
-    <PageHeader eyebrow="Paketler" title="İki plan, tek net seçim" description="Ücretsiz devam et veya sınav yılına uygun calisiyo plus erişimini 7 gün dene." />
+    <PageHeader eyebrow="Paketler" title="İki plan, tek net seçim" description="Ücretsiz devam et veya sınav yılına uygun planliyo plus erişimini 7 gün dene." />
     {notice && <div className={`billing-notice is-${notice.type}`} role="status"><ShieldCheck /><span>{notice.message}</span><button onClick={() => setNotice(null)}>Kapat</button></div>}
 
     <section className="billing-current">
       <div className="billing-current-icon"><CreditCard /></div>
-      <div><span>Mevcut planın</span><h2>{currentPlan?.name || 'calisiyo ücretsiz'}</h2><p>{trialActive ? `Deneme ${new Intl.DateTimeFormat('tr-TR', { dateStyle: 'long' }).format(new Date(currentPlan.trialEndsAt))} tarihinde biter` : currentPlan?.periodEnd ? `${new Intl.DateTimeFormat('tr-TR', { dateStyle: 'long' }).format(new Date(currentPlan.periodEnd))} tarihine kadar etkin` : 'Süresiz ücretsiz temel erişim'}</p></div>
+      <div><span>Mevcut planın</span><h2>{currentPlan?.name || 'planliyo ücretsiz'}</h2><p>{trialActive ? `Deneme ${new Intl.DateTimeFormat('tr-TR', { dateStyle: 'long' }).format(new Date(currentPlan.trialEndsAt))} tarihinde biter` : currentPlan?.periodEnd ? `${new Intl.DateTimeFormat('tr-TR', { dateStyle: 'long' }).format(new Date(currentPlan.periodEnd))} tarihine kadar etkin` : 'Süresiz ücretsiz temel erişim'}</p></div>
       <span className={`billing-plan-badge is-${currentPlan?.code || 'baslangic'}`}>{trialActive ? 'Deneme' : currentPlan?.status === 'active' ? 'Etkin' : 'Ücretsiz'}</span>
     </section>
 
@@ -119,7 +119,7 @@ export default function BillingPage() {
           </div>
         </article>
       </div>
-      <div className="pricing-trust"><ShieldCheck /><span>Şehit ve gazi yakınlarından ücret tahsil edilmemektedir. <a href="mailto:calisiyo.destek@gmail.com">calisiyo.destek@gmail.com</a></span></div>
+      <div className="pricing-trust"><ShieldCheck /><span>Şehit ve gazi yakınlarından ücret tahsil edilmemektedir. <a href="mailto:destek@planliyo.com.tr">destek@planliyo.com.tr</a></span></div>
     </section>
 
     <section className="billing-orders">
@@ -128,14 +128,14 @@ export default function BillingPage() {
     </section>
 
     {checkoutOpen && <div className="billing-modal-backdrop" role="presentation" onMouseDown={() => !busy && setCheckoutOpen(false)}><section className="billing-checkout" role="dialog" aria-modal="true" aria-labelledby="checkout-title" onMouseDown={(event) => event.stopPropagation()}>
-      <div className="checkout-heading"><span><LockKeyhole /></span><div><small>Güvenli sipariş özeti</small><h2 id="checkout-title">calisiyo plus · {selected.label}</h2></div><button onClick={() => setCheckoutOpen(false)} aria-label="Pencereyi kapat">×</button></div>
+      <div className="checkout-heading"><span><LockKeyhole /></span><div><small>Güvenli sipariş özeti</small><h2 id="checkout-title">planliyo plus · {selected.label}</h2></div><button onClick={() => setCheckoutOpen(false)} aria-label="Pencereyi kapat">×</button></div>
       <div className="checkout-summary"><span>{selected.duration}</span>{creatorPrice ? <><strong>{formatTry(creatorPrice.finalPrice)}</strong><div className="checkout-price-lines"><span>Liste fiyatı <b>{formatTry(creatorPrice.listPrice)}</b></span><span>İçerik üretici indirimi <b>−{formatTry(creatorPrice.discountAmount)}</b></span><span>Ödenecek tutar <b>{formatTry(creatorPrice.finalPrice)}</b></span></div><p>Kayıt sırasında kullandığın içerik üretici kodu otomatik uygulandı. Shopier’de yeniden kod girmen gerekmez.</p></> : <><strong>{formatTry(selected.price)}</strong><small>Liste fiyatı · otomatik yenileme yok</small><p>Ödeyeceğin nihai tutar güvenli Shopier ödeme sayfasında doğrulanır.</p></>}</div>
       {!billing?.checkoutEnabled && <div className="checkout-disabled"><Clock3 /><div><strong>Satışa hazırlık tamamlanıyor</strong><p>{billing?.checkoutMessage} Bu sırada ücretsiz planı kullanmaya devam edebilirsin.</p></div></div>}
       <div className="checkout-links"><a href="/on-bilgilendirme" target="_blank">Ön Bilgilendirme</a><a href="/mesafeli-satis" target="_blank">Mesafeli Satış</a><a href="/iptal-iade" target="_blank">İptal ve İade</a><a href="/kvkk" target="_blank">KVKK</a></div>
       <label><input type="checkbox" checked={confirmGuardian} onChange={(event) => setConfirmGuardian(event.target.checked)} /><span>18 yaşındayım veya veli/kanuni temsilci onayıyla işlem yapıyorum; sözleşmeleri okudum.</span></label>
       <label><input type="checkbox" checked={acceptImmediate} onChange={(event) => setAcceptImmediate(event.target.checked)} /><span>Ödeme doğrulandığında dijital hizmetin hemen başlamasını istiyorum.</span></label>
       <button className="checkout-pay" disabled={!billing?.checkoutEnabled || busy === 'checkout' || !acceptImmediate || !confirmGuardian} onClick={startCheckout}>{busy === 'checkout' ? <LoaderCircle className="is-spinning" /> : <ShieldCheck />} Shopier ile ödemeye geç</button>
-      <div className="checkout-payment-methods"><strong>Shopier üzerinden güvenli ödeme</strong><p className="checkout-security"><ShieldCheck /> Kart bilgilerin yalnızca Shopier ödeme sayfasına girilir; calisiyo sunucularına ulaşmaz.</p></div>
+      <div className="checkout-payment-methods"><strong>Shopier üzerinden güvenli ödeme</strong><p className="checkout-security"><ShieldCheck /> Kart bilgilerin yalnızca Shopier ödeme sayfasına girilir; planliyo sunucularına ulaşmaz.</p></div>
     </section></div>}
   </div>;
 }

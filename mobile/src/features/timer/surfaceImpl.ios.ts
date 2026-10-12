@@ -14,7 +14,7 @@ export default {
       mode: state.mode,
       startsAt: state.endsAt - state.totalSeconds * 1000,
       endsAt: state.endsAt,
-    }, 'calisiyo://kronometre');
+    }, 'planliyo://kronometre');
   },
   stop: endAll,
 };

@@ -6,7 +6,7 @@ import { SITE } from '@/lib/seo/site';
 
 export const metadata = {
   title: 'İletişim',
-  description: 'calisiyo YKS Çalışma Koçu platformu iletişim ve operatör bilgileri.',
+  description: 'planliyo YKS Çalışma Koçu platformu iletişim ve operatör bilgileri.',
   alternates: { canonical: '/iletisim' },
 };
 
@@ -15,7 +15,7 @@ export default function IletisimPage() {
   return (
     <main className="story-landing">
       <nav className="story-nav" aria-label="Ana navigasyon">
-        <Link href="/" className="public-brand" aria-label="calisiyo ana sayfa">
+        <Link href="/" className="public-brand" aria-label="planliyo ana sayfa">
           <BrandLogo priority />
         </Link>
         <div className="landing-auth">
@@ -34,11 +34,11 @@ export default function IletisimPage() {
         <section className="legal-content">
           <h2>1. Operatör Bilgileri</h2>
           <p>
-            <strong>calisiyo</strong>, YKS hazırlık sürecindeki öğrencilere planlama, odaklanma ve ilerleme takibi sunan dijital eğitim hizmetidir.
+            <strong>planliyo</strong>, YKS hazırlık sürecindeki öğrencilere planlama, odaklanma ve ilerleme takibi sunan dijital eğitim hizmetidir.
           </p>
           <ul>
-            <li><strong>Hizmet Sağlayıcı & Veri Sorumlusu:</strong> {contact.legalName || 'calisiyo bireysel platform işletmecisi'}</li>
-            <li><strong>Proje Adı:</strong> calisiyo – YKS Çalışma Koçu</li>
+            <li><strong>Hizmet Sağlayıcı & Veri Sorumlusu:</strong> {contact.legalName || 'planliyo bireysel platform işletmecisi'}</li>
+            <li><strong>Proje Adı:</strong> planliyo – YKS Çalışma Koçu</li>
             <li><strong>Telefon:</strong> <a href={`tel:${contact.phoneHref}`}>{contact.phoneDisplay}</a></li>
             <li><strong>Adres:</strong> {contact.address}</li>
             {contact.supportEmail && <li><strong>Resmi İletişim E-posta:</strong> <a href={`mailto:${contact.supportEmail}`}>{contact.supportEmail}</a></li>}

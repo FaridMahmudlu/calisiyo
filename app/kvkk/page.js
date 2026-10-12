@@ -14,7 +14,7 @@ export default function KvkkPage() {
   return (
     <main className="story-landing">
       <nav className="story-nav" aria-label="Ana navigasyon">
-        <Link href="/" className="public-brand" aria-label="calisiyo ana sayfa">
+        <Link href="/" className="public-brand" aria-label="planliyo ana sayfa">
           <BrandLogo priority />
         </Link>
         <div className="landing-auth">
@@ -33,12 +33,12 @@ export default function KvkkPage() {
         <section className="legal-content">
           <h2>1. Veri Sorumlusunun Kimliği</h2>
           <p>
-            6698 sayılı Kişisel Verilerin Korunması Kanunu (“KVKK”) uyarınca, <strong>calisiyo</strong> platformu kapsamında işlenen kişisel verileriniz bakımından veri sorumlusu sıfatıyla <strong>{contact.legalName || 'calisiyo platform işletmecisi'}</strong> olarak hareket edilmektedir. İletişim adresi: {contact.address}; telefon: {contact.phoneDisplay}.
+            6698 sayılı Kişisel Verilerin Korunması Kanunu (“KVKK”) uyarınca, <strong>planliyo</strong> platformu kapsamında işlenen kişisel verileriniz bakımından veri sorumlusu sıfatıyla <strong>{contact.legalName || 'planliyo platform işletmecisi'}</strong> olarak hareket edilmektedir. İletişim adresi: {contact.address}; telefon: {contact.phoneDisplay}.
           </p>
 
           <h2>2. İşlenen Kişisel Verileriniz ve Toplama Yöntemi</h2>
           <p>
-            Kişisel verileriniz, calisiyo platformuna kayıt olmanız, giriş yapmanız, profil bilgilerinizi doldurmanız ve platform içerisindeki günlük program, Kronometre süresi, deneme analizi ve not kaydı araçlarını kullanmanız sırasında doğrudan dijital ortamda elektronik yöntemlerle toplanmaktadır. Toplanan verileriniz şunlardır:
+            Kişisel verileriniz, planliyo platformuna kayıt olmanız, giriş yapmanız, profil bilgilerinizi doldurmanız ve platform içerisindeki günlük program, Kronometre süresi, deneme analizi ve not kaydı araçlarını kullanmanız sırasında doğrudan dijital ortamda elektronik yöntemlerle toplanmaktadır. Toplanan verileriniz şunlardır:
           </p>
           <ul>
             <li><strong>Kimlik Verisi:</strong> Ad ve soyadınız.</li>

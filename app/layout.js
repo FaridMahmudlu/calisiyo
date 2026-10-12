@@ -33,7 +33,7 @@ export const metadata = {
   manifest: '/manifest.webmanifest',
   icons: {
     icon: [
-      { url: '/brand/calisiyo-monogram.svg', type: 'image/svg+xml' },
+      { url: '/brand/planliyo-monogram.svg', type: 'image/svg+xml' },
       { url: '/brand/favicon-32x32.png', sizes: '32x32', type: 'image/png' },
       { url: '/brand/favicon-16x16.png', sizes: '16x16', type: 'image/png' },
     ],
@@ -45,7 +45,7 @@ export const metadata = {
     description: 'Planını kur, odaklanarak çalış ve YKS ilerlemeni yalnızca kendi gerçek kayıtlarınla takip et.',
     url: SITE.origin,
     siteName: SITE.displayName,
-    images: [{ url: SITE.socialImagePath, width: 1200, height: 630, alt: 'Calisiyo YKS Çalışma Koçu' }],
+    images: [{ url: SITE.socialImagePath, width: 1200, height: 630, alt: 'Planliyo YKS Çalışma Koçu' }],
     locale: 'tr_TR',
     type: 'website',
   },

@@ -3,7 +3,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import type { ConfigContext, ExpoConfig } from 'expo/config';
 
-const BUNDLE_ID = 'tr.com.calisiyo.app';
+const BUNDLE_ID = 'tr.com.planliyo.app';
 // Public EAS identifiers (not secrets); env vars can override them for forks.
 const EAS_PROJECT_ID = process.env.EAS_PROJECT_ID || 'c11460fc-a5c0-4a03-b70e-a6d5cc658137';
 const EXPO_OWNER = process.env.EXPO_OWNER || 'faridmahmudluu';
@@ -14,13 +14,14 @@ const googleIosUrlScheme = process.env.GOOGLE_IOS_URL_SCHEME;
 
 export default ({ config }: ConfigContext): ExpoConfig => ({
   ...config,
-  name: 'Calisiyo',
+  name: 'Planliyo',
+  // EAS project slug (internal identifier tied to EAS_PROJECT_ID; never shown to users).
   slug: 'calisiyo',
   owner: EXPO_OWNER,
   version: '1.0.0',
   orientation: 'portrait',
   icon: './assets/images/icon.png',
-  scheme: 'calisiyo',
+  scheme: 'planliyo',
   userInterfaceStyle: 'automatic',
   runtimeVersion: { policy: 'appVersion' },
   updates: { url: `https://u.expo.dev/${EAS_PROJECT_ID}` },
@@ -66,8 +67,8 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
       {
         backgroundColor: '#FBFCFD',
         image: './assets/images/splash-icon.png',
-        imageWidth: 96,
-        dark: { backgroundColor: '#0C1211', image: './assets/images/splash-icon.png' },
+        imageWidth: 200,
+        dark: { backgroundColor: '#0C1211', image: './assets/images/splash-icon-dark.png' },
       },
     ],
     'expo-sqlite',
@@ -95,7 +96,7 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
     ],
     [
       'expo-local-authentication',
-      { faceIDPermission: 'Calisiyo hesabını Face ID ile korumak için kullanılır.' },
+      { faceIDPermission: 'Planliyo hesabını Face ID ile korumak için kullanılır.' },
     ],
     [
       'expo-notifications',
@@ -124,7 +125,7 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
         widgets: [
           {
             name: 'TodayWidget',
-            label: 'Calisiyo · Bugün',
+            label: 'Planliyo · Bugün',
             description: 'Serini, bugünkü odak süreni ve sıradaki görevini gösterir.',
             minWidth: '180dp',
             minHeight: '110dp',

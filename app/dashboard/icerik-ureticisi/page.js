@@ -134,7 +134,7 @@ export default function ContentProducerPage() {
 
   if (loading) return <div className="producer-loading"><LoaderCircle className="is-spinning" /> Üretici panelin hazırlanıyor…</div>;
   if (!producer || producer.status === 'not_enrolled') return <div className="producer-page producer-application-page">
-    <PageHeader eyebrow="İçerik Üretici Programı" title="İçeriğini topluluğa, etkini kazanca dönüştür" description="Calisiyo’yu öğrencilerle buluştur; doğrulanan satışlarını ve kazançlarını şeffaf biçimde takip et." />
+    <PageHeader eyebrow="İçerik Üretici Programı" title="İçeriğini topluluğa, etkini kazanca dönüştür" description="Planliyo’yu öğrencilerle buluştur; doğrulanan satışlarını ve kazançlarını şeffaf biçimde takip et." />
     {notice && <div className="producer-notice" role="status">{notice}<button onClick={() => setNotice('')}>Kapat</button></div>}
 
     {application?.status === 'pending' ? <section className="producer-application-status is-pending">
@@ -144,7 +144,7 @@ export default function ContentProducerPage() {
     </section> : <>
       {application?.status === 'rejected' && <section className="producer-application-status is-rejected"><ShieldCheck /><div><small>Başvurun incelendi</small><h2>Şu anda onaylanmadı</h2><p>{application.reviewNote || 'Bilgilerini güncelleyerek yeniden başvurabilirsin.'}</p></div></section>}
       <section className="producer-application-intro">
-        <div><span><Gift /> Program avantajları</span><h2>Takipçilerine %20 indirim, sana doğrulanmış satış kazancı</h2><p>Onaylandığında seçilen YKS dönemi için ücretsiz calisiyo plus erişimi ve kişisel Shopier indirim kodun hazırlanır.</p></div>
+        <div><span><Gift /> Program avantajları</span><h2>Takipçilerine %20 indirim, sana doğrulanmış satış kazancı</h2><p>Onaylandığında seçilen YKS dönemi için ücretsiz planliyo plus erişimi ve kişisel Shopier indirim kodun hazırlanır.</p></div>
         <div className="producer-application-benefits"><article><strong>₺1.000</strong><span>İlk 3 doğrulanmış satışın her biri</span></article><article><strong>₺500</strong><span>4. satıştan itibaren her satış</span></article><article><strong>14 gün</strong><span>İade kontrolünden sonra ödenebilir</span></article></div>
       </section>
       <form className="producer-application-form" onSubmit={submitApplication}>
@@ -155,7 +155,7 @@ export default function ContentProducerPage() {
           <label><span>Takipçi / abone sayın</span><input type="number" required min="0" max="1000000000" step="1" inputMode="numeric" placeholder="Örn. 12500" value={form.audienceSize} onChange={(event) => setForm((current) => ({ ...current, audienceSize: event.target.value }))} /></label>
         </div>
         <label><span>İçerik alanın</span><input required minLength={5} maxLength={300} placeholder="Örn. YKS Matematik, çalışma motivasyonu ve deneme analizi" value={form.contentFocus} onChange={(event) => setForm((current) => ({ ...current, contentFocus: event.target.value }))} /></label>
-        <label><span>Neden programa katılmak istiyorsun?</span><textarea required minLength={20} maxLength={1000} placeholder="Hedef kitleni ve Calisiyo’yu nasıl tanıtacağını kısaca anlat." value={form.motivation} onChange={(event) => setForm((current) => ({ ...current, motivation: event.target.value }))} /></label>
+        <label><span>Neden programa katılmak istiyorsun?</span><textarea required minLength={20} maxLength={1000} placeholder="Hedef kitleni ve Planliyo’yu nasıl tanıtacağını kısaca anlat." value={form.motivation} onChange={(event) => setForm((current) => ({ ...current, motivation: event.target.value }))} /></label>
         <fieldset><legend>Tercih ettiğin ücretsiz Plus dönemi</legend><div className="producer-choice-grid is-plan">{[['plus_2027', 'YKS 2027'], ['plus_2028', 'YKS 2028']].map(([value, label]) => <button key={value} type="button" className={form.preferredPlanCode === value ? 'is-selected' : ''} aria-pressed={form.preferredPlanCode === value} onClick={() => setForm((current) => ({ ...current, preferredPlanCode: value }))}>{label}</button>)}</div></fieldset>
         <button className="producer-application-submit" disabled={saving}><Send /> {saving ? 'Başvurun gönderiliyor…' : application?.status === 'rejected' ? 'Yeniden başvur' : 'Başvuruyu gönder'}</button>
         <small className="producer-application-consent">Başvuru otomatik onaylanmaz. Profilin yalnızca program uygunluğu için yönetici tarafından incelenir.</small>

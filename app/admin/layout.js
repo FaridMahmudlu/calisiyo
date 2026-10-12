@@ -4,7 +4,7 @@ import AdminShell from '@/components/admin/AdminShell';
 import './admin.css';
 
 export const metadata = {
-  title: 'Admin Paneli · calisiyo',
+  title: 'Admin Paneli · planliyo',
   robots: { index: false, follow: false },
 };
 
