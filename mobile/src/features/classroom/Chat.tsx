@@ -1,4 +1,4 @@
-import { RecordingPresets, requestRecordingPermissionsAsync, setAudioModeAsync, useAudioRecorder } from 'expo-audio';
+import { getRecordingPermissionsAsync, RecordingPresets, requestRecordingPermissionsAsync, setAudioModeAsync, useAudioRecorder } from 'expo-audio';
 import * as Crypto from 'expo-crypto';
 import * as DocumentPicker from 'expo-document-picker';
 import { Image } from 'expo-image';
@@ -6,9 +6,10 @@ import * as WebBrowser from 'expo-web-browser';
 import { Ban, BookOpen, Check, CheckCheck, Clock3, Download, ExternalLink, File as FileIcon, Flag, Flame, Image as ImageIcon, Mic, Paperclip, Pencil, Send, Share2, Square, Trash2, Trophy, X } from 'lucide-react-native';
 import { ActionMenu, type MenuAction } from '@/components/ActionMenu';
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { ActivityIndicator, Alert, FlatList, Linking, Pressable, StyleSheet, TextInput, View } from 'react-native';
+import { FlatList, Linking, Pressable, StyleSheet, TextInput, View } from 'react-native';
 import { ImageViewer } from '@/components/ImageViewer';
-import { Avatar, Button, Card, Sheet, SwitchRow, Text } from '@/components/ui';
+import { Avatar, Button, Card, Dialog, Sheet, Spinner, SwitchRow, Text } from '@/components/ui';
+import { explainPermission } from '@/lib/permissions';
 import { optimizeImage, pickImage, readFileBytes } from '@/lib/storage';
 import { supabase } from '@/lib/supabase';
 import { useTheme } from '@/theme/ThemeProvider';
@@ -114,6 +115,8 @@ export function ClassroomChat({ groupId, userId, canChat, isOwner, messages, onE
   };
 
   const startRecording = async () => {
+    const status = await getRecordingPermissionsAsync();
+    if (!status.granted && status.canAskAgain && !(await explainPermission('microphone', { force: true }))) return;
     const permission = await requestRecordingPermissionsAsync();
     if (!permission.granted) return onError('Mikrofon izni kapalı. Ayarlar’dan Planliyo için mikrofona izin verebilirsin.');
     setAttachment(null);
@@ -173,7 +176,7 @@ export function ClassroomChat({ groupId, userId, canChat, isOwner, messages, onE
     setEditId(''); setEditText(''); onRefresh();
   };
 
-  const remove = (message: ChatMessage) => Alert.alert('Mesajı sil', 'Bu mesaj sınıftaki herkes için silinecek.', [
+  const remove = (message: ChatMessage) => Dialog.alert('Mesajı sil', 'Bu mesaj sınıftaki herkes için silinecek.', [
     { text: 'Vazgeç', style: 'cancel' },
     { text: 'Sil', style: 'destructive', onPress: async () => {
       const { error } = await supabase.rpc('delete_classroom_message', { p_message_id: message.id });
@@ -181,7 +184,7 @@ export function ClassroomChat({ groupId, userId, canChat, isOwner, messages, onE
       if (message.attachmentPath && message.userId === userId) await supabase.storage.from('classroom-attachments').remove([message.attachmentPath]);
       onRefresh();
     } },
-  ]);
+  ], { icon: Trash2 });
 
   const openShare = async () => {
     setShareOpen(true);
@@ -206,7 +209,7 @@ export function ClassroomChat({ groupId, userId, canChat, isOwner, messages, onE
     const url = message.attachmentPath ? signedUrls[message.attachmentPath] : undefined;
     if (message.messageType === 'image') return url
       ? <Pressable accessibilityRole="imagebutton" accessibilityLabel="Görseli büyüt" onPress={() => setViewer(url)}><Image source={{ uri: url }} style={styles.chatImage} contentFit="cover" /></Pressable>
-      : <ActivityIndicator color={colors.primary} />;
+      : <Spinner color={colors.primary} />;
     if (message.messageType === 'audio') return url ? <VoicePlayer uri={url} tint={mine ? colors.primaryPressed : undefined} onSourceError={() => refreshUrl(message.attachmentPath)} /> : <Text variant="caption" color="textMuted">Ses hazırlanıyor…</Text>;
     if (message.messageType === 'file') return (
       <Pressable accessibilityRole="button" onPress={() => url && WebBrowser.openBrowserAsync(url)} style={[styles.file, { backgroundColor: colors.surfaceMuted }]}>
@@ -317,7 +320,7 @@ export function ClassroomChat({ groupId, userId, canChat, isOwner, messages, onE
             style={[styles.input, { color: colors.text, backgroundColor: colors.surfaceMuted }]} />
           <Pressable accessibilityRole="button" accessibilityLabel="Mesajı gönder" disabled={recording || busy || (!text.trim() && !attachment) || !canChat} onPress={send}
             style={[styles.send, { backgroundColor: colors.primary, opacity: recording || busy || (!text.trim() && !attachment) || !canChat ? 0.45 : 1 }]}>
-            {busy ? <ActivityIndicator color="#FFFFFF" /> : <Send size={18} color="#FFFFFF" />}
+            {busy ? <Spinner color="#FFFFFF" /> : <Send size={18} color="#FFFFFF" />}
           </Pressable>
         </View>
       </View>

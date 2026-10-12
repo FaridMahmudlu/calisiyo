@@ -3,6 +3,7 @@ import * as Device from 'expo-device';
 import * as Notifications from 'expo-notifications';
 import Storage from 'expo-sqlite/kv-store';
 import { Platform } from 'react-native';
+import { explainPermission } from '@/lib/permissions';
 import { supabase } from '@/lib/supabase';
 
 const TOKEN_KEY = 'calisiyo-expo-push-token';
@@ -38,11 +39,13 @@ export async function notificationPermission() {
   return status;
 }
 
-export async function requestNotificationPermission() {
+// `explicit`: the user asked for notifications (Settings), so always explain and ask.
+export async function requestNotificationPermission({ explicit = false }: { explicit?: boolean } = {}) {
   await ensureNotificationChannels();
   const current = await Notifications.getPermissionsAsync();
   if (current.status === 'granted') return 'granted';
   if (!current.canAskAgain) return current.status;
+  if (!(await explainPermission('notifications', { force: explicit }))) return current.status;
   const next = await Notifications.requestPermissionsAsync();
   return next.status;
 }
@@ -51,7 +54,7 @@ export async function requestNotificationPermission() {
 // broadcasts). Local Kronometre notifications work without a push token.
 export async function registerDeviceForPush() {
   if (!Device.isDevice) return { ok: false as const, reason: 'Bildirimler yalnızca gerçek cihazda çalışır.' };
-  const permission = await requestNotificationPermission();
+  const permission = await requestNotificationPermission({ explicit: true });
   if (permission !== 'granted') return { ok: false as const, reason: 'Bildirim izni verilmedi. Ayarlar’dan izin verebilirsin.' };
   const projectId = Constants.expoConfig?.extra?.eas?.projectId ?? Constants.easConfig?.projectId;
   if (!projectId) return { ok: false as const, reason: 'Cihaz bildirimleri bu sürümde henüz yapılandırılmadı.' };

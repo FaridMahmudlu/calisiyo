@@ -1,5 +1,6 @@
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { Alert } from 'react-native';
+import { Ban } from 'lucide-react-native';
+import { Dialog } from '@/components/ui';
 import { supabase } from '@/lib/supabase';
 
 export type BlockedUser = { userId: string; name: string; username?: string | null; blockedAt: string };
@@ -26,7 +27,7 @@ export function useBlockActions(onError: (message: string) => void) {
   const refresh = () => queryClient.invalidateQueries({ queryKey: ['blocked-users'] });
 
   const block = (person: { userId: string; name: string }) => new Promise<boolean>((resolve) => {
-    Alert.alert(`${person.name} engellensin mi?`, 'Arkadaşlığınız kaldırılır, sana istek gönderemez ve sınıf mesajları senden gizlenir. Bunu Ayarlar’dan geri alabilirsin.', [
+    Dialog.alert(`${person.name} engellensin mi?`, 'Arkadaşlığınız kaldırılır, sana istek gönderemez ve sınıf mesajları senden gizlenir. Bunu Ayarlar’dan geri alabilirsin.', [
       { text: 'Vazgeç', style: 'cancel', onPress: () => resolve(false) },
       { text: 'Engelle', style: 'destructive', onPress: async () => {
         const { error } = await supabase.rpc('block_user', { p_user_id: person.userId });
@@ -34,7 +35,7 @@ export function useBlockActions(onError: (message: string) => void) {
         await refresh();
         resolve(true);
       } },
-    ]);
+    ], { icon: Ban });
   });
 
   const unblock = async (userId: string) => {

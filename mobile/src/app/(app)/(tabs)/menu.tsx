@@ -3,9 +3,9 @@ import {
   AlertTriangle, BarChart3, BookMarked, BookOpen, CalendarDays, CircleDollarSign, CreditCard, FileText,
   LifeBuoy, LogOut, RotateCcw, Settings, ShieldCheck, Target, Trophy, type LucideIcon,
 } from 'lucide-react-native';
-import { Alert, Pressable, StyleSheet, View } from 'react-native';
+import { Pressable, StyleSheet, View } from 'react-native';
 import { TabHeader } from '@/components/TabHeader';
-import { Avatar, Badge, Card, ListItem, ProgressBar, Screen, Text } from '@/components/ui';
+import { Avatar, Badge, Card, Dialog, ListItem, ProgressBar, Screen, Text } from '@/components/ui';
 import { openWebPage } from '@/lib/browser';
 import { useAccount } from '@/providers/AccountProvider';
 import { useAuth } from '@/providers/AuthProvider';
@@ -49,10 +49,10 @@ export default function MenuScreen() {
   const { profile, user, currentPlan, adminRole, contentProducer, stats } = useAccount();
   const { signOut } = useAuth();
 
-  const confirmLogout = () => Alert.alert('Çıkış yap', 'Hesabından çıkış yapmak istediğine emin misin?', [
+  const confirmLogout = () => Dialog.alert('Çıkış yap', 'Hesabından çıkış yapmak istediğine emin misin?', [
     { text: 'Vazgeç', style: 'cancel' },
     { text: 'Çıkış yap', style: 'destructive', onPress: signOut },
-  ]);
+  ], { icon: LogOut });
 
   return (
     <Screen edges="top">

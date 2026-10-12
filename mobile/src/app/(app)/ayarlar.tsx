@@ -69,11 +69,11 @@ export default function SettingsScreen() {
   };
 
   const togglePush = async () => {
-    if (pushState === 'active') { await unregisterDeviceForPush().catch(() => undefined); setPushState('idle'); toast.show('Bu cihazın bildirimleri kapatıldı.'); return; }
+    if (pushState === 'active') { await unregisterDeviceForPush().catch(() => undefined); setPushState('idle'); toast.show('Bildirimler kapatıldı.'); return; }
     setPushState('saving');
     const result = await registerDeviceForPush();
     setPushState(result.ok ? 'active' : 'idle');
-    if (result.ok) toast.success('Bildirimler bu cihaza bağlandı.');
+    if (result.ok) toast.success('Bildirimler açıldı.');
     else toast.error(result.reason);
   };
 
@@ -163,7 +163,7 @@ export default function SettingsScreen() {
         <SwitchRow title="Kronometre bitiş bildirimi" description="Çalışma veya mola süresi bittiğinde bildirir." value={preferences.pomodoro} disabled={!preferences.notifications} onChange={(pomodoro) => patch(setPreferences, { ...preferences, pomodoro })} />
         {preferences.notifications ? (
           <View style={{ gap: space.sm, paddingTop: space.sm }}>
-            <Button title={pushState === 'active' ? 'Bu cihazın bildirimlerini kapat' : pushState === 'saving' ? 'Cihaz bağlanıyor…' : 'Bu cihaza bildirim gönder'} icon={Smartphone} variant={pushState === 'active' ? 'secondary' : 'soft'} loading={pushState === 'saving'} onPress={togglePush} />
+            <Button title={pushState === 'active' ? 'Bildirimleri kapat' : pushState === 'saving' ? 'Bildirimler açılıyor…' : 'Bildirimleri aç'} icon={Smartphone} variant={pushState === 'active' ? 'secondary' : 'soft'} loading={pushState === 'saving'} onPress={togglePush} />
             {permission === 'denied' ? <Button title="Telefon ayarlarında izin ver" variant="ghost" size="sm" onPress={() => Linking.openSettings()} /> : null}
           </View>
         ) : null}

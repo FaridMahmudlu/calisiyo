@@ -1,15 +1,17 @@
-import { Stack } from 'expo-router';
+import * as Linking from 'expo-linking';
+import { router, Stack, type Href } from 'expo-router';
 import { AppHeader } from '@/components/AppHeader';
 import { LifeBuoy, LogOut, RefreshCw, ShieldAlert } from 'lucide-react-native';
 import { useEffect } from 'react';
-import { ActivityIndicator, Alert, StyleSheet, View } from 'react-native';
+import { StyleSheet, View } from 'react-native';
 import { BrandMark } from '@/components/brand/BrandMark';
-import { Button, Text } from '@/components/ui';
+import { Button, Dialog, Spinner, Text } from '@/components/ui';
 import { claimPendingCreatorCode } from '@/features/auth/creatorCode';
 import { signOutGoogle } from '@/features/auth/social';
 import { unregisterDeviceForPush } from '@/features/notifications/push';
 import { useNotificationRouting } from '@/features/notifications/useNotificationRouting';
 import { BiometricGate } from '@/features/security/BiometricGate';
+import { useLiveTimerActions } from '@/features/timer/liveActions';
 import { openWebPage } from '@/lib/browser';
 import { AccountProvider, useAccount } from '@/providers/AccountProvider';
 import { onBeforeSignOut, useAuth } from '@/providers/AuthProvider';
@@ -22,13 +24,35 @@ function CenterState({ children }: { children: React.ReactNode }) {
   return <View style={[styles.center, { backgroundColor: colors.background }]}>{children}</View>;
 }
 
+let launchLinkReplayed = false;
+
+// On a cold start (notification, widget, app shortcut) the navigator mounts only
+// after the account loads, so the launch link is replayed once it exists.
+function useLaunchLink(enabled: boolean) {
+  useEffect(() => {
+    if (!enabled || launchLinkReplayed) return;
+    launchLinkReplayed = true;
+    Linking.getInitialURL().then((url) => {
+      if (!url?.startsWith('planliyo://')) return;
+      const { hostname, path, queryParams } = Linking.parse(url);
+      const route = [hostname, path].filter(Boolean).join('/');
+      if (!route || route.startsWith('auth')) return;
+      const query = new URLSearchParams(Object.entries(queryParams || {}).flatMap(([key, value]) => (value == null ? [] : [[key, String(value)]]))).toString();
+      router.navigate(`/${route}${query ? `?${query}` : ''}` as Href);
+    }).catch(() => undefined);
+  }, [enabled]);
+}
+
 function AppNavigator() {
   const account = useAccount();
   const { signOut } = useAuth();
   const { colors } = useTheme();
   const ready = account.status === 'ready';
+  const timerAlerts = account.profile?.notifications_enabled !== false && account.profile?.study_preferences?.pomodoro !== false;
   useNotificationRouting(ready);
   useWidgetSync(ready);
+  useLiveTimerActions(ready ? account.profile?.id : undefined, timerAlerts);
+  useLaunchLink(ready && !!account.user?.user_metadata?.alan_secimi);
 
   useEffect(() => onBeforeSignOut(async () => {
     await unregisterDeviceForPush().catch(() => undefined);
@@ -38,7 +62,7 @@ function AppNavigator() {
   useEffect(() => {
     if (!ready) return;
     claimPendingCreatorCode().then((ok) => {
-      if (!ok) Alert.alert('Kod ilişkilendirilemedi', 'Hesabın oluşturuldu ancak içerik üretici kodun hesabına güvenli biçimde ilişkilendirilemedi. Tam fiyatlı ödeme başlatılmadı. Yardım için destek@planliyo.com.tr adresine yazabilirsin.');
+      if (!ok) Dialog.alert('Kod ilişkilendirilemedi', 'Hesabın oluşturuldu ancak içerik üretici kodun hesabına güvenli biçimde ilişkilendirilemedi. Tam fiyatlı ödeme başlatılmadı. Yardım için destek@planliyo.com.tr adresine yazabilirsin.');
     });
   }, [ready]);
 
@@ -46,7 +70,7 @@ function AppNavigator() {
     return (
       <CenterState>
         <BrandMark size={64} />
-        <ActivityIndicator color={colors.primary} style={{ marginTop: space.xl }} />
+        <Spinner color={colors.primary} style={{ marginTop: space.xl }} />
         <Text variant="caption" color="textMuted">Çalışma alanın hazırlanıyor…</Text>
       </CenterState>
     );

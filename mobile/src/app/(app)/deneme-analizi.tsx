@@ -2,11 +2,11 @@ import { useQuery } from '@tanstack/react-query';
 import { Stack } from 'expo-router';
 import { AlertCircle, BarChart2, BookOpen, Plus, Trash2, TrendingUp } from 'lucide-react-native';
 import { useState } from 'react';
-import { Alert, StyleSheet, TextInput, View } from 'react-native';
+import { StyleSheet, TextInput, View } from 'react-native';
 import { getExamTabs } from '@shared/constants/alanlar';
 import { formatDate, formatShortDate, todayStr } from '@shared/utils/date';
 import { AreaChart } from '@/components/charts';
-import { Badge, Button, Card, DateField, EmptyState, ErrorState, IconButton, Screen, Segmented, Sheet, SkeletonCards, Text, TextField, useToast } from '@/components/ui';
+import { Badge, Button, Card, DateField, Dialog, EmptyState, ErrorState, IconButton, Screen, Segmented, Sheet, SkeletonCards, Text, TextField, useToast } from '@/components/ui';
 import type { Ders } from '@/features/study/queries';
 import { useRealtimeRefresh } from '@/hooks/useRealtimeRefresh';
 import { supabase } from '@/lib/supabase';
@@ -87,14 +87,14 @@ export default function ExamAnalysisScreen() {
     query.refetch();
   };
 
-  const remove = (exam: Exam) => Alert.alert('Denemeyi sil', 'Bu deneme ve tüm ders sonuçları silinsin mi?', [
+  const remove = (exam: Exam) => Dialog.alert('Denemeyi sil', 'Bu deneme ve tüm ders sonuçları silinsin mi?', [
     { text: 'Vazgeç', style: 'cancel' },
     { text: 'Sil', style: 'destructive', onPress: async () => {
       const { error } = await supabase.from('denemeler').delete().eq('id', exam.id).eq('user_id', userId!);
       if (error) toast.error(`Deneme silinemedi: ${error.message}`);
       query.refetch();
     } },
-  ]);
+  ], { icon: Trash2 });
 
   return (
     <Screen onRefresh={query.refetch}>

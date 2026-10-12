@@ -1,7 +1,7 @@
 import { router, useLocalSearchParams } from 'expo-router';
 import { useEffect, useRef, useState } from 'react';
-import { ActivityIndicator, View } from 'react-native';
-import { Button, Text } from '@/components/ui';
+import { View } from 'react-native';
+import { Button, Spinner, Text } from '@/components/ui';
 import { supabase } from '@/lib/supabase';
 import { useTheme } from '@/theme/ThemeProvider';
 import { space } from '@/theme/tokens';
@@ -37,7 +37,7 @@ export default function AuthCallbackScreen() {
         </>
       ) : (
         <>
-          <ActivityIndicator color={colors.primary} size="large" />
+          <Spinner color={colors.primary} size="large" />
           <Text variant="body" color="textMuted">Hesabın doğrulanıyor…</Text>
         </>
       )}

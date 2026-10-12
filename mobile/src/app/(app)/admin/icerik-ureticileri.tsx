@@ -1,9 +1,9 @@
 import { useQuery } from '@tanstack/react-query';
-import { Alert, Linking, StyleSheet, View } from 'react-native';
+import { Linking, StyleSheet, View } from 'react-native';
 import { BadgeCheck, BookOpenText, CircleDollarSign, ExternalLink, KeyRound, RefreshCw, Search, UserCheck, UserPlus, WalletCards, X } from 'lucide-react-native';
 import { useState } from 'react';
 import { PromptSheet, type PromptRequest } from '@/components/PromptSheet';
-import { Badge, Button, Card, EmptyState, ErrorState, Screen, SectionHeader, Segmented, Sheet, SkeletonCards, SwitchRow, Text, TextField, useToast } from '@/components/ui';
+import { Badge, Button, Card, Dialog, EmptyState, ErrorState, Screen, SectionHeader, Segmented, Sheet, SkeletonCards, SwitchRow, Text, TextField, useToast } from '@/components/ui';
 import { api } from '@/lib/api';
 import { useTheme } from '@/theme/ThemeProvider';
 import { space } from '@/theme/tokens';
@@ -119,7 +119,7 @@ export default function AdminProducersScreen() {
                 },
               })} />
             <Button title="Kodu değiştir" icon={KeyRound} size="sm" variant="secondary" disabled={!!busy}
-              onPress={() => Alert.alert('Kodu değiştir', 'Bu işlem eski kodu emekliye ayırır ve Shopier kodunu kapatmayı dener.', [{ text: 'Vazgeç', style: 'cancel' }, { text: 'Devam', onPress: () => setPrompt({ title: 'Kod değiştirme nedeni', label: 'Neden (en az 5 karakter)', minLength: 5, onSubmit: (reason) => act('rotate_code', { userId: producer.userId, reason }) }) }])} />
+              onPress={() => Dialog.alert('Kodu değiştir', 'Bu işlem eski kodu emekliye ayırır ve Shopier kodunu kapatmayı dener.', [{ text: 'Vazgeç', style: 'cancel' }, { text: 'Devam', onPress: () => setPrompt({ title: 'Kod değiştirme nedeni', label: 'Neden (en az 5 karakter)', minLength: 5, onSubmit: (reason) => act('rotate_code', { userId: producer.userId, reason }) }) }])} />
             {producer.status === 'active'
               ? <Button title="Askıya al" size="sm" variant="danger" onPress={() => setPrompt({ title: 'Askıya alma nedeni', label: 'Neden', minLength: 3, confirmLabel: 'Askıya al', onSubmit: (reason) => act('suspend', { userId: producer.userId, reason }) })} />
               : <>

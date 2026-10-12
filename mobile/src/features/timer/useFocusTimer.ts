@@ -3,14 +3,12 @@ import * as Haptics from 'expo-haptics';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { AppState } from 'react-native';
 import { todayStr } from '@shared/utils/date';
-import { cancelLocalReminder, scheduleLocalReminder } from '@/features/notifications/local';
 import { requestNotificationPermission } from '@/features/notifications/push';
 import { supabase } from '@/lib/supabase';
 import type { Profile } from '@/lib/types';
-import { defaultTimerState, presetFor, PRESETS, readTimerState, remainingSeconds, writeTimerState, type TimerState } from './store';
-import { startTimerSurface, stopTimerSurface } from './surface';
-
-const END_NOTIFICATION_ID = 'kronometre-stage-end';
+import { ensureExactTimerAlarms } from './liveActions';
+import { defaultTimerState, presetFor, PRESETS, readTimerState, remainingSeconds, subscribeTimerChanges, writeTimerState, type TimerState } from './store';
+import { stopTimerSurface, syncTimerSurfaces } from './surface';
 
 export function useFocusTimer(profile: Profile | null, { onRecorded, onError }: { onRecorded: () => void; onError: (message: string) => void }) {
   const userId = profile?.id;
@@ -31,26 +29,21 @@ export function useFocusTimer(profile: Profile | null, { onRecorded, onError }: 
     setState(next);
   }, [userId]);
 
-  const syncSurfaces = useCallback(async (next: TimerState) => {
-    if (!next.running || !next.deadline) {
-      await cancelLocalReminder(END_NOTIFICATION_ID);
-      await stopTimerSurface();
-      return;
-    }
-    const p = presetFor(next);
-    const title = next.breakMode ? 'Mola bitti' : 'Odak oturumu tamamlandı';
-    const body = next.breakMode ? 'Hazırsan yeni odak oturumuna başlayabilirsin.' : `${p.work} dakikalık çalışma istatistiklerine kaydedilecek. Uygulamayı açarak molaya geç.`;
-    if (notificationsAllowed) {
-      await scheduleLocalReminder({ id: END_NOTIFICATION_ID, title, body, date: new Date(next.deadline), route: '/kronometre', channelId: 'timer' });
-    }
-    await startTimerSurface({
-      endsAt: next.deadline,
-      mode: next.breakMode ? 'break' : 'focus',
-      title: next.breakMode ? 'Mola' : 'Odak oturumu',
-      subtitle: next.breakMode ? `${p.breakMinutes} dk mola` : `${p.work} dk çalışma`,
-      totalSeconds: (next.breakMode ? p.breakMinutes : p.work) * 60,
+  const syncSurfaces = useCallback(
+    (next: TimerState, paused = false) => syncTimerSurfaces(next, { alert: notificationsAllowed, paused }),
+    [notificationsAllowed],
+  );
+
+  // Live Update buttons (pause / resume / skip break) change the stored state.
+  useEffect(() => {
+    if (!userId) return undefined;
+    return subscribeTimerChanges(() => {
+      const fresh = readTimerState(userId);
+      if (!fresh) return;
+      stateRef.current = fresh;
+      setState(fresh);
     });
-  }, [notificationsAllowed]);
+  }, [userId]);
 
   const finishStage = useCallback(async () => {
     if (finishing.current) return;
@@ -110,10 +103,13 @@ export function useFocusTimer(profile: Profile | null, { onRecorded, onError }: 
     if (current.running) {
       const next = { ...current, timeLeft: remainingSeconds(current), deadline: null, running: false };
       update(next);
-      await syncSurfaces(next);
+      await syncSurfaces(next, true);
       return;
     }
-    if (notificationsAllowed) await requestNotificationPermission().catch(() => undefined);
+    if (notificationsAllowed) {
+      await requestNotificationPermission().catch(() => undefined);
+      await ensureExactTimerAlarms().catch(() => undefined);
+    }
     const patch: Partial<TimerState> = { running: true, deadline: Date.now() + current.timeLeft * 1000 };
     if (!current.breakMode && !current.sessionKey) { patch.sessionKey = Crypto.randomUUID(); patch.studyDate = todayStr(); }
     const next = { ...current, ...patch };

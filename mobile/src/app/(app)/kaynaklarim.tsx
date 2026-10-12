@@ -5,11 +5,11 @@ import { Stack } from 'expo-router';
 import * as WebBrowser from 'expo-web-browser';
 import { BookOpen, CalendarDays, CirclePlay, Clock3, Crown, ExternalLink, ImagePlus, ListVideo, Plus, Sparkles, Trash2 } from 'lucide-react-native';
 import { useState } from 'react';
-import { ActivityIndicator, Alert, Pressable, StyleSheet, View } from 'react-native';
+import { Pressable, StyleSheet, View } from 'react-native';
 import { getExamTabs, KITAP_TURLERI } from '@shared/constants/alanlar';
 import { todayStr } from '@shared/utils/date';
 import { PremiumInfo } from '@/components/PremiumInfo';
-import { Badge, Button, Card, Chip, DateField, EmptyState, ErrorState, IconButton, Notice, Screen, Segmented, Select, Sheet, SkeletonCards, Text, TextField, useToast } from '@/components/ui';
+import { Badge, Button, Card, Chip, DateField, Dialog, EmptyState, ErrorState, IconButton, Notice, Screen, Segmented, Select, Sheet, SkeletonCards, Spinner, Text, TextField, useToast } from '@/components/ui';
 import type { Ders } from '@/features/study/queries';
 import { useRealtimeRefresh } from '@/hooks/useRealtimeRefresh';
 import { api } from '@/lib/api';
@@ -143,7 +143,7 @@ export default function ResourcesScreen() {
 
   const remove = (resource: MyResource) => {
     const youtube = resource.resource_kind?.startsWith('youtube_');
-    Alert.alert('Kaynağı kaldır', youtube
+    Dialog.alert('Kaynağı kaldır', youtube
       ? 'Bu YouTube kaynağı ve henüz tamamlanmamış video görevleri kaldırılacak. Tamamlanan çalışma geçmişin korunur.'
       : 'Bu kaynağı kitaplığından kaldırmak istediğine emin misin?', [
       { text: 'Vazgeç', style: 'cancel' },
@@ -153,7 +153,7 @@ export default function ResourcesScreen() {
         if (resource.kapak_url && !resource.kapak_url.startsWith('http')) await removeStudyImages([resource.kapak_url]).catch(() => undefined);
         query.refetch();
       } },
-    ]);
+    ], { icon: Trash2 });
   };
 
   const sessions = ytPreview ? Math.max(1, Math.ceil(ytPreview.resource.durationMinutes / Math.max(15, Number(ytPlan.dailyMinutes) || 15))) : 0;
@@ -241,7 +241,7 @@ export default function ResourcesScreen() {
           placeholder="https://www.youtube.com/watch?v=..." autoCapitalize="none" keyboardType="url" returnKeyType="go" onSubmitEditing={analyze} />
         {!ytPreview ? <Button title={ytBusy === 'analyze' ? 'Analiz ediliyor…' : 'İçeriği analiz et'} loading={ytBusy === 'analyze'} disabled={!ytUrl.trim()} onPress={analyze} /> : null}
         {ytError ? <ErrorState message={ytError} /> : null}
-        {ytBusy === 'analyze' ? <ActivityIndicator color={colors.primary} /> : null}
+        {ytBusy === 'analyze' ? <Spinner color={colors.primary} /> : null}
         {ytPreview ? (
           <>
             <Card tone="muted" style={{ gap: space.sm }}>

@@ -2,8 +2,8 @@ import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { Stack } from 'expo-router';
 import { Folder, NotebookText, Plus, Search, Trash2 } from 'lucide-react-native';
 import { useState } from 'react';
-import { Alert, Pressable, ScrollView, StyleSheet, View } from 'react-native';
-import { Badge, Button, Card, Chip, EmptyState, ErrorState, IconButton, Screen, Sheet, SkeletonCards, Text, TextField, useToast } from '@/components/ui';
+import { Pressable, ScrollView, StyleSheet, View } from 'react-native';
+import { Badge, Button, Card, Chip, Dialog, EmptyState, ErrorState, IconButton, Screen, Sheet, SkeletonCards, Text, TextField, useToast } from '@/components/ui';
 import { useRealtimeRefresh } from '@/hooks/useRealtimeRefresh';
 import { supabase } from '@/lib/supabase';
 import { useAccount } from '@/providers/AccountProvider';
@@ -60,7 +60,7 @@ export default function NotebookScreen() {
     query.refetch();
   };
 
-  const remove = (note: Note) => Alert.alert('Notu sil', 'Bu notu silmek istediğine emin misin?', [
+  const remove = (note: Note) => Dialog.alert('Notu sil', 'Bu notu silmek istediğine emin misin?', [
     { text: 'Vazgeç', style: 'cancel' },
     { text: 'Sil', style: 'destructive', onPress: async () => {
       setOpen(false);
@@ -68,7 +68,7 @@ export default function NotebookScreen() {
       const { error } = await supabase.from('notlar').delete().eq('id', note.id).eq('user_id', userId!);
       if (error) { toast.error(`Not silinemedi: ${error.message}`); query.refetch(); }
     } },
-  ]);
+  ], { icon: Trash2 });
 
   return (
     <Screen onRefresh={query.refetch}>

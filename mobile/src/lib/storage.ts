@@ -1,6 +1,7 @@
 import * as Crypto from 'expo-crypto';
 import { ImageManipulator, SaveFormat } from 'expo-image-manipulator';
 import * as ImagePicker from 'expo-image-picker';
+import { explainPermission } from './permissions';
 import { supabase } from './supabase';
 
 const MAX_IMAGE_SIZE = 6 * 1024 * 1024;
@@ -9,6 +10,10 @@ const MAX_EDGE = 1920;
 export type PickedImage = { uri: string; width: number; height: number; mimeType: string; name: string };
 
 export async function pickImage({ camera = false, aspect }: { camera?: boolean; aspect?: [number, number] } = {}): Promise<PickedImage | null> {
+  if (camera) {
+    const status = await ImagePicker.getCameraPermissionsAsync();
+    if (!status.granted && status.canAskAgain && !(await explainPermission('camera', { force: true }))) return null;
+  }
   const permission = camera ? await ImagePicker.requestCameraPermissionsAsync() : await ImagePicker.requestMediaLibraryPermissionsAsync();
   if (!permission.granted) throw new Error(camera ? 'Kamera izni verilmedi. Ayarlar’dan izin verebilirsin.' : 'Fotoğraf erişim izni verilmedi.');
   const options: ImagePicker.ImagePickerOptions = { mediaTypes: ['images'], quality: 0.9, allowsEditing: !!aspect, aspect };

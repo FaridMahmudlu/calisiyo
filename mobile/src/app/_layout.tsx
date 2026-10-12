@@ -12,7 +12,7 @@ import * as SplashScreen from 'expo-splash-screen';
 import { StatusBar } from 'expo-status-bar';
 import { useEffect } from 'react';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
-import { ToastProvider } from '@/components/ui';
+import { DialogHost, ToastProvider } from '@/components/ui';
 import { AnalyticsConsentGate } from '@/features/privacy/AnalyticsConsent';
 import { wrapRoot } from '@/lib/telemetry';
 import { AuthProvider, useAuth } from '@/providers/AuthProvider';
@@ -81,6 +81,7 @@ function RootLayout() {
               <RootNavigator />
             </AuthProvider>
           </QueryProvider>
+          <DialogHost />
         </ToastProvider>
       </ThemeProvider>
     </GestureHandlerRootView>

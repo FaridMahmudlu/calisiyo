@@ -1,9 +1,10 @@
 import * as Haptics from 'expo-haptics';
 import type { LucideIcon } from 'lucide-react-native';
 import type { ReactNode } from 'react';
-import { ActivityIndicator, Pressable, StyleSheet, View, type StyleProp, type ViewStyle } from 'react-native';
+import { Pressable, StyleSheet, View, type StyleProp, type ViewStyle } from 'react-native';
 import { useTheme } from '@/theme/ThemeProvider';
 import { radius } from '@/theme/tokens';
+import { Spinner } from './Spinner';
 import { Text } from './Text';
 
 type Variant = 'primary' | 'secondary' | 'ghost' | 'danger' | 'soft';
@@ -79,7 +80,7 @@ export function Button({
             !edge && pressed && { backgroundColor: variant === 'ghost' ? colors.surfaceMuted : colors.primaryBorder, transform: [{ scale: 0.98 }] },
           ]}
         >
-          {loading ? <ActivityIndicator color={palette.fg} /> : (
+          {loading ? <Spinner color={palette.fg} /> : (
             <View style={styles.content}>
               {Icon ? <Icon size={iconSize} color={palette.fg} strokeWidth={2.4} /> : null}
               {title ? <Text variant={size === 'sm' ? 'captionStrong' : 'subheading'} color={palette.fg} numberOfLines={1} style={size !== 'sm' ? { fontFamily: 'NunitoSans_800ExtraBold' } : undefined}>{title}</Text> : null}

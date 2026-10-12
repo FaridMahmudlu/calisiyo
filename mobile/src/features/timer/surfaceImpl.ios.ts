@@ -16,5 +16,7 @@ export default {
       endsAt: state.endsAt,
     }, 'planliyo://kronometre');
   },
+  // A paused stage has no countdown to show on the Lock Screen.
+  pause: endAll,
   stop: endAll,
 };

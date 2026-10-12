@@ -3,11 +3,11 @@ import { Image } from 'expo-image';
 import { Stack } from 'expo-router';
 import { Camera, FileImage, ImagePlus, Images, ListPlus, Plus, Trash2, X } from 'lucide-react-native';
 import { useState } from 'react';
-import { Alert, Pressable, ScrollView, StyleSheet, View } from 'react-native';
+import { Pressable, ScrollView, StyleSheet, View } from 'react-native';
 import { getExamTabs } from '@shared/constants/alanlar';
 import { formatDate } from '@shared/utils/date';
 import { ImageViewer } from '@/components/ImageViewer';
-import { Badge, Button, Card, EmptyState, ErrorState, IconButton, Screen, Segmented, Select, Sheet, SkeletonCards, Text, TextField, useToast } from '@/components/ui';
+import { Badge, Button, Card, Dialog, EmptyState, ErrorState, IconButton, Screen, Segmented, Select, Sheet, SkeletonCards, Text, TextField, useToast } from '@/components/ui';
 import type { Ders } from '@/features/study/queries';
 import { useRealtimeRefresh } from '@/hooks/useRealtimeRefresh';
 import { createStudyImageUrls, pickImage, pickImages, removeStudyImages, uploadStudyImage, type PickedImage } from '@/lib/storage';
@@ -133,7 +133,7 @@ export default function WrongQuestionsScreen() {
     if (error) { toast.error('Soru durumu güncellenemedi.'); query.refetch(); }
   };
 
-  const remove = (question: Question) => Alert.alert('Soruyu sil', 'Bu soru kaydını silmek istediğine emin misin?', [
+  const remove = (question: Question) => Dialog.alert('Soruyu sil', 'Bu soru kaydını silmek istediğine emin misin?', [
     { text: 'Vazgeç', style: 'cancel' },
     { text: 'Sil', style: 'destructive', onPress: async () => {
       setOpen(false);
@@ -142,7 +142,7 @@ export default function WrongQuestionsScreen() {
       await removeStudyImages(questionImages(question).map((image) => image.storage_path)).catch(() => undefined);
       query.refetch();
     } },
-  ]);
+  ], { icon: Trash2 });
 
   const questions = query.data?.questions || [];
   const solved = questions.filter((item) => item.cozuldu).length;

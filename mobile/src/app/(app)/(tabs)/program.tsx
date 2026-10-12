@@ -1,13 +1,13 @@
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { router } from 'expo-router';
+import { router, useLocalSearchParams } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { tabBarClearance } from '@/components/navigation/FloatingTabBar';
 import { CalendarDays, CheckCircle2, ChevronLeft, ChevronRight, Clock3, ListChecks, Plus, Trash2 } from 'lucide-react-native';
-import { useMemo, useState } from 'react';
-import { Alert, Pressable, ScrollView, StyleSheet, View } from 'react-native';
+import { useEffect, useMemo, useState } from 'react';
+import { Pressable, ScrollView, StyleSheet, View } from 'react-native';
 import { formatDate, formatDuration, formatTime, parseLocalDate, toLocalDateKey, todayStr } from '@shared/utils/date';
 import { TabHeader } from '@/components/TabHeader';
-import { Button, Card, DateField, EmptyState, ErrorState, IconButton, ProgressBar, Screen, Select, Sheet, SkeletonCards, Text, TextField, useToast } from '@/components/ui';
+import { Button, Card, DateField, Dialog, EmptyState, ErrorState, IconButton, ProgressBar, Screen, Select, Sheet, SkeletonCards, Text, TextField, useToast } from '@/components/ui';
 import { courseKey, fetchCourses } from '@/features/study/queries';
 import { fetchResourceOptions, resourceName } from '@/features/study/resources';
 import { TaskRow, taskDuration, type Task } from '@/features/study/TaskRow';
@@ -67,6 +67,14 @@ export default function DailyProgramScreen() {
   };
 
   const openCreate = () => { setEditing(null); setForm(EMPTY_FORM); setSheetOpen(true); };
+
+  // planliyo://program?yeni=1 (app shortcut) opens the new-task sheet for today.
+  const { yeni } = useLocalSearchParams<{ yeni?: string }>();
+  useEffect(() => {
+    if (yeni !== '1') return;
+    router.setParams({ yeni: undefined });
+    Promise.resolve().then(() => { setSelectedDate(todayStr()); setEditing(null); setForm(EMPTY_FORM); setSheetOpen(true); }).catch(() => undefined);
+  }, [yeni]);
   const openEdit = (task: Task) => {
     setEditing(task);
     setForm({
@@ -111,7 +119,7 @@ export default function DailyProgramScreen() {
     }
   };
 
-  const deleteTask = (task: Task) => Alert.alert('Görevi sil', 'Bu görevi silmek istediğine emin misin?', [
+  const deleteTask = (task: Task) => Dialog.alert('Görevi sil', 'Bu görevi silmek istediğine emin misin?', [
     { text: 'Vazgeç', style: 'cancel' },
     {
       text: 'Sil', style: 'destructive', onPress: async () => {
@@ -121,7 +129,7 @@ export default function DailyProgramScreen() {
         if (error) { toast.error(`Görev silinemedi: ${error.message}`); refetch(); }
       },
     },
-  ]);
+  ], { icon: Trash2 });
 
   const resourceById = Object.fromEntries((resources.data || []).map((resource) => [resource.id, resource]));
 

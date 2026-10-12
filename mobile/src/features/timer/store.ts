@@ -69,6 +69,16 @@ export function writeTimerState(userId: string, state: TimerState) {
   Storage.setItemSync(timerKey(userId), JSON.stringify(state));
 }
 
+// Changes made outside the Kronometre screen (notification buttons) notify it to reload.
+const changeListeners = new Set<() => void>();
+export function subscribeTimerChanges(listener: () => void) {
+  changeListeners.add(listener);
+  return () => { changeListeners.delete(listener); };
+}
+export function emitTimerChange() {
+  changeListeners.forEach((listener) => listener());
+}
+
 export function presetFor(state: TimerState) {
   return state.customActive ? state.custom : PRESETS[state.presetIndex] || PRESETS[0];
 }

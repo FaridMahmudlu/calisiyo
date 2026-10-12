@@ -4,9 +4,9 @@ import {
   ArrowRightLeft, Ban, BookOpenCheck, Coffee, Copy, Flag, Flame, Goal, LogOut, MoreHorizontal, Palette, PauseCircle, Play, Settings2, Share2, ShieldCheck, Sparkles, Trophy, UserMinus, UsersRound, Volume2, VolumeX,
 } from 'lucide-react-native';
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { Alert, AppState, KeyboardAvoidingView, Platform, Pressable, RefreshControl, ScrollView, Share, StyleSheet, View } from 'react-native';
+import { AppState, KeyboardAvoidingView, Platform, Pressable, RefreshControl, ScrollView, Share, StyleSheet, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { Badge, Button, Card, Chip, ErrorState, IconButton, Notice, ProgressBar, Segmented, Select, Sheet, SkeletonCards, SwitchRow, Text, TextField, useToast } from '@/components/ui';
+import { Badge, Button, Card, Chip, Dialog, ErrorState, IconButton, Notice, ProgressBar, Segmented, Select, Sheet, SkeletonCards, SwitchRow, Text, TextField, useToast } from '@/components/ui';
 import { ActionMenu } from '@/components/ActionMenu';
 import { ClassroomAvatar } from '@/features/classroom/Avatar';
 import { useBlockActions, useBlockedUsers, type ReportTarget } from '@/features/moderation/moderation';
@@ -328,8 +328,8 @@ export default function ClassroomScreen() {
     toast.success(action === 'remove' ? 'Üye sınıftan çıkarıldı.' : action === 'mute' ? 'Üye seçilen süre boyunca susturuldu.' : action === 'transfer_owner' ? 'Sınıf sahipliği devredildi.' : 'Üyenin susturması kaldırıldı.');
   };
   const leave = () => {
-    if (isOwner && members.length > 1) return Alert.alert('Sınıfı kapat', 'Sınıfta başka üyeler varken sahipliği devretmeden kapatamazsın.');
-    Alert.alert(isOwner ? 'Çalışma sınıfını kapat' : 'Sınıftan ayrıl', 'Bu işlemden sonra yeniden katılmak için davet koduna ihtiyacın olacak.', [
+    if (isOwner && members.length > 1) return Dialog.alert('Sınıfı kapat', 'Sınıfta başka üyeler varken sahipliği devretmeden kapatamazsın.');
+    Dialog.alert(isOwner ? 'Çalışma sınıfını kapat' : 'Sınıftan ayrıl', 'Bu işlemden sonra yeniden katılmak için davet koduna ihtiyacın olacak.', [
       { text: 'Vazgeç', style: 'cancel' },
       { text: isOwner ? 'Sınıfı kapat' : 'Ayrıl', style: 'destructive', onPress: async () => {
         const { error } = await supabase.rpc('leave_study_group', { p_group_id: groupId });
@@ -513,9 +513,9 @@ export default function ClassroomScreen() {
           </>
         )}
         <Button title="Sahipliği devret" icon={ArrowRightLeft} variant="secondary" disabled={moderationBusy}
-          onPress={() => Alert.alert('Sınıf sahipliğini devret', `${moderation?.name} yeni sınıf sahibi olacak; sen normal üye olarak kalırsın.`, [{ text: 'Vazgeç', style: 'cancel' }, { text: 'Onayla ve devret', onPress: () => moderate('transfer_owner') }])} />
+          onPress={() => Dialog.alert('Sınıf sahipliğini devret', `${moderation?.name} yeni sınıf sahibi olacak; sen normal üye olarak kalırsın.`, [{ text: 'Vazgeç', style: 'cancel' }, { text: 'Onayla ve devret', onPress: () => moderate('transfer_owner') }])} />
         <Button title="Üyeyi sınıftan çıkar" icon={UserMinus} variant="danger" disabled={moderationBusy}
-          onPress={() => Alert.alert('Üyeyi çıkar', 'Yeniden katılmak için davet koduna ihtiyaç duyar.', [{ text: 'Vazgeç', style: 'cancel' }, { text: 'Çıkar', style: 'destructive', onPress: () => moderate('remove') }])} />
+          onPress={() => Dialog.alert('Üyeyi çıkar', 'Yeniden katılmak için davet koduna ihtiyaç duyar.', [{ text: 'Vazgeç', style: 'cancel' }, { text: 'Çıkar', style: 'destructive', onPress: () => moderate('remove') }])} />
       </Sheet>
     </View>
   );

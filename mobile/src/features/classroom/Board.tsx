@@ -1,10 +1,10 @@
 import { Eraser, PenLine, RotateCcw, Save, Trash2, X } from 'lucide-react-native';
 import { useState } from 'react';
-import { Alert, Modal, Pressable, StyleSheet, View, type LayoutChangeEvent } from 'react-native';
+import { Modal, Pressable, StyleSheet, View, type LayoutChangeEvent } from 'react-native';
 import { Gesture, GestureDetector, GestureHandlerRootView } from 'react-native-gesture-handler';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Svg, { Polyline } from 'react-native-svg';
-import { Button, Segmented, Text, TextField } from '@/components/ui';
+import { Button, Dialog, Segmented, Text, TextField } from '@/components/ui';
 import { space, radius } from '@/theme/tokens';
 
 const COLORS: Record<string, string> = { white: '#F7FBF8', mint: '#7CE0BD', yellow: '#FFD66B', coral: '#FF9A86' };
@@ -103,7 +103,7 @@ export function ClassroomBoard({ open, board, isOwner, busy, onClose, onSaveText
             <View style={{ flexDirection: 'row', gap: space.sm }}>
               <Button title="Geri al" icon={RotateCcw} variant="secondary" size="sm" disabled={busy} onPress={onUndo} style={{ flex: 1 }} />
               {isOwner ? <Button title="Temizle" icon={Trash2} variant="danger" size="sm" disabled={busy} style={{ flex: 1 }}
-                onPress={() => Alert.alert('Tahtayı temizle', 'Tahtadaki tüm not ve çizimleri temizlemek istiyor musun?', [{ text: 'Vazgeç', style: 'cancel' }, { text: 'Temizle', style: 'destructive', onPress: onClear }])} /> : null}
+                onPress={() => Dialog.alert('Tahtayı temizle', 'Tahtadaki tüm not ve çizimleri temizlemek istiyor musun?', [{ text: 'Vazgeç', style: 'cancel' }, { text: 'Temizle', style: 'destructive', onPress: onClear }])} /> : null}
             </View>
           </View>
         ) : (

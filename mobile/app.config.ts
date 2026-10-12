@@ -47,7 +47,9 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
       monochromeImage: './assets/images/android-icon-monochrome.png',
     },
     predictiveBackGestureEnabled: true,
-    permissions: ['RECORD_AUDIO', 'USE_BIOMETRIC', 'VIBRATE'],
+    // POST_PROMOTED_NOTIFICATIONS: the Kronometre notification becomes an Android 16+ Live Update.
+    // SCHEDULE_EXACT_ALARM: user-granted "Alarms & reminders" access for on-time stage-end alerts.
+    permissions: ['RECORD_AUDIO', 'USE_BIOMETRIC', 'VIBRATE', 'android.permission.POST_PROMOTED_NOTIFICATIONS', 'android.permission.SCHEDULE_EXACT_ALARM'],
     blockedPermissions: [
       'android.permission.READ_MEDIA_VIDEO',
       'android.permission.READ_MEDIA_AUDIO',
@@ -62,6 +64,7 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
   plugins: [
     'expo-router',
     './plugins/withAndroidBuildFixes',
+    './plugins/withAppShortcuts',
     [
       'expo-splash-screen',
       {
@@ -76,7 +79,6 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
     'expo-sharing',
     'expo-web-browser',
     'expo-apple-authentication',
-    '@react-native-community/datetimepicker',
     ['expo-font', {}],
     [
       'expo-audio',
@@ -130,6 +132,17 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
             minWidth: '180dp',
             minHeight: '110dp',
             targetCellWidth: 3,
+            targetCellHeight: 2,
+            resizeMode: 'horizontal|vertical',
+            updatePeriodMillis: 1800000,
+          },
+          {
+            name: 'QuickFocusWidget',
+            label: 'Planliyo · Hızlı Odak',
+            description: 'Tek dokunuşla odak oturumu başlat; bugünkü süreni ve serini gör.',
+            minWidth: '110dp',
+            minHeight: '110dp',
+            targetCellWidth: 2,
             targetCellHeight: 2,
             resizeMode: 'horizontal|vertical',
             updatePeriodMillis: 1800000,

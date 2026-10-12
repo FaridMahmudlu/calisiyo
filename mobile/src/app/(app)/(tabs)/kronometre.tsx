@@ -1,7 +1,8 @@
 import { useQuery } from '@tanstack/react-query';
 import { activateKeepAwakeAsync, deactivateKeepAwake } from 'expo-keep-awake';
+import { router, useLocalSearchParams } from 'expo-router';
 import { CheckCircle2, Coffee, Pause, Play, RotateCcw, SkipForward, SlidersHorizontal, TimerReset } from 'lucide-react-native';
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { StyleSheet, View } from 'react-native';
 import Animated, { useAnimatedStyle, useSharedValue, withRepeat, withTiming } from 'react-native-reanimated';
 import { formatDuration, todayStr } from '@shared/utils/date';
@@ -47,6 +48,17 @@ export default function TimerScreen() {
     onError: toast.error,
   });
   const { state, preset, timeLeft, totalSeconds, elapsed } = timer;
+
+  // planliyo://kronometre?baslat=1 (home-screen widget, app shortcut) starts the timer.
+  const { baslat } = useLocalSearchParams<{ baslat?: string }>();
+  const autoStarted = useRef(false);
+  useEffect(() => {
+    if (baslat !== '1') { autoStarted.current = false; return; }
+    if (autoStarted.current || !userId) return;
+    autoStarted.current = true;
+    router.setParams({ baslat: undefined });
+    if (!state.running) Promise.resolve().then(timer.toggle).catch(() => undefined);
+  }, [baslat, userId, state.running, timer.toggle]);
 
   useEffect(() => {
     if (state.running && keepAwake) activateKeepAwakeAsync(KEEP_AWAKE_TAG).catch(() => undefined);
