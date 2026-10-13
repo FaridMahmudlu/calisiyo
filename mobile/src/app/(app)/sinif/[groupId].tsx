@@ -17,6 +17,7 @@ import { ClassroomChat, type ChatMessage } from '@/features/classroom/Chat';
 import { ClassroomScene } from '@/features/classroom/Scene';
 import { REACTION_META, STATUS_LABEL, type Member, type Position, type ReactionKey, type Seat, type Zone } from '@/features/classroom/world';
 import { useNow } from '@/hooks/useNow';
+import { useContentFrame } from '@/hooks/useResponsive';
 import { supabase } from '@/lib/supabase';
 import { useAccount } from '@/providers/AccountProvider';
 import { useTheme } from '@/theme/ThemeProvider';
@@ -42,6 +43,8 @@ export default function ClassroomScreen() {
   const { colors } = useTheme();
   const toast = useToast();
   const insets = useSafeAreaInsets();
+  // Tablets: keep the room, chat and member list in a centered column.
+  const roomFrame = useContentFrame('regular', false);
   const { user } = useAccount();
   const userId = user?.id || '';
   const [tab, setTab] = useState<Tab>('room');
@@ -358,6 +361,7 @@ export default function ClassroomScreen() {
           </View>
         ),
       }} />
+      <View style={[{ flex: 1 }, roomFrame]}>
       <View style={{ paddingHorizontal: space.lg, paddingTop: space.sm, gap: space.sm }}>
         <Text variant="caption" color="textMuted"><Text variant="captionStrong" color="primary">{onlineCount}</Text> kişi burada · {members.length}/{room.maxMembers} üye · canlı</Text>
         <Segmented options={[{ value: 'room', label: 'Sınıf' }, { value: 'chat', label: `Sohbet${(data?.messages || []).length ? ` · ${(data?.messages || []).length}` : ''}` }, { value: 'members', label: 'Üyeler' }]} value={tab} onChange={setTab} />
@@ -476,6 +480,7 @@ export default function ClassroomScreen() {
           ) : null}
         </ScrollView>
       )}
+      </View>
 
       <ReportSheet target={reportTarget} onClose={() => setReportTarget(null)} />
       <ActionMenu open={!!memberMenu} title={memberMenu?.name} onClose={() => setMemberMenu(null)} actions={memberMenu ? [

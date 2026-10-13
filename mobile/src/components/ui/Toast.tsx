@@ -53,6 +53,6 @@ export function useToast() {
 }
 
 const styles = StyleSheet.create({
-  wrap: { position: 'absolute', left: space.lg, right: space.lg, zIndex: 1000 },
-  toast: { flexDirection: 'row', alignItems: 'center', gap: space.md, padding: space.lg, borderRadius: radius.md, borderWidth: 1, shadowOpacity: 0.14, shadowRadius: 22, shadowOffset: { width: 0, height: 10 }, elevation: 8 },
+  wrap: { position: 'absolute', left: space.lg, right: space.lg, zIndex: 1000, alignItems: 'center' },
+  toast: { width: '100%', maxWidth: 520, flexDirection: 'row', alignItems: 'center', gap: space.md, padding: space.lg, borderRadius: radius.md, borderWidth: 1, shadowOpacity: 0.14, shadowRadius: 22, shadowOffset: { width: 0, height: 10 }, elevation: 8 },
 });

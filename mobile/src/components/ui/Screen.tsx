@@ -1,10 +1,13 @@
 import { useState, type ReactNode } from 'react';
 import { KeyboardAvoidingView, Platform, RefreshControl, ScrollView, StyleSheet, View, type StyleProp, type ViewStyle } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { useContentFrame, type ContentWidth } from '@/hooks/useResponsive';
 import { useTheme } from '@/theme/ThemeProvider';
 import { space } from '@/theme/tokens';
 
-export function Screen({ children, onRefresh, scroll = true, padded = true, contentStyle, footer, keyboard = false, edges = 'auto' }: {
+// Content is centered and width-limited on tablets (see useResponsive):
+// `narrow` for forms, `regular` for most screens, `wide` for dashboards.
+export function Screen({ children, onRefresh, scroll = true, padded = true, contentStyle, footer, keyboard = false, edges = 'auto', width = 'regular' }: {
   children: ReactNode;
   onRefresh?: () => Promise<unknown> | void;
   scroll?: boolean;
@@ -13,9 +16,11 @@ export function Screen({ children, onRefresh, scroll = true, padded = true, cont
   footer?: ReactNode;
   keyboard?: boolean;
   edges?: 'auto' | 'top' | 'none';
+  width?: ContentWidth;
 }) {
   const { colors } = useTheme();
   const insets = useSafeAreaInsets();
+  const frame = useContentFrame(width, padded);
   const [refreshing, setRefreshing] = useState(false);
   const topInset = edges === 'top' ? insets.top : 0;
 
@@ -31,12 +36,12 @@ export function Screen({ children, onRefresh, scroll = true, padded = true, cont
       keyboardDismissMode="interactive"
       showsVerticalScrollIndicator={false}
       refreshControl={refresh ? <RefreshControl refreshing={refreshing} onRefresh={refresh} tintColor={colors.primary} colors={[colors.primary]} /> : undefined}
-      contentContainerStyle={[padded && styles.padded, { paddingTop: (padded ? space.lg : 0) + topInset, paddingBottom: insets.bottom + 128 }, contentStyle]}
+      contentContainerStyle={[frame, { paddingTop: (padded ? space.lg : 0) + topInset, paddingBottom: insets.bottom + 128 }, contentStyle]}
     >
       {children}
     </ScrollView>
   ) : (
-    <View style={[styles.flex, padded && styles.padded, { paddingTop: topInset }, contentStyle]}>{children}</View>
+    <View style={[styles.flex, frame, { paddingTop: topInset }, contentStyle]}>{children}</View>
   );
 
   return (
@@ -50,5 +55,4 @@ export function Screen({ children, onRefresh, scroll = true, padded = true, cont
 
 const styles = StyleSheet.create({
   flex: { flex: 1 },
-  padded: { paddingHorizontal: space.lg },
 });

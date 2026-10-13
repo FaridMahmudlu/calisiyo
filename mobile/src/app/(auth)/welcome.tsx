@@ -1,13 +1,14 @@
 import { LinearGradient } from 'expo-linear-gradient';
 import { router } from 'expo-router';
 import { Check, Flame, Lock, TrendingUp } from 'lucide-react-native';
-import { useRef, useState, type JSX } from 'react';
-import { FlatList, Pressable, StyleSheet, useWindowDimensions, View } from 'react-native';
+import { useEffect, useRef, useState, type JSX } from 'react';
+import { FlatList, Pressable, StyleSheet, View } from 'react-native';
 import Animated, { Extrapolation, interpolate, useAnimatedScrollHandler, useAnimatedStyle, useSharedValue, type SharedValue } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Svg, { Circle } from 'react-native-svg';
 import { BrandLogo } from '@/components/brand/BrandMark';
 import { Button, Text } from '@/components/ui';
+import { useResponsive } from '@/hooks/useResponsive';
 import { useTheme } from '@/theme/ThemeProvider';
 import { brand, fonts, radius, space, subjectColor } from '@/theme/tokens';
 
@@ -104,7 +105,7 @@ const SLIDES: Slide[] = [
   { key: 'progress', kicker: 'Gelişimini gör', title: 'Gelişimini gör, motivasyonunu koru.', body: 'Deneme netlerin, serin ve seviyen gerçek çalışmalarınla büyür. Arkadaşlarınla birlikte çalış.', Art: ProgressArt },
 ];
 
-function SlideView({ slide, index, width, scrollX }: { slide: Slide; index: number; width: number; scrollX: SharedValue<number> }) {
+function SlideView({ slide, index, width, scrollX, wide, centered }: { slide: Slide; index: number; width: number; scrollX: SharedValue<number>; wide: boolean; centered: boolean }) {
   const range = [(index - 1) * width, index * width, (index + 1) * width];
   const artStyle = useAnimatedStyle(() => ({
     opacity: interpolate(scrollX.value, range, [0, 1, 0], Extrapolation.CLAMP),
@@ -119,13 +120,15 @@ function SlideView({ slide, index, width, scrollX }: { slide: Slide; index: numb
   }));
   const { Art } = slide;
   return (
-    <View style={[styles.slide, { width }]}>
-      <Animated.View style={artStyle}><Art /></Animated.View>
-      <Animated.View style={[{ marginTop: space.xxxl }, textStyle]}>
-        <Text variant="label" color="primary">{slide.kicker}</Text>
-        <Text variant="display" style={{ marginTop: space.sm }}>{slide.title}</Text>
-        <Text variant="body" color="textMuted" style={{ marginTop: space.md }}>{slide.body}</Text>
-      </Animated.View>
+    <View style={[styles.slide, { width }, centered && styles.slideCentered]}>
+      <View style={[styles.slideInner, wide && styles.slideRow]}>
+        <Animated.View style={[wide && styles.half, artStyle]}><Art /></Animated.View>
+        <Animated.View style={[wide ? styles.half : { marginTop: space.xxxl }, textStyle]}>
+          <Text variant="label" color="primary">{slide.kicker}</Text>
+          <Text variant="display" style={{ marginTop: space.sm }}>{slide.title}</Text>
+          <Text variant="body" color="textMuted" style={{ marginTop: space.md }}>{slide.body}</Text>
+        </Animated.View>
+      </View>
     </View>
   );
 }
@@ -142,7 +145,7 @@ function Dot({ index, width, scrollX }: { index: number; width: number; scrollX:
 
 export default function WelcomeScreen() {
   const { colors } = useTheme();
-  const { width } = useWindowDimensions();
+  const { width, twoColumn, gutter, isTablet } = useResponsive();
   const insets = useSafeAreaInsets();
   const scrollX = useSharedValue(0);
   const [index, setIndex] = useState(0);
@@ -150,10 +153,16 @@ export default function WelcomeScreen() {
   const onScroll = useAnimatedScrollHandler((event) => { scrollX.set(event.contentOffset.x); });
   const last = index === SLIDES.length - 1;
 
+  // Keep the current slide in place when a tablet rotates (page width changes).
+  useEffect(() => {
+    listRef.current?.scrollToOffset({ offset: index * width, animated: false });
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- only on width change
+  }, [width]);
+
   return (
     <View style={[styles.root, { backgroundColor: colors.background, paddingTop: insets.top + space.md, paddingBottom: insets.bottom + space.lg }]}>
       <LinearGradient colors={[colors.primarySoft, colors.background]} style={StyleSheet.absoluteFill} start={{ x: 0, y: 0 }} end={{ x: 0, y: 0.55 }} />
-      <View style={styles.header}>
+      <View style={[styles.header, { paddingHorizontal: gutter }]}>
         <BrandLogo size={30} />
         {!last ? (
           <Pressable accessibilityRole="button" hitSlop={10} onPress={() => listRef.current?.scrollToIndex({ index: SLIDES.length - 1 })}>
@@ -170,10 +179,11 @@ export default function WelcomeScreen() {
         bounces={false}
         showsHorizontalScrollIndicator={false}
         keyExtractor={(item) => item.key}
+        getItemLayout={(_, item) => ({ length: width, offset: width * item, index: item })}
         onScroll={onScroll}
         scrollEventThrottle={16}
         onMomentumScrollEnd={(event) => setIndex(Math.round(event.nativeEvent.contentOffset.x / width))}
-        renderItem={({ item, index: slideIndex }) => <SlideView slide={item} index={slideIndex} width={width} scrollX={scrollX} />}
+        renderItem={({ item, index: slideIndex }) => <SlideView slide={item} index={slideIndex} width={width} scrollX={scrollX} wide={twoColumn} centered={isTablet} />}
       />
 
       <View style={styles.dots} accessibilityLabel={`${index + 1}. tanıtım / ${SLIDES.length}`}>
@@ -197,8 +207,13 @@ export default function WelcomeScreen() {
 
 const styles = StyleSheet.create({
   root: { flex: 1 },
-  header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: space.xl, minHeight: 40 },
+  header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', minHeight: 40 },
   slide: { paddingHorizontal: space.xl, paddingTop: space.xxl },
+  // Tablets: a centered column; wide landscape screens put art and copy side by side.
+  slideCentered: { justifyContent: 'center', paddingTop: 0, paddingBottom: space.xxl },
+  slideInner: { width: '100%', maxWidth: 560, alignSelf: 'center' },
+  slideRow: { maxWidth: 1040, flexDirection: 'row', alignItems: 'center', gap: space.xxxl },
+  half: { flex: 1 },
   art: {
     borderRadius: radius.xl, borderWidth: 1, padding: space.lg, gap: space.sm, minHeight: 250,
     shadowOpacity: 0.08, shadowRadius: 22, shadowOffset: { width: 0, height: 10 }, elevation: 4,
@@ -216,6 +231,6 @@ const styles = StyleSheet.create({
   barLabel: { flex: 1, textAlign: 'center', letterSpacing: 0 },
   dots: { flexDirection: 'row', justifyContent: 'center', gap: 6, marginVertical: space.lg },
   dot: { height: 8, borderRadius: 4 },
-  actions: { paddingHorizontal: space.xl, gap: space.md },
+  actions: { paddingHorizontal: space.xl, gap: space.md, width: '100%', maxWidth: 560, alignSelf: 'center' },
   loginRow: { flexDirection: 'row', justifyContent: 'center', gap: 6 },
 });

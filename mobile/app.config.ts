@@ -35,6 +35,13 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
       NSSupportsLiveActivities: true,
       NSSupportsLiveActivitiesFrequentUpdates: true,
       CFBundleDevelopmentRegion: 'tr',
+      // iPhone stays portrait (`orientation`); iPad rotates freely (split view, landscape layouts).
+      'UISupportedInterfaceOrientations~ipad': [
+        'UIInterfaceOrientationPortrait',
+        'UIInterfaceOrientationPortraitUpsideDown',
+        'UIInterfaceOrientationLandscapeLeft',
+        'UIInterfaceOrientationLandscapeRight',
+      ],
     },
   },
   android: {

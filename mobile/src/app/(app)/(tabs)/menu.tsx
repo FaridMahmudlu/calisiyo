@@ -3,7 +3,8 @@ import {
   AlertTriangle, BarChart3, BookMarked, BookOpen, CalendarDays, CircleDollarSign, CreditCard, FileText,
   LifeBuoy, LogOut, RotateCcw, Settings, ShieldCheck, Target, Trophy, type LucideIcon,
 } from 'lucide-react-native';
-import { Pressable, StyleSheet, View } from 'react-native';
+import { useState } from 'react';
+import { Pressable, StyleSheet, View, type LayoutChangeEvent } from 'react-native';
 import { TabHeader } from '@/components/TabHeader';
 import { Avatar, Badge, Card, Dialog, ListItem, ProgressBar, Screen, Text } from '@/components/ui';
 import { openWebPage } from '@/lib/browser';
@@ -29,18 +30,30 @@ const STUDY: Item[] = [
   { href: '/gelisim', label: 'Gelişim ve Seviyem', icon: Trophy, color: '#A36B08' },
 ];
 
-function Tile({ item }: { item: Item }) {
+function Tile({ item, width }: { item: Item; width?: number }) {
   const { colors } = useTheme();
   const Icon = item.icon;
   return (
     <Pressable
       accessibilityRole="button"
       onPress={() => router.push(item.href)}
-      style={({ pressed }) => [styles.tile, { backgroundColor: pressed ? colors.surfaceMuted : colors.surface, borderColor: colors.border }]}
+      style={({ pressed }) => [styles.tile, width ? { width, flexBasis: 'auto', flexGrow: 0 } : null, { backgroundColor: pressed ? colors.surfaceMuted : colors.surface, borderColor: colors.border }]}
     >
       <View style={[styles.tileIcon, { backgroundColor: `${item.color}1A` }]}><Icon size={20} color={item.color} /></View>
       <Text variant="captionStrong" numberOfLines={2}>{item.label}</Text>
     </Pressable>
+  );
+}
+
+// Equal-width tiles (3 per row on phones, 4 on tablets); a short last row keeps the same size.
+function TileGrid({ items }: { items: Item[] }) {
+  const [width, setWidth] = useState(0);
+  const columns = width >= 600 ? 4 : 3;
+  const tileWidth = width ? Math.floor((width - space.md * (columns - 1)) / columns) : undefined;
+  return (
+    <View style={styles.grid} onLayout={(event: LayoutChangeEvent) => setWidth(event.nativeEvent.layout.width)}>
+      {items.map((item) => <Tile key={String(item.href)} item={item} width={tileWidth} />)}
+    </View>
   );
 }
 
@@ -80,10 +93,10 @@ export default function MenuScreen() {
       </Card>
 
       <Text variant="label" color="textMuted" style={styles.label}>Planlama</Text>
-      <View style={styles.grid}>{PLANNING.map((item) => <Tile key={String(item.href)} item={item} />)}</View>
+      <TileGrid items={PLANNING} />
 
       <Text variant="label" color="textMuted" style={styles.label}>Çalışma</Text>
-      <View style={styles.grid}>{STUDY.map((item) => <Tile key={String(item.href)} item={item} />)}</View>
+      <TileGrid items={STUDY} />
 
       <Text variant="label" color="textMuted" style={styles.label}>Hesap ve program</Text>
       <Card padded={false} style={{ overflow: 'hidden' }}>

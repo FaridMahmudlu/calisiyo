@@ -13,6 +13,7 @@ import { fetchResourceOptions, resourceName } from '@/features/study/resources';
 import { PRESETS } from '@/features/timer/store';
 import { useFocusTimer } from '@/features/timer/useFocusTimer';
 import { useRealtimeRefresh } from '@/hooks/useRealtimeRefresh';
+import { useResponsive } from '@/hooks/useResponsive';
 import { supabase } from '@/lib/supabase';
 import { useAccount } from '@/providers/AccountProvider';
 import { useTheme } from '@/theme/ThemeProvider';
@@ -48,6 +49,7 @@ export default function TimerScreen() {
     onError: toast.error,
   });
   const { state, preset, timeLeft, totalSeconds, elapsed } = timer;
+  const { twoColumn, isTablet } = useResponsive();
 
   // planliyo://kronometre?baslat=1 (home-screen widget, app shortcut) starts the timer.
   const { baslat } = useLocalSearchParams<{ baslat?: string }>();
@@ -78,10 +80,8 @@ export default function TimerScreen() {
   const completedMinutes = (sessions.data || []).reduce((sum, item) => sum + (item.sure_dakika || 0), 0);
   const started = timeLeft < totalSeconds;
 
-  return (
-    <Screen edges="top" onRefresh={sessions.refetch}>
-      <TabHeader title="Kronometre" subtitle="Çalışma ve mola süreni takip et. Tamamlanan oturumlar istatistiklerine kaydedilir." />
-
+  const timerBlock = (
+    <>
       <View style={styles.presets}>
         {PRESETS.map((item, index) => (
           <Chip key={item.label} label={item.label} active={!state.customActive && state.presetIndex === index} onPress={() => timer.applyPreset(index)} />
@@ -91,7 +91,7 @@ export default function TimerScreen() {
       </View>
 
       <Animated.View style={[styles.ringWrap, pulseStyle]} accessibilityLiveRegion="polite" accessibilityLabel={`${state.breakMode ? 'Mola' : 'Çalışma'}: ${minutes} dakika ${seconds} saniye kaldı`}>
-        <ProgressRing value={(elapsed / Math.max(1, totalSeconds)) * 100} size={272} stroke={14} color={accent} track={state.breakMode ? colors.warningSoft : colors.primarySoft}>
+        <ProgressRing value={(elapsed / Math.max(1, totalSeconds)) * 100} size={isTablet ? 320 : 272} stroke={isTablet ? 16 : 14} color={accent} track={state.breakMode ? colors.warningSoft : colors.primarySoft}>
           <View style={[styles.modePill, { backgroundColor: state.breakMode ? colors.warningSoft : colors.primarySoft }]}>
             {state.breakMode ? <Coffee size={14} color={accent} /> : <TimerReset size={14} color={accent} />}
             <Text variant="captionStrong" color={accent}>{state.breakMode ? 'Mola' : 'Çalışma'}</Text>
@@ -107,8 +107,12 @@ export default function TimerScreen() {
         {state.breakMode ? <Button icon={SkipForward} variant="secondary" size="lg" onPress={timer.skipBreak} accessibilityLabel="Molayı atla" style={styles.round} /> : null}
       </View>
       {state.running ? <Notice tone="success">Kilit ekranından süreni takip edebilirsin; süre dolduğunda bildirim alırsın. Dikkat dağıtan bildirimleri kapatmanı öneririz.</Notice> : null}
+    </>
+  );
 
-      <Card style={{ gap: space.md, marginTop: space.lg }}>
+  const detailsBlock = (
+    <>
+      <Card style={{ gap: space.md, marginTop: twoColumn ? 0 : space.lg }}>
         <Select label="Konu / ders" value={state.courseId} onChange={(id) => timer.setCourse(id, courses.data?.find((course) => course.id === id)?.ad)} placeholder="Ders seç (isteğe bağlı)"
           options={[{ value: '', label: 'Ders seçilmesin' }, ...(courses.data || []).map((course) => ({ value: course.id, label: course.ad, description: course.sinav_turu }))]} />
         <Select label="Kaynak" value={state.resourceId} onChange={timer.setResource} placeholder="Kaynak seç (isteğe bağlı)"
@@ -127,6 +131,18 @@ export default function TimerScreen() {
           <Text variant="caption" color="textMuted">{formatDuration(completedMinutes)}</Text>
         </View>
       </Card>
+    </>
+  );
+
+  return (
+    <Screen edges="top" width={twoColumn ? 'wide' : 'regular'} onRefresh={sessions.refetch}>
+      <TabHeader title="Kronometre" subtitle="Çalışma ve mola süreni takip et. Tamamlanan oturumlar istatistiklerine kaydedilir." />
+      {twoColumn ? (
+        <View style={styles.columns}>
+          <View style={styles.column}>{timerBlock}</View>
+          <View style={[styles.column, { paddingTop: space.xxl }]}>{detailsBlock}</View>
+        </View>
+      ) : (<>{timerBlock}{detailsBlock}</>)}
 
       <Sheet open={customOpen} onClose={() => setCustomOpen(false)} title="Özel süre"
         footer={<Button title="Özel süreyi uygula" style={{ flex: 1 }} onPress={() => { timer.applyCustom(Number(customDraft.work), Number(customDraft.breakMinutes)); setCustomOpen(false); }} />}>
@@ -146,5 +162,7 @@ const styles = StyleSheet.create({
   controls: { flexDirection: 'row', gap: space.md, marginBottom: space.md },
   round: { width: 54, paddingHorizontal: 0 },
   today: { flexDirection: 'row', alignItems: 'center', gap: space.md },
+  columns: { flexDirection: 'row', alignItems: 'flex-start', gap: space.xxl },
+  column: { flex: 1, minWidth: 0 },
   todayIcon: { width: 44, height: 44, borderRadius: 14, alignItems: 'center', justifyContent: 'center' },
 });

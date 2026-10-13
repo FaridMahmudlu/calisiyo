@@ -3,8 +3,8 @@ import { Image } from 'expo-image';
 import { LinearGradient } from 'expo-linear-gradient';
 import { router } from 'expo-router';
 import { BarChart2, BookOpen, Calendar, CheckCircle2, ChevronRight, Clock, Flame, Plus, Quote, Target, Timer, TrendingUp, Trophy } from 'lucide-react-native';
-import { useMemo } from 'react';
-import { Pressable, StyleSheet, View } from 'react-native';
+import { createContext, useContext, useMemo, useState, type ReactNode } from 'react';
+import { Pressable, StyleSheet, View, type LayoutChangeEvent, type StyleProp, type ViewStyle } from 'react-native';
 import { daysUntilYKS, formatDate, formatDuration, formatShortDate, parseLocalDate, toLocalDateKey, todayStr, yksDateLabel } from '@shared/utils/date';
 import { AreaChart, Heatmap, HorizontalBars } from '@/components/charts';
 import { TabHeader } from '@/components/TabHeader';
@@ -12,6 +12,7 @@ import { Badge, Button, Card, EmptyState, ProgressBar, ProgressRing, Screen, Sec
 import { courseKey, fetchCourses } from '@/features/study/queries';
 import { TaskRow, type Task } from '@/features/study/TaskRow';
 import { useRealtimeRefresh } from '@/hooks/useRealtimeRefresh';
+import { useResponsive } from '@/hooks/useResponsive';
 import { createStudyImageUrls } from '@/lib/storage';
 import { supabase } from '@/lib/supabase';
 import { useAccount } from '@/providers/AccountProvider';
@@ -143,11 +144,14 @@ export default function DashboardScreen() {
     refetch();
   };
 
+  // Tablets in landscape: two dashboard columns.
+  const { twoColumn } = useResponsive();
+
   const firstName = profile?.full_name?.split(' ')[0] || 'Öğrenci';
   const goals = profile?.study_goals || {};
 
   return (
-    <Screen edges="top" onRefresh={() => Promise.all([refetch(), courses.refetch()])}>
+    <Screen edges="top" width="wide" onRefresh={() => Promise.all([refetch(), courses.refetch()])}>
       <TabHeader title={`Merhaba, ${firstName}! 👋`} subtitle="Bugün harika bir gün, hedeflerine bir adım daha yaklaş." />
 
       {(goals.university || goals.program) ? (
@@ -167,8 +171,9 @@ export default function DashboardScreen() {
         </Pressable>
       ) : null}
 
-      {dashboard.isLoading ? <SkeletonCards count={4} /> : (
-        <View style={{ gap: space.md }}>
+      {dashboard.isLoading ? <SkeletonCards count={4} /> : (() => {
+        const primary = (
+          <>
           <Pressable accessibilityRole="button" accessibilityLabel="Bugünkü ilerleme · odak oturumu" onPress={() => router.push('/kronometre')} style={({ pressed }) => [styles.heroWrap, { backgroundColor: colors.primaryEdge, transform: [{ translateY: pressed ? 2 : 0 }] }]}>
             <LinearGradient colors={[colors.heroStart, colors.heroEnd]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={styles.hero}>
               <View style={{ flex: 1, gap: 6 }}>
@@ -189,12 +194,12 @@ export default function DashboardScreen() {
             </LinearGradient>
           </Pressable>
 
-          <View style={styles.grid}>
+          <StatGrid>
             <MiniStat icon={Calendar} tint={colors.primary} title="YKS’ye kalan" value={daysLeft == null ? '—' : String(daysLeft)} hint={daysLeft == null ? 'Tahmini tarih geçti' : `gün · Tahmini ${yksDateLabel()}`} />
             <MiniStat icon={Target} tint="#F43F5E" title="Bugünkü hedef" value={`${completed.length}/${todayTasks.length}`} hint="görev tamamlandı" progress={taskPct} />
             <MiniStat icon={BookOpen} tint="#3B82F6" title="Bugünkü soru" value={`${solvedQuestions}/${plannedQuestions}`} hint="soru çözüldü" progress={questionPct} />
             <MiniStat icon={Clock} tint="#F59E0B" title="Bugünkü süre" value={formatDuration(todayMinutes)} hint="Hedef: 5 saat" progress={timePct} />
-          </View>
+          </StatGrid>
 
           <SectionHeader title="Bugünkü Program" action="Tümünü gör" onAction={() => router.push('/program')} />
           <Card>
@@ -220,7 +225,10 @@ export default function DashboardScreen() {
               {(data?.upcoming || []).map((task) => <TaskRow key={task.id} task={task} showDate onToggle={() => toggleTask(task)} />)}
             </View>
           )}
-
+          </>
+        );
+        const secondary = (
+          <>
           <SectionHeader title="Seri Takibin" action="Detaylar" onAction={() => router.push('/istatistikler')} />
           <Card style={styles.streak}>
             <ProgressRing value={(Math.min(30, stats.streak) / 30) * 100} size={112} stroke={11} color={colors.streak} track={colors.streakSoft}>
@@ -243,12 +251,12 @@ export default function DashboardScreen() {
             {subjectProgress.length ? <HorizontalBars items={subjectProgress} max={100} suffix="%" /> : <Text variant="caption" color="textMuted" align="center">Alanına uygun dersler bulunamadı.</Text>}
           </Card>
 
-          <View style={[styles.grid, { marginTop: space.lg }]}>
+          <StatGrid style={{ marginTop: space.lg }}>
             <MiniStat icon={BookOpen} tint="#8B5CF6" title="Toplam soru" value={Number(data?.time.questions || 0).toLocaleString('tr-TR')} hint={`+${solvedQuestions} bugün`} />
             <MiniStat icon={Clock} tint="#F43F5E" title="Toplam süre" value={formatDuration(Number(data?.time.studyMinutes || 0))} hint={`+${formatDuration(todayMinutes)} bugün`} />
             <MiniStat icon={Trophy} tint="#F59E0B" title="En uzun gün" value={bestDay.minutes ? formatDuration(bestDay.minutes) : '0sa'} hint={bestDay.date ? formatDate(bestDay.date) : 'Henüz veri yok'} />
             <MiniStat icon={TrendingUp} tint="#8B5CF6" title="Ortalama net" value={averageNet} hint="Tüm denemeler" />
-          </View>
+          </StatGrid>
 
           <SectionHeader title="Son Deneme Sonuçları" action="Tümünü gör" onAction={() => router.push('/deneme-analizi')} />
           <Card>
@@ -261,18 +269,44 @@ export default function DashboardScreen() {
             <View style={[styles.quoteIcon, { backgroundColor: colors.surface }]}><Quote size={18} color={colors.primary} /></View>
             <Text variant="bodyStrong" style={{ flex: 1 }}>{quote}</Text>
           </Card>
-
-          {todayTasks.length === 0 ? <Button title="Bugün için görev ekle" icon={Plus} variant="soft" onPress={() => router.push('/program')} style={{ marginTop: space.md }} /> : null}
-        </View>
-      )}
+          </>
+        );
+        return (
+          <View style={{ gap: space.md }}>
+            {twoColumn ? (
+              <View style={styles.columns}>
+                <View style={styles.column}>{primary}</View>
+                <View style={styles.column}>{secondary}</View>
+              </View>
+            ) : (<>{primary}{secondary}</>)}
+            {todayTasks.length === 0 ? <Button title="Bugün için görev ekle" icon={Plus} variant="soft" onPress={() => router.push('/program')} style={{ marginTop: space.md }} /> : null}
+          </View>
+        );
+      })()}
     </Screen>
+  );
+}
+
+// Stat cards sized from the measured row width (re-measured on rotation):
+// four per row when there is room, otherwise two.
+const StatWidthContext = createContext<number | undefined>(undefined);
+
+function StatGrid({ children, style }: { children: ReactNode; style?: StyleProp<ViewStyle> }) {
+  const [width, setWidth] = useState(0);
+  const columns = width >= 680 ? 4 : 2;
+  const itemWidth = width ? Math.floor((width - space.md * (columns - 1)) / columns) : undefined;
+  return (
+    <View style={[styles.grid, style]} onLayout={(event: LayoutChangeEvent) => setWidth(event.nativeEvent.layout.width)}>
+      <StatWidthContext.Provider value={itemWidth}>{children}</StatWidthContext.Provider>
+    </View>
   );
 }
 
 function MiniStat({ icon: Icon, tint, title, value, hint, progress }: { icon: typeof Calendar; tint: string; title: string; value: string; hint: string; progress?: number }) {
   const { colors } = useTheme();
+  const width = useContext(StatWidthContext);
   return (
-    <View style={[styles.mini, { backgroundColor: colors.surface, borderColor: colors.border, borderBottomColor: colors.borderStrong }]}>
+    <View style={[styles.mini, width ? { width, flexBasis: 'auto', flexGrow: 0 } : null, { backgroundColor: colors.surface, borderColor: colors.border, borderBottomColor: colors.borderStrong }]}>
       <View style={styles.between}>
         <Text variant="captionStrong" color="textMuted" numberOfLines={1} style={{ flex: 1 }}>{title}</Text>
         <View style={[styles.miniIcon, { backgroundColor: tint }]}><Icon size={15} color="#FFFFFF" strokeWidth={2.4} /></View>
@@ -288,6 +322,8 @@ const styles = StyleSheet.create({
   goal: { flexDirection: 'row', alignItems: 'center', gap: space.md, padding: space.md, borderRadius: radius.full, borderWidth: 1, overflow: 'hidden', marginBottom: space.lg },
   goalIcon: { width: 34, height: 34, borderRadius: 17, alignItems: 'center', justifyContent: 'center' },
   grid: { flexDirection: 'row', flexWrap: 'wrap', gap: space.md },
+  columns: { flexDirection: 'row', alignItems: 'flex-start', gap: space.xl },
+  column: { flex: 1, minWidth: 0, gap: space.md },
   mini: { flexBasis: '47%', flexGrow: 1, padding: space.lg, borderRadius: radius.lg, borderWidth: 1, borderBottomWidth: 3, gap: 2 },
   miniIcon: { width: 30, height: 30, borderRadius: 10, alignItems: 'center', justifyContent: 'center' },
   between: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: space.sm },

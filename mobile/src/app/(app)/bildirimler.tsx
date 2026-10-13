@@ -8,6 +8,7 @@ import { FlatList, Pressable, RefreshControl, StyleSheet, View } from 'react-nat
 import { EmptyState, ErrorState, IconButton, Segmented, SkeletonCards, Text, useToast } from '@/components/ui';
 import { useNotifications, type AppNotification } from '@/features/notifications/useNotifications';
 import { useNow } from '@/hooks/useNow';
+import { useContentFrame } from '@/hooks/useResponsive';
 import { appRouteFromWebPath } from '@/lib/routes';
 import { useTheme } from '@/theme/ThemeProvider';
 import { fonts, radius, space, type ThemeColors } from '@/theme/tokens';
@@ -56,6 +57,7 @@ export default function NotificationsScreen() {
   const { colors } = useTheme();
   const toast = useToast();
   const now = useNow(60_000);
+  const frame = useContentFrame();
   const [filter, setFilter] = useState<'all' | 'unread'>('all');
   const { items, unread, isLoading, isError, error, refetch, isRefetching, markRead, markAllRead } = useNotifications();
 
@@ -95,7 +97,7 @@ export default function NotificationsScreen() {
         data={rows}
         keyExtractor={(row) => row.key}
         contentInsetAdjustmentBehavior="automatic"
-        contentContainerStyle={{ padding: space.lg, gap: space.sm, paddingBottom: 80 }}
+        contentContainerStyle={[frame, { paddingVertical: space.lg, gap: space.sm, paddingBottom: 80 }]}
         refreshControl={<RefreshControl refreshing={isRefetching} onRefresh={refetch} tintColor={colors.primary} colors={[colors.primary]} />}
         ListHeaderComponent={items.length ? (
           <View style={{ gap: space.md, marginBottom: space.xs }}>

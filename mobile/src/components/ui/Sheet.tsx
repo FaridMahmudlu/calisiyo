@@ -100,7 +100,9 @@ export function Sheet({ open, onClose, title, subtitle, children, footer, scroll
 const styles = StyleSheet.create({
   flex: { flex: 1 },
   root: { flex: 1, justifyContent: 'flex-end' },
+  // Width-limited and centered on tablets so forms keep a phone-like measure.
   sheet: {
+    width: '100%', maxWidth: 640, alignSelf: 'center',
     maxHeight: '92%', borderTopLeftRadius: radius.xl, borderTopRightRadius: radius.xl,
     shadowOpacity: 0.16, shadowRadius: 24, shadowOffset: { width: 0, height: -6 }, elevation: 24,
   },

@@ -10,7 +10,7 @@ export function AuthScaffold({ title, subtitle, error, children, back = true, fo
   title: string; subtitle?: string; error?: string; children: ReactNode; back?: boolean; footer?: ReactNode;
 }) {
   return (
-    <Screen keyboard edges="top">
+    <Screen keyboard edges="top" width="narrow">
       <View style={styles.top}>
         {back && router.canGoBack() ? <IconButton icon={ChevronLeft} label="Geri" onPress={() => router.back()} /> : <View style={{ height: 40 }} />}
       </View>

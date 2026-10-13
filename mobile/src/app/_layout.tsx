@@ -14,6 +14,7 @@ import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { LaunchAnimation } from '@/components/brand/LaunchAnimation';
 import { DialogHost, ToastProvider } from '@/components/ui';
 import { AnalyticsConsentGate } from '@/features/privacy/AnalyticsConsent';
+import { initOrientationPolicy } from '@/lib/orientation';
 import { wrapRoot } from '@/lib/telemetry';
 import { AuthProvider, useAuth } from '@/providers/AuthProvider';
 import { QueryProvider } from '@/providers/QueryProvider';
@@ -22,6 +23,7 @@ import { fonts } from '@/theme/tokens';
 
 SplashScreen.preventAutoHideAsync().catch(() => undefined);
 SplashScreen.setOptions({ duration: 250, fade: true });
+initOrientationPolicy();
 
 function RootNavigator() {
   const { session, initializing } = useAuth();

@@ -5,6 +5,7 @@ import { useEffect, useState, type ComponentType } from 'react';
 import { Animated, Keyboard, Platform, Pressable, StyleSheet, View, type LayoutChangeEvent } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Text } from '@/components/ui';
+import { useResponsive } from '@/hooks/useResponsive';
 import { useTheme } from '@/theme/ThemeProvider';
 import { brand, fonts } from '@/theme/tokens';
 import { ClassIcon, HomeIcon, MoreIcon, ProgramIcon, TimerIcon, type TabIconProps } from './TabIcons';
@@ -22,14 +23,18 @@ export const TAB_BAR_HEIGHT = 68;
 export const tabBarClearance = (bottomInset: number) => TAB_BAR_HEIGHT + Math.max(bottomInset, 10) + 14;
 
 const INDICATOR_WIDTH = 56;
+const MAX_BAR_WIDTH = 560;
 
 // Floating glass capsule that follows the theme. A soft indicator sits behind
 // the active icon and glides with the pager `position` while swiping.
 export function FloatingTabBar({ state, descriptors, navigation, position }: MaterialTopTabBarProps) {
   const insets = useSafeAreaInsets();
   const { colors, scheme } = useTheme();
+  const { width: screenWidth } = useResponsive();
   const dark = scheme === 'dark';
   const [width, setWidth] = useState(0);
+  // Phone: edge-to-edge capsule. Tablet: a centered capsule of comfortable width.
+  const barWidth = Math.min(screenWidth - 28, MAX_BAR_WIDTH);
   const [keyboardOpen, setKeyboardOpen] = useState(false);
   const count = state.routes.length;
   const tabWidth = width / count;
@@ -53,7 +58,7 @@ export function FloatingTabBar({ state, descriptors, navigation, position }: Mat
     : 0;
 
   return (
-    <View pointerEvents="box-none" style={[styles.host, { bottom: Math.max(insets.bottom, 10) + 4 }]}>
+    <View pointerEvents="box-none" style={[styles.host, { bottom: Math.max(insets.bottom, 10) + 4, width: barWidth, left: (screenWidth - barWidth) / 2 }]}>
       <View style={[styles.shadow, { shadowOpacity: palette.shadow, shadowColor: dark ? '#000000' : '#0B2B20' }]}>
         <View style={[styles.bar, { backgroundColor: palette.bar, borderColor: palette.border }]}
           onLayout={(event: LayoutChangeEvent) => setWidth(event.nativeEvent.layout.width - 12)}>
@@ -95,7 +100,7 @@ export function FloatingTabBar({ state, descriptors, navigation, position }: Mat
 }
 
 const styles = StyleSheet.create({
-  host: { position: 'absolute', left: 14, right: 14 },
+  host: { position: 'absolute' },
   shadow: { borderRadius: 28, shadowRadius: 24, shadowOffset: { width: 0, height: 10 }, elevation: 14 },
   bar: {
     height: TAB_BAR_HEIGHT, borderRadius: 28, paddingHorizontal: 6, flexDirection: 'row', alignItems: 'center', overflow: 'hidden', borderWidth: 1,

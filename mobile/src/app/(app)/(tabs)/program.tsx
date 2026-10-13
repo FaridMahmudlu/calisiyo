@@ -227,8 +227,9 @@ function Summary({ icon: Icon, label, value }: { icon: typeof Clock3; label: str
 
 const styles = StyleSheet.create({
   dateRow: { flexDirection: 'row', alignItems: 'center', gap: space.sm },
-  week: { gap: space.sm, paddingVertical: space.md },
-  day: { width: 52, height: 68, borderRadius: radius.md, borderWidth: 1, alignItems: 'center', justifyContent: 'center', gap: 2 },
+  // Phones scroll the week; wider screens stretch the seven days to fill the row.
+  week: { flexGrow: 1, gap: space.sm, paddingVertical: space.md },
+  day: { flex: 1, minWidth: 52, height: 68, borderRadius: radius.md, borderWidth: 1, alignItems: 'center', justifyContent: 'center', gap: 2 },
   todayDot: { position: 'absolute', bottom: 6, width: 5, height: 5, borderRadius: 3 },
   summary: { flexDirection: 'row' },
   row2: { flexDirection: 'row', gap: space.md },
