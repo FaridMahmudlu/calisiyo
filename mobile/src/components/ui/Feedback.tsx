@@ -128,11 +128,12 @@ export function Avatar({ name, size = 40, color }: { name?: string | null; size?
   );
 }
 
-export function StatTile({ label, value, hint, icon: Icon, color }: { label: string; value: string | number; hint?: string; icon?: LucideIcon; color?: string }) {
+export function StatTile({ label, value, hint, icon: Icon, color, accessory }: { label: string; value: string | number; hint?: string; icon?: LucideIcon; color?: string; accessory?: ReactNode }) {
   const { colors } = useTheme();
   const tint = color || colors.primary;
   return (
     <View style={[styles.stat, { backgroundColor: colors.surface, borderColor: colors.border }]}>
+      {accessory ? <View style={styles.statAccessory}>{accessory}</View> : null}
       {Icon ? <View style={[styles.statIcon, { backgroundColor: `${tint}1A` }]}><Icon size={17} color={tint} /></View> : null}
       <Text variant="number" numberOfLines={1} adjustsFontSizeToFit>{value}</Text>
       <Text variant="captionStrong" color="textMuted" numberOfLines={1}>{label}</Text>
@@ -148,4 +149,5 @@ const styles = StyleSheet.create({
   badge: { paddingHorizontal: 10, paddingVertical: 3, borderRadius: radius.full, alignSelf: 'flex-start' },
   stat: { flex: 1, minWidth: 140, padding: space.lg, borderRadius: radius.md, borderWidth: StyleSheet.hairlineWidth * 2, gap: 2 },
   statIcon: { width: 32, height: 32, borderRadius: 10, alignItems: 'center', justifyContent: 'center', marginBottom: space.sm },
+  statAccessory: { position: 'absolute', right: 14, top: 18 },
 });

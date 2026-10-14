@@ -147,7 +147,7 @@ export default function StatisticsScreen() {
             <StatTile icon={BookOpenCheck} color="#3B82F6" label="Çözülen soru" value={stats.totalQuestions.toLocaleString('tr-TR')} />
             <StatTile icon={CheckCircle2} color="#8B5CF6" label="Program uyumu" value={`%${stats.completionRate}`} hint={`${stats.completedTasks} görev`} />
             <StatTile icon={Flame} color={colors.streak} label="Güncel seri" value={`${accountStats.streak} gün`} />
-            <View style={{ flex: 1, minWidth: 140 }}><StatTile icon={TrendingUp} color="#0EA5E9" label="Son deneme neti" value={stats.exams.length ? stats.lastNet.toFixed(1) : '—'} /><View style={{ position: 'absolute', right: 14, top: 18 }}><Delta value={stats.netDelta} /></View></View>
+            <StatTile icon={TrendingUp} color="#0EA5E9" label="Son deneme neti" value={stats.exams.length ? stats.lastNet.toFixed(1) : '—'} accessory={<Delta value={stats.netDelta} />} />
             <StatTile icon={Target} color="#F43F5E" label="Sonradan çözülen" value={String(stats.solved)} hint={`${stats.unresolved} soru bekliyor`} />
           </View>
 
