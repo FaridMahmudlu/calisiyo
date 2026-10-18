@@ -11,6 +11,8 @@ const BRAND_HOSTS = [
   'calisiyo.com.tr', 'www.calisiyo.com.tr', 'calisiyo-theta.vercel.app',
   'planliyo.info', 'www.planliyo.info', 'planliyo.online', 'www.planliyo.online',
 ];
+// React's development build needs eval for stack reconstruction; production does not.
+const SCRIPT_EVAL = process.env.NODE_ENV === 'development' ? " 'unsafe-eval'" : '';
 
 /** @type {import('next').NextConfig} */
 const nextConfig = {
@@ -71,21 +73,28 @@ const nextConfig = {
           },
           {
             key: 'Permissions-Policy',
-            value: 'camera=(), microphone=(self), geolocation=()',
+            value: 'camera=(), microphone=(self), geolocation=(), payment=(), usb=()',
+          },
+          {
+            key: 'Cross-Origin-Opener-Policy',
+            value: 'same-origin-allow-popups',
           },
           {
             key: 'Content-Security-Policy',
             value: [
               "default-src 'self'",
-              "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://accounts.google.com https://*.posthog.com https://*.googletagmanager.com https://*.google-analytics.com https://browser.sentry-cdn.com",
+              `script-src 'self' 'unsafe-inline'${SCRIPT_EVAL} https://accounts.google.com https://*.posthog.com https://*.googletagmanager.com https://*.google-analytics.com https://browser.sentry-cdn.com`,
               "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://accounts.google.com",
               "font-src 'self' data: https://fonts.gstatic.com",
               "img-src 'self' data: blob: https://*.supabase.co https://lh3.googleusercontent.com https://i.ytimg.com https://img.youtube.com https://*.google-analytics.com https://*.googletagmanager.com",
               "connect-src 'self' https://*.supabase.co wss://*.supabase.co https://*.posthog.com https://*.google-analytics.com https://*.analytics.google.com https://*.googletagmanager.com https://*.ingest.de.sentry.io https://accounts.google.com",
               "media-src 'self' blob: https://*.supabase.co",
               "frame-src 'self' https://accounts.google.com",
+              "worker-src 'self' blob:",
               "object-src 'none'",
               "base-uri 'self'",
+              "form-action 'self'",
+              "frame-ancestors 'none'",
             ].join('; '),
           },
         ],

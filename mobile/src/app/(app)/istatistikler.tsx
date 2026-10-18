@@ -13,6 +13,7 @@ import { supabase } from '@/lib/supabase';
 import { useAccount } from '@/providers/AccountProvider';
 import { useTheme } from '@/theme/ThemeProvider';
 import { space } from '@/theme/tokens';
+import { YKS_EXAM_CODES } from '@shared/exams/catalog';
 
 type Range = 'week' | 'month' | 'all';
 type Daily = { date: string; studyMinutes: number; questions?: number };
@@ -47,7 +48,7 @@ export default function StatisticsScreen() {
       const today = todayStr();
       let sessions = supabase.from('calisma_suresi').select('id,tarih,sure_dakika,soru_sayisi,dersler(ad,renk,sinav_turu)').eq('user_id', userId!).lte('tarih', today).order('tarih');
       let tasks = supabase.from('gunluk_gorevler').select('id,tarih,tamamlandi,soru_sayisi').eq('user_id', userId!).lte('tarih', today).order('tarih');
-      let exams = supabase.from('denemeler').select('id,tarih,yayin,deneme_detaylari(net,dogru,yanlis)').eq('user_id', userId!).lte('tarih', today).order('tarih');
+      let exams = supabase.from('denemeler').select('id,tarih,yayin,deneme_detaylari(net,dogru,yanlis)').eq('user_id', userId!).in('sinav_turu', YKS_EXAM_CODES).lte('tarih', today).order('tarih');
       let topics = supabase.from('konu_takibi').select('durum,updated_at').eq('user_id', userId!);
       let questions = supabase.from('yapamadiklari').select('cozuldu,created_at').eq('user_id', userId!);
       if (rangeStart) {

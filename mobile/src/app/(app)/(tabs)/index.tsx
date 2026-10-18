@@ -18,6 +18,7 @@ import { supabase } from '@/lib/supabase';
 import { useAccount } from '@/providers/AccountProvider';
 import { useTheme } from '@/theme/ThemeProvider';
 import { brand, radius, space } from '@/theme/tokens';
+import { YKS_EXAM_CODES } from '@shared/exams/catalog';
 
 const MOTIVATION_QUOTES = [
   'Bugün attığın küçük adımlar, yarınki büyük başarılarının temeli olacak.',
@@ -54,7 +55,7 @@ export default function DashboardScreen() {
           .order('tarih', { ascending: true }).order('baslangic_saat', { ascending: true }).limit(4),
         courseIds.length ? supabase.from('konular').select('id, ders_id').in('ders_id', courseIds) : Promise.resolve({ data: [], error: null }),
         supabase.from('konu_takibi').select('konu_id, durum').eq('user_id', userId!),
-        supabase.from('denemeler').select('*, deneme_detaylari(net)').eq('user_id', userId!).order('tarih', { ascending: true }),
+        supabase.from('denemeler').select('*, deneme_detaylari(net)').eq('user_id', userId!).in('sinav_turu', YKS_EXAM_CODES).order('tarih', { ascending: true }),
         supabase.rpc('get_my_study_time_statistics', { p_start_date: null }),
       ]);
       const failed = [todayResult, upcomingResult, topicsResult, trackingResult, examsResult, timeResult].find((result) => result.error);

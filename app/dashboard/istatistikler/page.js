@@ -15,6 +15,7 @@ import { useUser } from '../layout';
 import { createClient } from '@/lib/supabase/client';
 import { formatDate, formatDuration, parseLocalDate, todayStr, toLocalDateKey } from '@/lib/utils/date';
 import { useRealtimeRefresh } from '@/lib/hooks/useRealtimeRefresh';
+import { YKS_EXAM_CODES } from '@/lib/exams/catalog';
 import PageHeader from '@/components/ui/PageHeader';
 import DataState from '@/components/ui/DataState';
 import PremiumFeaturePrompt from '@/components/billing/PremiumFeaturePrompt';
@@ -71,7 +72,7 @@ export default function IstatistiklerPage() {
     const today = todayStr();
     let sessionQuery = supabase.from('calisma_suresi').select('id,tarih,sure_dakika,soru_sayisi,created_at,dersler(ad,renk,sinav_turu)').eq('user_id', profile.id).lte('tarih', today).order('tarih');
     let taskQuery = supabase.from('gunluk_gorevler').select('id,tarih,baslangic_saat,bitis_saat,tamamlandi,soru_sayisi,dersler(ad,renk,sinav_turu)').eq('user_id', profile.id).lte('tarih', today).order('tarih');
-    let examQuery = supabase.from('denemeler').select('id,tarih,yayin,sinav_turu,sure_dakika,deneme_detaylari(net,dogru,yanlis,bos,dersler(ad))').eq('user_id', profile.id).lte('tarih', today).order('tarih');
+    let examQuery = supabase.from('denemeler').select('id,tarih,yayin,sinav_turu,sure_dakika,deneme_detaylari(net,dogru,yanlis,bos,dersler(ad))').eq('user_id', profile.id).in('sinav_turu', YKS_EXAM_CODES).lte('tarih', today).order('tarih');
     let topicQuery = supabase.from('konu_takibi').select('durum,updated_at,konular(ad,dersler(ad,renk,sinav_turu))').eq('user_id', profile.id);
     let questionQuery = supabase.from('yapamadiklari').select('cozuldu,created_at').eq('user_id', profile.id);
     if (rangeStart) {
@@ -212,7 +213,7 @@ export default function IstatistiklerPage() {
         <section className="stats-primary-grid">
           <article className="study-panel stats-chart-card stats-activity-card">
             <div className="stats-card-heading"><div><span>Çalışma ritmi</span><h2>Süre ve soru gelişimi</h2></div><span className="stats-card-icon"><BarChart3 size={18} /></span></div>
-            <div className="stats-chart"><ResponsiveContainer width="100%" height="100%"><ComposedChart data={stats.timeline} margin={{ top: 10, right: 0, left: -24, bottom: 0 }}><CartesianGrid stroke="#e9eeec" strokeDasharray="3 5" vertical={false}/><XAxis dataKey="date" axisLine={false} tickLine={false} tick={{ fill: '#7d899b', fontSize: 11 }}/><YAxis yAxisId="minutes" axisLine={false} tickLine={false} tick={{ fill: '#7d899b', fontSize: 11 }}/><YAxis yAxisId="questions" orientation="right" hide/><Tooltip content={<ChartTooltip />}/><Bar yAxisId="minutes" dataKey="studyMinutes" name="Çalışma" fill="#00a870" radius={[5,5,0,0]} barSize={13}/><Line yAxisId="questions" type="monotone" dataKey="questions" name="Soru" stroke="#3b82f6" strokeWidth={2} dot={false} activeDot={{ r: 4 }}/></ComposedChart></ResponsiveContainer></div>
+            <div className="stats-chart"><ResponsiveContainer width="100%" height="100%"><ComposedChart data={stats.timeline} margin={{ top: 10, right: 0, left: -24, bottom: 0 }}><CartesianGrid stroke="var(--study-border)" strokeDasharray="3 5" vertical={false}/><XAxis dataKey="date" axisLine={false} tickLine={false} tick={{ fill: 'var(--study-muted)', fontSize: 11 }}/><YAxis yAxisId="minutes" axisLine={false} tickLine={false} tick={{ fill: 'var(--study-muted)', fontSize: 11 }}/><YAxis yAxisId="questions" orientation="right" hide/><Tooltip content={<ChartTooltip />}/><Bar yAxisId="minutes" dataKey="studyMinutes" name="Çalışma" fill="#00a870" radius={[5,5,0,0]} barSize={13}/><Line yAxisId="questions" type="monotone" dataKey="questions" name="Soru" stroke="#3b82f6" strokeWidth={2} dot={false} activeDot={{ r: 4 }}/></ComposedChart></ResponsiveContainer></div>
           </article>
 
           <article className="study-panel stats-goal-card">
@@ -226,12 +227,12 @@ export default function IstatistiklerPage() {
         <section className="stats-secondary-grid">
           <article className="study-panel stats-chart-card">
             <div className="stats-card-heading"><div><span>Ders dağılımı</span><h2>Zamanını nereye ayırdın?</h2></div></div>
-            {stats.courses.length ? <div className="stats-chart is-small"><ResponsiveContainer width="100%" height="100%"><BarChart data={stats.courses} layout="vertical" margin={{ top: 0, right: 16, left: 4, bottom: 0 }}><CartesianGrid stroke="#edf1ef" horizontal={false}/><XAxis type="number" hide/><YAxis dataKey="name" type="category" axisLine={false} tickLine={false} width={88} tick={{ fill: '#53617c', fontSize: 11 }}/><Tooltip content={<ChartTooltip />}/><Bar dataKey="minutes" name="Süre" radius={[0, 7, 7, 0]} barSize={15}>{stats.courses.map((course) => <Cell key={course.name} fill={course.color}/>)}</Bar></BarChart></ResponsiveContainer></div> : <p className="stats-inline-empty">Ders seçilmiş çalışma kaydı yok.</p>}
+            {stats.courses.length ? <div className="stats-chart is-small"><ResponsiveContainer width="100%" height="100%"><BarChart data={stats.courses} layout="vertical" margin={{ top: 0, right: 16, left: 4, bottom: 0 }}><CartesianGrid stroke="var(--study-border)" horizontal={false}/><XAxis type="number" hide/><YAxis dataKey="name" type="category" axisLine={false} tickLine={false} width={88} tick={{ fill: 'var(--study-muted)', fontSize: 11 }}/><Tooltip content={<ChartTooltip />}/><Bar dataKey="minutes" name="Süre" radius={[0, 7, 7, 0]} barSize={15}>{stats.courses.map((course) => <Cell key={course.name} fill={course.color}/>)}</Bar></BarChart></ResponsiveContainer></div> : <p className="stats-inline-empty">Ders seçilmiş çalışma kaydı yok.</p>}
           </article>
 
           <article className="study-panel stats-chart-card">
             <div className="stats-card-heading"><div><span>Deneme performansı</span><h2>Net gelişimi</h2></div><Delta value={stats.netDelta} suffix=" net" /></div>
-            {stats.exams.length ? <div className="stats-chart is-small"><ResponsiveContainer width="100%" height="100%"><LineChart data={stats.exams} margin={{ top: 10, right: 12, left: -24, bottom: 0 }}><CartesianGrid stroke="#edf1ef" strokeDasharray="3 5" vertical={false}/><XAxis dataKey="label" axisLine={false} tickLine={false} tick={{ fill: '#7d899b', fontSize: 11 }}/><YAxis axisLine={false} tickLine={false} tick={{ fill: '#7d899b', fontSize: 11 }}/><Tooltip content={<ChartTooltip />}/><Line type="monotone" dataKey="net" name="Net" stroke="#3b82f6" strokeWidth={3} dot={{ r: 4, fill: '#fff', strokeWidth: 2 }}/></LineChart></ResponsiveContainer></div> : <p className="stats-inline-empty">Bu dönemde deneme kaydı yok.</p>}
+            {stats.exams.length ? <div className="stats-chart is-small"><ResponsiveContainer width="100%" height="100%"><LineChart data={stats.exams} margin={{ top: 10, right: 12, left: -24, bottom: 0 }}><CartesianGrid stroke="var(--study-border)" strokeDasharray="3 5" vertical={false}/><XAxis dataKey="label" axisLine={false} tickLine={false} tick={{ fill: 'var(--study-muted)', fontSize: 11 }}/><YAxis axisLine={false} tickLine={false} tick={{ fill: 'var(--study-muted)', fontSize: 11 }}/><Tooltip content={<ChartTooltip />}/><Line type="monotone" dataKey="net" name="Net" stroke="#3b82f6" strokeWidth={3} dot={{ r: 4, fill: 'var(--study-surface)', strokeWidth: 2 }}/></LineChart></ResponsiveContainer></div> : <p className="stats-inline-empty">Bu dönemde deneme kaydı yok.</p>}
           </article>
 
           <article className="study-panel stats-topics-card">
@@ -250,53 +251,53 @@ export default function IstatistiklerPage() {
 
       <style jsx>{`
         .stats-page { padding-bottom: 20px; }
-        .stats-live { height: 34px; padding: 0 11px; border: 1px solid #b8e2d3; border-radius: 999px; background: #effaf6; color: #07875f; display: inline-flex; align-items: center; gap: 6px; font-size: .7rem; font-weight: 750; }
+        .stats-live { height: 34px; padding: 0 11px; border: 1px solid light-dark(#b8e2d3, #213b33); border-radius: 999px; background: light-dark(#effaf6, #161f1c); color: light-dark(#07875f, #57bf94); display: inline-flex; align-items: center; gap: 6px; font-size: .7rem; font-weight: 750; }
         .stats-head-actions { display: flex; align-items: center; gap: 7px; }
-        .stats-export { height: 34px; padding: 0 10px; border: 1px solid var(--study-border); border-radius: 9px; background: #fff; color: var(--study-green-dark); display: inline-flex; align-items: center; gap: 6px; font: inherit; font-size: .65rem; font-weight: 750; cursor: pointer; }
-        .stats-export:disabled { color: var(--study-muted); background: #f5f7f6; cursor: not-allowed; }
+        .stats-export { height: 34px; padding: 0 10px; border: 1px solid var(--study-border); border-radius: 9px; background: light-dark(#fff, #121b19); color: var(--study-green-dark); display: inline-flex; align-items: center; gap: 6px; font: inherit; font-size: .7rem; font-weight: 750; cursor: pointer; }
+        .stats-export:disabled { color: var(--study-muted); background: light-dark(#f5f7f6, #17201d); cursor: not-allowed; }
         .stats-live svg { animation: live-pulse 1.8s ease-in-out infinite; }
         @keyframes live-pulse { 50% { opacity: .42; } }
         .stats-toolbar { margin: -6px 0 20px; display: flex; align-items: center; justify-content: space-between; gap: 16px; }
         .stats-toolbar > span { color: var(--study-muted); font-size: .7rem; }
         .stats-range { margin: 0; }
         .stats-metrics { margin-bottom: 18px; display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; }
-        .stats-metrics article { min-height: 112px; padding: 18px; border: 1px solid var(--study-border); border-radius: 12px; background: #fff; display: flex; align-items: flex-start; gap: 13px; transition: transform .18s ease, border-color .18s ease, box-shadow .18s ease; }
-        .stats-metrics article:hover { transform: translateY(-2px); border-color: #cad8d2; box-shadow: 0 10px 24px rgba(13,24,48,.05); }
+        .stats-metrics article { min-height: 112px; padding: 18px; border: 1px solid var(--study-border); border-radius: 12px; background: light-dark(#fff, #121b19); display: flex; align-items: flex-start; gap: 13px; transition: transform .18s ease, border-color .18s ease, box-shadow .18s ease; }
+        .stats-metrics article:hover { transform: translateY(-2px); border-color: light-dark(#cad8d2, #2e3935); box-shadow: 0 10px 24px rgba(13,24,48,.05); }
         .metric-icon { width: 38px; height: 38px; flex: 0 0 auto; border-radius: 10px; display: inline-flex; align-items: center; justify-content: center; }
-        .metric-icon.is-green { background: #e8f8f2; color: #07875f; } .metric-icon.is-blue { background: #edf5ff; color: #2774d8; } .metric-icon.is-violet { background: #f3efff; color: #7357d8; } .metric-icon.is-orange { background: #fff5e5; color: #dc8510; } .metric-icon.is-cyan { background: #e9f9f8; color: #0f8f8b; } .metric-icon.is-rose { background: #fff0ed; color: #d35f4c; }
+        .metric-icon.is-green { background: light-dark(#e8f8f2, #19221f); color: light-dark(#07875f, #57bf94); } .metric-icon.is-blue { background: light-dark(#edf5ff, #19211e); color: light-dark(#2774d8, #67a6fe); } .metric-icon.is-violet { background: light-dark(#f3efff, #1a2320); color: light-dark(#7357d8, #a597fe); } .metric-icon.is-orange { background: light-dark(#fff5e5, #17201d); color: light-dark(#dc8510, #c87701); } .metric-icon.is-cyan { background: light-dark(#e9f9f8, #18211e); color: light-dark(#0f8f8b, #48b5b0); } .metric-icon.is-rose { background: light-dark(#fff0ed, #19221f); color: light-dark(#d35f4c, #e8725e); }
         .stats-metrics article > div { min-width: 0; display: grid; gap: 2px; }
-        .stats-metrics small, .stats-card-heading > div > span { color: var(--study-muted); font-size: .65rem; font-weight: 700; letter-spacing: .03em; }
+        .stats-metrics small, .stats-card-heading > div > span { color: var(--study-muted); font-size: .7rem; font-weight: 700; letter-spacing: .03em; }
         .stats-metrics strong { color: var(--study-ink); font-size: 1.45rem; line-height: 1.25; letter-spacing: -.035em; }
-        .stats-metrics article > div > span:not(.metric-delta) { color: var(--study-muted); font-size: .67rem; }
-        .metric-delta { width: fit-content; display: inline-flex; align-items: center; gap: 2px; color: #66738f; font-size: .66rem; font-weight: 700; }
-        .metric-delta.is-positive { color: #07875f; } .metric-delta.is-negative { color: #c24e42; }
+        .stats-metrics article > div > span:not(.metric-delta) { color: var(--study-muted); font-size: .7rem; }
+        .metric-delta { width: fit-content; display: inline-flex; align-items: center; gap: 2px; color: light-dark(#66738f, #9dabac); font-size: .7rem; font-weight: 700; }
+        .metric-delta.is-positive { color: light-dark(#07875f, #57bf94); } .metric-delta.is-negative { color: light-dark(#c24e42, #f47b6c); }
         .stats-primary-grid { margin-bottom: 14px; display: grid; grid-template-columns: minmax(0, 1.65fr) minmax(280px, .85fr); gap: 14px; }
         .stats-secondary-grid { margin-bottom: 14px; display: grid; grid-template-columns: 1fr 1fr .82fr; gap: 14px; }
         .stats-chart-card, .stats-goal-card, .stats-topics-card, .recent-exams { padding: 20px; }
         .stats-card-heading { min-height: 42px; margin-bottom: 18px; display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; }
         .stats-card-heading h2 { margin: 4px 0 0; color: var(--study-ink); font-size: .96rem; letter-spacing: -.015em; }
-        .stats-card-icon { width: 34px; height: 34px; border-radius: 9px; background: #f2f7f5; color: var(--study-green-dark); display: inline-flex; align-items: center; justify-content: center; }
+        .stats-card-icon { width: 34px; height: 34px; border-radius: 9px; background: light-dark(#f2f7f5, #17201d); color: var(--study-green-dark); display: inline-flex; align-items: center; justify-content: center; }
         .stats-chart { height: 290px; } .stats-chart.is-small { height: 230px; }
         .goal-meter { margin: 0 0 22px; display: grid; gap: 7px; }
         .goal-meter > div:first-child { display: flex; justify-content: space-between; gap: 12px; font-size: .71rem; }
         .goal-meter > div span { color: var(--study-muted); } .goal-meter > div strong { color: var(--study-ink); }
-        .goal-meter-track { height: 7px; overflow: hidden; border-radius: 999px; background: #edf2f0; }
+        .goal-meter-track { height: 7px; overflow: hidden; border-radius: 999px; background: light-dark(#edf2f0, #1b2421); }
         .goal-meter-track i { height: 100%; display: block; border-radius: inherit; background: linear-gradient(90deg, #00a870, #26c98f); transition: width .45s ease; }
-        .goal-meter small { color: var(--study-muted); font-size: .64rem; }
-        .stats-insight { margin-top: 6px; padding: 13px; border-radius: 10px; background: #f2faf7; color: var(--study-green-dark); display: flex; align-items: flex-start; gap: 9px; }
-        .stats-insight p { margin: 0; color: #526a62; font-size: .68rem; line-height: 1.5; } .stats-insight strong { color: #205b47; }
+        .goal-meter small { color: var(--study-muted); font-size: .7rem; }
+        .stats-insight { margin-top: 6px; padding: 13px; border-radius: 10px; background: light-dark(#f2faf7, #161f1c); color: var(--study-green-dark); display: flex; align-items: flex-start; gap: 9px; }
+        .stats-insight p { margin: 0; color: light-dark(#526a62, #a7b5b7); font-size: .7rem; line-height: 1.5; } .stats-insight strong { color: light-dark(#205b47, #95d0b8); }
         .stats-inline-empty { min-height: 220px; margin: 0; color: var(--study-muted); display: grid; place-items: center; font-size: .72rem; }
-        .topic-row { min-height: 62px; border-bottom: 1px solid #eef2f1; display: grid; grid-template-columns: auto 1fr auto; align-items: center; gap: 10px; }
+        .topic-row { min-height: 62px; border-bottom: 1px solid light-dark(#eef2f1, #222d29); display: grid; grid-template-columns: auto 1fr auto; align-items: center; gap: 10px; }
         .topic-row:last-child { border-bottom: 0; } .topic-row > span { width: 9px; height: 9px; border-radius: 50%; }
-        .topic-row > div { display: grid; gap: 2px; } .topic-row strong { font-size: .72rem; } .topic-row small { color: var(--study-muted); font-size: .62rem; }
-        .topic-row em { color: var(--study-muted); font-size: .68rem; font-style: normal; font-weight: 750; }
+        .topic-row > div { display: grid; gap: 2px; } .topic-row strong { font-size: .72rem; } .topic-row small { color: var(--study-muted); font-size: .7rem; }
+        .topic-row em { color: var(--study-muted); font-size: .7rem; font-style: normal; font-weight: 750; }
         .recent-exam-list { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; }
-        .recent-exam-list > div { min-width: 0; padding: 13px; border: 1px solid #e7ecea; border-radius: 10px; display: grid; grid-template-columns: auto 1fr; gap: 8px 10px; align-items: center; }
-        .exam-type { padding: 4px 6px; border-radius: 6px; background: var(--study-green-soft); color: var(--study-green-dark); font-size: .58rem; font-weight: 800; }
-        .recent-exam-list > div > div { min-width: 0; display: grid; gap: 2px; } .recent-exam-list strong { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: .7rem; } .recent-exam-list small { color: var(--study-muted); font-size: .6rem; }
+        .recent-exam-list > div { min-width: 0; padding: 13px; border: 1px solid light-dark(#e7ecea, #252f2c); border-radius: 10px; display: grid; grid-template-columns: auto 1fr; gap: 8px 10px; align-items: center; }
+        .exam-type { padding: 4px 6px; border-radius: 6px; background: var(--study-green-soft); color: var(--study-green-dark); font-size: .7rem; font-weight: 800; }
+        .recent-exam-list > div > div { min-width: 0; display: grid; gap: 2px; } .recent-exam-list strong { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: .7rem; } .recent-exam-list small { color: var(--study-muted); font-size: .7rem; }
         .recent-exam-list em { grid-column: 1 / -1; color: var(--study-ink); font-size: 1rem; font-style: normal; font-weight: 800; }
-        :global(.stats-tooltip) { min-width: 110px; padding: 10px 11px; border: 1px solid #dfe6e3; border-radius: 9px; background: rgba(255,255,255,.97); box-shadow: 0 12px 28px rgba(13,24,48,.12); display: grid; gap: 4px; }
-        :global(.stats-tooltip strong) { color: #0d1830; font-size: .68rem; } :global(.stats-tooltip span) { font-size: .64rem; font-weight: 650; }
+        :global(.stats-tooltip) { min-width: 110px; padding: 10px 11px; border: 1px solid light-dark(#dfe6e3, #27322e); border-radius: 9px; background: light-dark(rgba(255,255,255,.97), rgba(18, 27, 25, 0.97)); box-shadow: 0 12px 28px rgba(13,24,48,.12); display: grid; gap: 4px; }
+        :global(.stats-tooltip strong) { color: light-dark(#0d1830, #e6eeea); font-size: .7rem; } :global(.stats-tooltip span) { font-size: .7rem; font-weight: 650; }
         @media (max-width: 1050px) { .stats-secondary-grid { grid-template-columns: 1fr 1fr; } .stats-topics-card { grid-column: 1 / -1; } .recent-exam-list { grid-template-columns: repeat(2, 1fr); } }
         @media (max-width: 760px) { .stats-toolbar { align-items: flex-start; flex-direction: column; } .stats-metrics { grid-template-columns: 1fr 1fr; } .stats-primary-grid, .stats-secondary-grid { grid-template-columns: 1fr; } .stats-topics-card { grid-column: auto; } .stats-chart { height: 245px; } }
         @media (max-width: 480px) { .stats-metrics, .recent-exam-list { grid-template-columns: 1fr; } .stats-metrics article { min-height: 98px; } }

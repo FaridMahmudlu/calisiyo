@@ -419,7 +419,7 @@ export default function KonuTakibiPage() {
           align-items: center;
           justify-content: space-between;
           padding: 14px 16px;
-          background: white;
+          background: light-dark(white, #121b19);
           border: 1px solid var(--border-light);
           border-radius: var(--radius-md);
           margin-bottom: 8px;

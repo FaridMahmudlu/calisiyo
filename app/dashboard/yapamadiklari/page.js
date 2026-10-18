@@ -499,25 +499,25 @@ export default function YapamadiklariPage() {
         .wrong-head-actions { display: flex; gap: 8px; }
         .question-thumb-button { position: relative; width: 58px; height: 46px; padding: 0; overflow: visible; border: 0; border-radius: 8px; background: transparent; cursor: zoom-in; }
         .question-thumb-button :global(img) { width: 58px; height: 46px; border-radius: 8px; object-fit: cover; }
-        .question-thumb-button span { position: absolute; right: -7px; bottom: -7px; min-width: 25px; height: 20px; padding: 0 5px; border: 2px solid #fff; border-radius: 999px; background: var(--study-green); color: #fff; display: inline-flex; align-items: center; justify-content: center; gap: 2px; font-size: .58rem; font-weight: 800; }
+        .question-thumb-button span { position: absolute; right: -7px; bottom: -7px; min-width: 25px; height: 20px; padding: 0 5px; border: 2px solid light-dark(#fff, #121b19); border-radius: 999px; background: var(--study-green); color: #fff; display: inline-flex; align-items: center; justify-content: center; gap: 2px; font-size: .7rem; font-weight: 800; }
         .existing-question-images { display: flex; flex-wrap: wrap; gap: 8px; }
         .existing-question-images > div { position: relative; }
         .existing-question-images :global(img) { width: 92px; height: 72px; border: 1px solid var(--study-border); border-radius: 9px; object-fit: cover; }
-        .existing-question-images button { position: absolute; top: -6px; right: -6px; width: 24px; height: 24px; border: 2px solid #fff; border-radius: 50%; background: #d64c3f; color: #fff; display: grid; place-items: center; cursor: pointer; }
+        .existing-question-images button { position: absolute; top: -6px; right: -6px; width: 24px; height: 24px; border: 2px solid light-dark(#fff, #121b19); border-radius: 50%; background: #d64c3f; color: #fff; display: grid; place-items: center; cursor: pointer; }
         .selected-file-list { display: flex; flex-wrap: wrap; gap: 6px; }
-        .selected-file-list span { max-width: 220px; padding: 6px 8px; border-radius: 7px; background: #f1f7f4; color: var(--study-green-dark); display: inline-flex; align-items: center; gap: 5px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: .65rem; }
-        .bulk-question-help { margin: -4px 0 0; color: var(--study-muted); font-size: .68rem; line-height: 1.5; }
+        .selected-file-list span { max-width: 220px; padding: 6px 8px; border-radius: 7px; background: light-dark(#f1f7f4, #18201d); color: var(--study-green-dark); display: inline-flex; align-items: center; gap: 5px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: .7rem; }
+        .bulk-question-help { margin: -4px 0 0; color: var(--study-muted); font-size: .7rem; line-height: 1.5; }
         .bulk-image-grid { max-height: 360px; overflow-y: auto; display: grid; grid-template-columns: repeat(auto-fill, minmax(130px, 1fr)); gap: 10px; }
-        .bulk-image-preview { position: relative; aspect-ratio: 4 / 3; overflow: hidden; border: 1px solid var(--study-border); border-radius: 10px; background: #f4f7f6; }
+        .bulk-image-preview { position: relative; aspect-ratio: 4 / 3; overflow: hidden; border: 1px solid var(--study-border); border-radius: 10px; background: light-dark(#f4f7f6, #17201d); }
         .bulk-image-preview :global(img) { width: 100%; height: 100%; object-fit: cover; }
-        .bulk-image-preview > span { position: absolute; left: 7px; bottom: 7px; min-width: 24px; height: 24px; padding: 0 6px; border-radius: 999px; background: rgba(9, 24, 20, .78); color: #fff; display: grid; place-items: center; font-size: .62rem; font-weight: 800; }
+        .bulk-image-preview > span { position: absolute; left: 7px; bottom: 7px; min-width: 24px; height: 24px; padding: 0 6px; border-radius: 999px; background: rgba(9, 24, 20, .78); color: #fff; display: grid; place-items: center; font-size: .7rem; font-weight: 800; }
         .bulk-image-preview > button { position: absolute; top: 7px; right: 7px; width: 28px; height: 28px; border: 0; border-radius: 50%; background: rgba(168, 43, 35, .9); color: #fff; display: grid; place-items: center; cursor: pointer; }
-        .bulk-image-empty { min-height: 130px; padding: 18px; border: 1px dashed #b9c9c3; border-radius: 11px; background: #f8fbfa; color: var(--study-muted); display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 8px; text-align: center; font-size: .7rem; }
+        .bulk-image-empty { min-height: 130px; padding: 18px; border: 1px dashed light-dark(#b9c9c3, #35403c); border-radius: 11px; background: light-dark(#f8fbfa, #141d1a); color: var(--study-muted); display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 8px; text-align: center; font-size: .7rem; }
         .question-viewer { position: relative; min-height: 320px; max-height: 72vh; overflow: auto; border-radius: 12px; background: #111a18; display: grid; place-items: center; }
         .question-viewer :global(img) { width: auto; max-width: 100%; height: auto; max-height: none; object-fit: contain; }
         .viewer-nav { position: sticky; top: 50%; width: 42px; height: 42px; border: 1px solid rgba(255,255,255,.25); border-radius: 50%; background: rgba(9,18,16,.76); color: #fff; display: grid; place-items: center; cursor: pointer; }
         .viewer-nav.is-prev { justify-self: start; margin: 0 0 0 12px; } .viewer-nav.is-next { justify-self: end; margin: -42px 12px 0 0; }
-        .viewer-count { position: sticky; bottom: 12px; justify-self: center; padding: 5px 9px; border-radius: 999px; background: rgba(9,18,16,.78); color: #fff; font-size: .66rem; font-weight: 750; }
+        .viewer-count { position: sticky; bottom: 12px; justify-self: center; padding: 5px 9px; border-radius: 999px; background: rgba(9,18,16,.78); color: #fff; font-size: .7rem; font-weight: 750; }
         @media (max-width: 620px) { .wrong-head-actions { width: 100%; display: grid; grid-template-columns: 1fr 1fr; } .question-viewer { min-height: 240px; } }
       `}</style>
     </div>

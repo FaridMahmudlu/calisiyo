@@ -8,6 +8,7 @@ import { createClient } from '@/lib/supabase/client';
 import BlockedUsersSection from '@/components/moderation/BlockedUsersSection';
 import { PASSWORD_MIN_LENGTH, passwordValidationMessage } from '@/lib/utils/password';
 import { ALANLAR, getExamTabs } from '@/lib/constants/alanlar';
+import { THEME_STORAGE_KEY, applyThemePreference, saveThemePreference } from '@/lib/theme';
 import PageHeader from '@/components/ui/PageHeader';
 import Modal from '@/components/ui/Modal';
 
@@ -110,7 +111,7 @@ export default function AyarlarPage() {
     if (!profile) return;
     setForm({ full_name: profile.full_name || '', alan_secimi: profile.alan_secimi || 'sayisal', yks_year: Number(profile.yks_year || 2027) });
     const metadata = profile.study_preferences || user?.user_metadata?.study_preferences || {};
-    const storedTheme = typeof window !== 'undefined' ? localStorage.getItem('calisiyo-theme') : null;
+    const storedTheme = typeof window !== 'undefined' ? localStorage.getItem(THEME_STORAGE_KEY) : null;
     setPreferences({
       theme: storedTheme || metadata.theme || 'light',
       notifications: profile.notifications_enabled ?? metadata.notifications ?? true,
@@ -126,9 +127,7 @@ export default function AyarlarPage() {
   }, [hydrate]);
 
   useEffect(() => {
-    const theme = preferences.theme;
-    const resolved = theme === 'system' && window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : theme;
-    document.documentElement.dataset.theme = resolved === 'dark' ? 'dark' : 'light';
+    applyThemePreference(preferences.theme);
   }, [preferences.theme]);
 
   useEffect(() => {
@@ -140,7 +139,7 @@ export default function AyarlarPage() {
 
   const applyTheme = (theme) => {
     setPreferences((current) => ({ ...current, theme }));
-    localStorage.setItem('calisiyo-theme', theme);
+    saveThemePreference(theme);
   };
 
   const requestBrowserPermission = async () => {

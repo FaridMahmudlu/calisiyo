@@ -13,6 +13,7 @@ import {
 import Link from 'next/link';
 import { ResponsiveContainer, AreaChart, Area, XAxis, YAxis, Tooltip } from 'recharts';
 import JourneyLoader from '@/components/ui/JourneyLoader';
+import { YKS_EXAM_CODES } from '@/lib/exams/catalog';
 import { createStudyImageUrls } from '@/lib/supabase/storage';
 
 const MOTIVATION_QUOTES = [
@@ -137,6 +138,7 @@ export default function DashboardPage() {
       .from('denemeler')
       .select('*, deneme_detaylari(net)')
       .eq('user_id', profile.id)
+      .in('sinav_turu', YKS_EXAM_CODES)
       .order('tarih', { ascending: true });
     if (examError) setError('Deneme özetin yüklenemedi. Lütfen tekrar dene.');
 
@@ -600,7 +602,7 @@ export default function DashboardPage() {
             {/* Streak Description */}
             <div className="streak-info-box">
               <p className="streak-p1">
-                {accountStats?.streakQualified ? <><strong style={{ color: '#0f172a' }}>Bugünkü seri hedefin tamamlandı! 🔥</strong></> : <>Bugün <strong style={{ color: '#0f172a' }}>{Math.max(0, 30 - Number(accountStats?.todayMinutes || 0))} dakika daha odaklan</strong></>}
+                {accountStats?.streakQualified ? <><strong style={{ color: 'var(--study-ink)' }}>Bugünkü seri hedefin tamamlandı! 🔥</strong></> : <>Bugün <strong style={{ color: 'var(--study-ink)' }}>{Math.max(0, 30 - Number(accountStats?.todayMinutes || 0))} dakika daha odaklan</strong></>}
               </p>
               <p className="streak-p2">
                 {Number(accountStats?.todayMinutes || 0)} / 30 dakika · Seri yalnızca gerçek çalışma kayıtlarından hesaplanır.
@@ -703,7 +705,7 @@ export default function DashboardPage() {
                   </defs>
                   <XAxis dataKey="date" stroke="#94a3b8" fontSize={12} tickLine={false} />
                   <YAxis stroke="#94a3b8" fontSize={12} tickLine={false} domain={[0, 'auto']} />
-                  <Tooltip contentStyle={{ background: '#ffffff', borderRadius: '12px', borderColor: '#e2e8f0', boxShadow: '0 4px 12px rgba(0,0,0,0.05)' }} />
+                  <Tooltip contentStyle={{ background: 'var(--study-surface)', color: 'var(--study-ink)', borderRadius: '12px', borderColor: 'var(--study-border)', boxShadow: '0 4px 12px rgba(0,0,0,0.05)' }} />
                   <Area type="monotone" dataKey="net" stroke="#10b981" strokeWidth={3} fillOpacity={1} fill="url(#netGradient)" dot={{ r: 4, fill: '#10b981' }} />
                 </AreaChart>
               </ResponsiveContainer>
@@ -798,7 +800,7 @@ export default function DashboardPage() {
         .greeting-title {
           font-size: 1.5rem;
           font-weight: 750;
-          color: #0f172a;
+          color: light-dark(#0f172a, #e7efeb);
           letter-spacing: -0.025em;
           line-height: 1.25;
           margin: 0;
@@ -806,7 +808,7 @@ export default function DashboardPage() {
 
         .greeting-sub {
           font-size: 0.875rem;
-          color: #64748b;
+          color: light-dark(#64748b, #9dabac);
           font-weight: 450;
           margin: 0;
           line-height: 1.4;
@@ -817,8 +819,8 @@ export default function DashboardPage() {
           align-items: center;
           gap: 12px;
           padding: 8px 16px 8px 10px;
-          background: #ffffff;
-          border: 1px solid #e2e8f0;
+          background: light-dark(#ffffff, #121b19);
+          border: 1px solid light-dark(#e2e8f0, #26312d);
           border-radius: 999px;
           text-decoration: none;
           box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04), 0 1px 2px rgba(0, 0, 0, 0.02);
@@ -848,18 +850,18 @@ export default function DashboardPage() {
           width: 32px;
           height: 32px;
           border-radius: 50%;
-          background: #ecfdf5;
-          color: #059669;
+          background: light-dark(#ecfdf5, #161e1b);
+          color: light-dark(#059669, #41b889);
           display: grid;
           place-items: center;
           flex-shrink: 0;
-          border: 1px solid #a7f3d0;
+          border: 1px solid light-dark(#a7f3d0, #053b29);
           transition: transform 0.2s ease;
         }
 
         .minimal-goal-pill:hover .goal-pill-badge {
           transform: scale(1.08);
-          background: #d1fae5;
+          background: light-dark(#d1fae5, #0c2a1d);
         }
 
         .has-image .goal-pill-badge {
@@ -877,11 +879,11 @@ export default function DashboardPage() {
         }
 
         .goal-pill-label {
-          font-size: 0.625rem;
+          font-size: .7rem;
           font-weight: 800;
           letter-spacing: 0.07em;
           text-transform: uppercase;
-          color: #059669;
+          color: light-dark(#059669, #41b889);
           line-height: 1;
         }
 
@@ -902,17 +904,17 @@ export default function DashboardPage() {
 
         .goal-pill-uni {
           font-weight: 750;
-          color: #0f172a;
+          color: light-dark(#0f172a, #e7efeb);
         }
 
         .goal-pill-dot {
-          color: #94a3b8;
+          color: light-dark(#94a3b8, #818f91);
           font-weight: 400;
         }
 
         .goal-pill-prog {
           font-weight: 500;
-          color: #475569;
+          color: light-dark(#475569, #b2c0c2);
         }
 
         .has-image .goal-pill-uni {
@@ -928,14 +930,14 @@ export default function DashboardPage() {
         }
 
         .goal-pill-arrow {
-          color: #94a3b8;
+          color: light-dark(#94a3b8, #818f91);
           flex-shrink: 0;
           margin-left: 2px;
           transition: transform 0.2s ease, color 0.2s ease;
         }
 
         .minimal-goal-pill:hover .goal-pill-arrow {
-          color: #059669;
+          color: light-dark(#059669, #41b889);
           transform: translateX(3px);
         }
 
@@ -978,7 +980,7 @@ export default function DashboardPage() {
         .stat-mini-title {
           font-size: 0.8125rem;
           font-weight: 600;
-          color: #64748b;
+          color: light-dark(#64748b, #9dabac);
         }
 
         .badge-icon {
@@ -990,36 +992,36 @@ export default function DashboardPage() {
           justify-content: center;
         }
 
-        .badge-icon-green { background: #e6f9f0; }
-        .badge-icon-pink { background: #ffe4e6; }
-        .badge-icon-blue { background: #dbeafe; }
-        .badge-icon-purple { background: #f3e8ff; }
-        .badge-icon-amber { background: #fef3c7; }
-        .badge-icon-gray { background: #f1f5f9; }
+        .badge-icon-green { background: light-dark(#e6f9f0, #19221f); }
+        .badge-icon-pink { background: light-dark(#ffe4e6, #312122); }
+        .badge-icon-blue { background: light-dark(#dbeafe, #1f2935); }
+        .badge-icon-purple { background: light-dark(#f3e8ff, #28212f); }
+        .badge-icon-amber { background: light-dark(#fef3c7, #272004); }
+        .badge-icon-gray { background: light-dark(#f1f5f9, #18211e); }
 
         .stat-mini-num {
           font-size: 1.625rem;
           font-weight: 800;
-          color: #0f172a;
+          color: light-dark(#0f172a, #e7efeb);
           line-height: 1.1;
         }
 
         .stat-mini-denom {
           font-size: 1.125rem;
-          color: #94a3b8;
+          color: light-dark(#94a3b8, #818f91);
           font-weight: 600;
         }
 
         .stat-mini-sub {
           font-size: 0.75rem;
-          color: #94a3b8;
+          color: light-dark(#94a3b8, #818f91);
           margin-top: 4px;
           font-weight: 500;
         }
 
         .stat-diff-positive {
           font-size: 0.75rem;
-          color: #10b981;
+          color: light-dark(#10b981, #10a674);
           font-weight: 700;
           margin-top: 4px;
         }
@@ -1035,7 +1037,7 @@ export default function DashboardPage() {
         .card-title {
           font-size: 1.125rem;
           font-weight: 700;
-          color: #0f172a;
+          color: light-dark(#0f172a, #e7efeb);
         }
 
         .header-with-icon {
@@ -1053,7 +1055,7 @@ export default function DashboardPage() {
         .month-name {
           font-size: 0.8125rem;
           font-weight: 600;
-          color: #475569;
+          color: light-dark(#475569, #b2c0c2);
           text-transform: capitalize;
         }
 
@@ -1110,7 +1112,7 @@ export default function DashboardPage() {
         .subject-name {
           font-size: 0.875rem;
           font-weight: 600;
-          color: #0f172a;
+          color: light-dark(#0f172a, #e7efeb);
           width: 100px;
           white-space: nowrap;
           overflow: hidden;
@@ -1120,14 +1122,14 @@ export default function DashboardPage() {
         .subject-count {
           font-size: 0.8125rem;
           font-weight: 600;
-          color: #64748b;
+          color: light-dark(#64748b, #9dabac);
           white-space: nowrap;
         }
 
         .subject-pct {
           font-size: 0.8125rem;
           font-weight: 700;
-          color: #475569;
+          color: light-dark(#475569, #b2c0c2);
         }
 
         /* Heatmap Grid */
@@ -1136,7 +1138,7 @@ export default function DashboardPage() {
           grid-template-columns: repeat(7, 1fr);
           text-align: center;
           font-size: 0.75rem;
-          color: #94a3b8;
+          color: light-dark(#94a3b8, #818f91);
           font-weight: 600;
           margin-bottom: 12px;
         }
@@ -1166,8 +1168,8 @@ export default function DashboardPage() {
           transform: scale(1.25);
         }
 
-        .heatmap-level-0 { background: #f1f5f9; }
-        .heatmap-level-1 { background: #d1fae5; }
+        .heatmap-level-0 { background: light-dark(#f1f5f9, #18211e); }
+        .heatmap-level-1 { background: light-dark(#d1fae5, #0c2a1d); }
         .heatmap-level-2 { background: #6ee7b7; }
         .heatmap-level-3 { background: #10b981; }
         .heatmap-level-4 { background: #047857; }
@@ -1178,7 +1180,7 @@ export default function DashboardPage() {
           justify-content: flex-end;
           gap: 6px;
           font-size: 0.75rem;
-          color: #94a3b8;
+          color: light-dark(#94a3b8, #818f91);
           margin-top: 16px;
         }
 
@@ -1235,12 +1237,12 @@ export default function DashboardPage() {
         .ring-num {
           font-size: 1.75rem;
           font-weight: 800;
-          color: #0f172a;
+          color: light-dark(#0f172a, #e7efeb);
         }
 
         .ring-label {
-          font-size: 0.6875rem;
-          color: #64748b;
+          font-size: .7rem;
+          color: light-dark(#64748b, #9dabac);
           font-weight: 600;
           margin-top: 4px;
         }
@@ -1252,20 +1254,20 @@ export default function DashboardPage() {
 
         .streak-p1 {
           font-size: 0.9375rem;
-          color: #475569;
+          color: light-dark(#475569, #b2c0c2);
           margin-bottom: 4px;
         }
 
         .streak-p2 {
           font-size: 0.8125rem;
-          color: #94a3b8;
+          color: light-dark(#94a3b8, #818f91);
         }
 
         /* Upcoming tasks */
         .link-green {
           font-size: 0.8125rem;
           font-weight: 700;
-          color: #10b981;
+          color: light-dark(#10b981, #10a674);
           text-decoration: none;
         }
 
@@ -1284,7 +1286,7 @@ export default function DashboardPage() {
           align-items: center;
           gap: 12px;
           padding: 12px 14px;
-          background: #f8fafc;
+          background: light-dark(#f8fafc, #141d1a);
           border-radius: var(--radius-md);
           border: 1px solid var(--border-light);
           transition: all var(--transition-fast);
@@ -1292,7 +1294,7 @@ export default function DashboardPage() {
 
         .upcoming-task-item:hover {
           border-color: var(--primary-300);
-          background: #ffffff;
+          background: light-dark(#ffffff, #121b19);
         }
 
         .task-check-icon-btn {
@@ -1326,7 +1328,7 @@ export default function DashboardPage() {
         .upcoming-task-konu {
           font-size: 0.875rem;
           font-weight: 600;
-          color: #0f172a;
+          color: light-dark(#0f172a, #e7efeb);
           white-space: nowrap;
           overflow: hidden;
           text-overflow: ellipsis;
@@ -1342,20 +1344,20 @@ export default function DashboardPage() {
 
         .time-day {
           font-size: 0.75rem;
-          color: #94a3b8;
+          color: light-dark(#94a3b8, #818f91);
           font-weight: 500;
         }
 
         .time-hour {
           font-size: 0.8125rem;
           font-weight: 700;
-          color: #475569;
+          color: light-dark(#475569, #b2c0c2);
         }
 
         /* Quote Banner */
         .quote-banner-card {
-          background: #f0fdf4;
-          border: 1px solid #dcfce7;
+          background: light-dark(#f0fdf4, #151e1b);
+          border: 1px solid light-dark(#dcfce7, #1c2e23);
           border-radius: var(--radius-xl);
           padding: 20px 28px;
           display: flex;
@@ -1373,7 +1375,7 @@ export default function DashboardPage() {
           width: 40px;
           height: 40px;
           border-radius: 50%;
-          background: #ffffff;
+          background: light-dark(#ffffff, #121b19);
           display: flex;
           align-items: center;
           justify-content: center;
@@ -1384,7 +1386,7 @@ export default function DashboardPage() {
         .quote-text {
           font-size: 0.9375rem;
           font-weight: 600;
-          color: #0f172a;
+          color: light-dark(#0f172a, #e7efeb);
         }
 
         .quote-illustration {

@@ -40,6 +40,7 @@ Run lint and typecheck before declaring any task done.
 - If `prebuild --clean` fails with `EBUSY`, stop the Gradle/Kotlin daemons from the previous build first (`jps -l`, then end only those PIDs).
 - New dependencies must be published at least 7 days ago. `@expo/ui`, `expo-widgets` and `expo-asset` are pinned through `overrides` and `expo.install.exclude`. Check `npm ls <pkg>` for duplicate native modules after installing.
 - No in-app Plus purchases (store policy). The package screen shows status only.
+- Deneme Analizi (`src/app/(app)/deneme-analizi.tsx`, `src/features/exams/ExamEntrySheet.tsx`) reads the `exam_types` catalog and uses `@shared/exams/catalog` for nets and analysis; `MultiLineChart` in `src/components/charts` draws the combined success-rate view. Home and İstatistikler filter exams with `YKS_EXAM_CODES`.
 
 ## Navigation & Routing
 

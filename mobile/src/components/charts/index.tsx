@@ -60,7 +60,7 @@ export function AreaChart({ data, height = 200, color, suffix = '', formatValue 
             <Circle cx={x(index)} cy={y(point.value)} r={index === shown ? 6 : 3.5} fill={index === shown ? colors.surface : stroke} stroke={stroke} strokeWidth={index === shown ? 3 : 0} />
             <Rect x={x(index) - innerW / Math.max(1, data.length) / 2} y={pad.top} width={innerW / Math.max(1, data.length)} height={innerH} fill="transparent" onPress={() => setActive(index)} />
             {index % labelEvery === 0 || index === data.length - 1 ? (
-              <SvgText x={x(index)} y={height - 6} fontSize={10} fill={colors.textSubtle} textAnchor="middle" fontFamily={fonts.medium}>{point.label}</SvgText>
+              <SvgText x={x(index)} y={height - 6} fontSize={10} fill={colors.textSubtle} textAnchor={data.length > 1 && index === 0 ? 'start' : data.length > 1 && index === data.length - 1 ? 'end' : 'middle'} fontFamily={fonts.medium}>{point.label}</SvgText>
             ) : null}
           </G>
         ))}
@@ -199,6 +199,66 @@ export function HorizontalBars({ items, max, suffix = '' }: { items: { label: st
           </View>
         </View>
       ))}
+    </View>
+  );
+}
+
+export type MultiSeries = { key: string; label: string; color: string };
+export type MultiRow = { label: string; values: Record<string, number | undefined>; caption?: string };
+
+// One line per series over a shared 0–max axis (used for the combined exam view,
+// where different exams are compared by success rate). Tap a column for details.
+export function MultiLineChart({ rows, series, height = 220, max = 100, formatValue = (value: number) => `%${Math.round(value)}` }: {
+  rows: MultiRow[]; series: MultiSeries[]; height?: number; max?: number; formatValue?: (value: number) => string;
+}) {
+  const { colors } = useTheme();
+  const { width, onLayout } = useWidth();
+  const [active, setActive] = useState<number | null>(null);
+  const pad = { top: 26, right: 12, bottom: 24, left: 36 };
+  const innerW = width - pad.left - pad.right;
+  const innerH = height - pad.top - pad.bottom;
+  const x = (index: number) => pad.left + (rows.length <= 1 ? innerW / 2 : (index / (rows.length - 1)) * innerW);
+  const y = (value: number) => pad.top + innerH - (Math.max(0, Math.min(max, value)) / max) * innerH;
+  const labelEvery = Math.max(1, Math.ceil(rows.length / 5));
+  const shown = active ?? rows.length - 1;
+  const shownRow = rows[shown];
+  const shownSeries = shownRow ? series.find((item) => shownRow.values[item.key] !== undefined) : undefined;
+
+  return (
+    <View onLayout={onLayout} style={{ height }}>
+      <Svg width={width} height={height}>
+        {[0, 0.5, 1].map((ratio) => (
+          <G key={ratio}>
+            <Line x1={pad.left} x2={width - pad.right} y1={pad.top + innerH * ratio} y2={pad.top + innerH * ratio} stroke={colors.border} strokeDasharray="4 6" />
+            <SvgText x={pad.left - 8} y={pad.top + innerH * ratio + 4} fontSize={10} fill={colors.textSubtle} textAnchor="end" fontFamily={fonts.medium}>{formatValue(max * (1 - ratio))}</SvgText>
+          </G>
+        ))}
+        {series.map((item) => {
+          const points = rows.map((row, index) => ({ index, value: row.values[item.key] })).filter((point): point is { index: number; value: number } => point.value !== undefined);
+          const path = points.map((point, order) => `${order ? 'L' : 'M'}${x(point.index)},${y(point.value)}`).join(' ');
+          return (
+            <G key={item.key}>
+              {points.length > 1 ? <Path d={path} stroke={item.color} strokeWidth={2.5} fill="none" strokeLinejoin="round" strokeLinecap="round" /> : null}
+              {points.map((point) => (
+                <Circle key={point.index} cx={x(point.index)} cy={y(point.value)} r={point.index === shown ? 5.5 : 3.5} fill={point.index === shown ? colors.surface : item.color} stroke={item.color} strokeWidth={point.index === shown ? 2.5 : 0} />
+              ))}
+            </G>
+          );
+        })}
+        {rows.map((row, index) => (
+          <G key={`${row.label}-${index}`}>
+            <Rect x={x(index) - innerW / Math.max(1, rows.length) / 2} y={pad.top} width={innerW / Math.max(1, rows.length)} height={innerH} fill="transparent" onPress={() => setActive(index)} />
+            {index % labelEvery === 0 || index === rows.length - 1 ? (
+              <SvgText x={x(index)} y={height - 6} fontSize={10} fill={colors.textSubtle} textAnchor={index === 0 ? 'start' : index === rows.length - 1 ? 'end' : 'middle'} fontFamily={fonts.medium}>{row.label}</SvgText>
+            ) : null}
+          </G>
+        ))}
+        {shownRow && shownSeries ? (
+          <SvgText x={Math.min(Math.max(x(shown), pad.left + 40), width - pad.right - 40)} y={14} fontSize={12} fill={colors.text} textAnchor="middle" fontFamily={fonts.bold}>
+            {`${shownSeries.label} · ${formatValue(shownRow.values[shownSeries.key] || 0)}${shownRow.caption ? ` · ${shownRow.caption}` : ''}`}
+          </SvgText>
+        ) : null}
+      </Svg>
     </View>
   );
 }

@@ -223,14 +223,14 @@
 .profile-fields { margin: 4px 0; }
 .recovery-card { width: min(100%, 470px); }
 .auth-back-link { margin-top: 22px; color: #526078; display: inline-flex; align-items: center; gap: 6px; font-size: .72rem; font-weight: 700; text-decoration: none; }
-.cookie-consent { position: fixed; z-index: 2000; right: 20px; bottom: 20px; width: min(650px, calc(100% - 40px)); padding: 16px; border: 1px solid #cadcd5; border-radius: 16px; background: rgba(255,255,255,.97); box-shadow: 0 20px 70px rgba(16,37,31,.18); backdrop-filter: blur(18px); display: grid; grid-template-columns: auto 1fr auto; align-items: center; gap: 13px; }
-.cookie-consent-icon { width: 42px; height: 42px; border-radius: 12px; background: #e7f7f0; color: #07875f; display: grid; place-items: center; }
+.cookie-consent { position: fixed; z-index: 2000; right: 20px; bottom: 20px; width: min(650px, calc(100% - 40px)); padding: 16px; border: 1px solid light-dark(#cadcd5, #2a3a35); border-radius: 16px; background: light-dark(rgba(255,255,255,.97), rgba(18,27,25,.97)); color: light-dark(#10251f, #eef5f2); box-shadow: 0 20px 70px rgba(16,37,31,.18); backdrop-filter: blur(18px); display: grid; grid-template-columns: auto 1fr auto; align-items: center; gap: 13px; }
+.cookie-consent-icon { width: 42px; height: 42px; border-radius: 12px; background: light-dark(#e7f7f0, #12261f); color: light-dark(#07875f, #3fd39c); display: grid; place-items: center; }
 .cookie-consent-icon svg { width: 20px; }
-.cookie-consent strong { font-size: .75rem; }
-.cookie-consent p { margin: 3px 0 0; color: #60756d; font-size: .62rem; line-height: 1.5; }
-.cookie-consent p a { color: #07875f; font-weight: 700; }
+.cookie-consent strong { font-size: .88rem; }
+.cookie-consent p { margin: 3px 0 0; color: light-dark(#5a6f67, #a1b0b8); font-size: .8rem; line-height: 1.5; }
+.cookie-consent p a { color: light-dark(#07875f, #3fd39c); font-weight: 700; }
 .cookie-actions { display: flex; gap: 7px; }
-.cookie-actions button { min-height: 38px; padding: 0 11px; border: 1px solid #cbdad4; border-radius: 9px; background: #fff; color: #38524a; display: inline-flex; align-items: center; gap: 5px; font: inherit; font-size: .58rem; font-weight: 750; cursor: pointer; }
+.cookie-actions button { min-height: 38px; padding: 0 11px; border: 1px solid light-dark(#cbdad4, #33463f); border-radius: 9px; background: light-dark(#fff, #17221f); color: light-dark(#38524a, #d6e2dd); display: inline-flex; align-items: center; gap: 5px; font: inherit; font-size: .8rem; font-weight: 750; cursor: pointer; }
 .cookie-actions button.is-primary { border-color: #087552; background: #087552; color: #fff; }
 .cookie-actions svg { width: 14px; }
 

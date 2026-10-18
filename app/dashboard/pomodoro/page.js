@@ -257,7 +257,7 @@ export default function PomodoroPage() {
         <section className="pomodoro-timer" aria-live="polite">
           <div className="timer-chart">
             <ResponsiveContainer width="100%" height="100%">
-              <PieChart><Pie data={chartData} dataKey="value" startAngle={90} endAngle={-270} innerRadius="88%" outerRadius="98%" stroke="none" isAnimationActive={false}>{chartData.map((entry, index) => <Cell key={entry.name} fill={index === 0 ? '#00a870' : '#dceee8'} />)}</Pie></PieChart>
+              <PieChart><Pie data={chartData} dataKey="value" startAngle={90} endAngle={-270} innerRadius="88%" outerRadius="98%" stroke="none" isAnimationActive={false}>{chartData.map((entry, index) => <Cell key={entry.name} fill={index === 0 ? '#00a870' : 'var(--study-ring-track)'} />)}</Pie></PieChart>
             </ResponsiveContainer>
             <div className="timer-copy"><span>{breakMode ? 'Mola' : 'Çalışma'}</span><strong>{String(minutes).padStart(2, '0')}:{String(seconds).padStart(2, '0')}</strong><p>{breakMode ? `${preset.breakMinutes} dk mola` : `${preset.work} dk çalış`}</p></div>
           </div>

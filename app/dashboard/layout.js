@@ -1,6 +1,6 @@
 'use client';
 
-import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react';
+import { createContext, useCallback, useContext, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import {
@@ -11,7 +11,9 @@ import {
 import { createClient } from '@/lib/supabase/client';
 import { todayStr } from '@/lib/utils/date';
 import { useRealtimeRefresh } from '@/lib/hooks/useRealtimeRefresh';
+import { THEME_STORAGE_KEY, applyThemePreference, clearTheme, readThemePreference, saveThemePreference } from '@/lib/theme';
 import JourneyLoader from '@/components/ui/JourneyLoader';
+import DomainNotice from '@/components/brand/DomainNotice';
 import BrandLogo from '@/components/brand/BrandLogo';
 import HeaderActions from '@/components/dashboard/HeaderActions';
 import './study.css';
@@ -103,6 +105,8 @@ export default function DashboardLayout({ children }) {
     const authUser = result.user;
     setUser(authUser);
     setProfile(result.profile || null);
+    const accountTheme = result.profile?.study_preferences?.theme;
+    if (accountTheme && !window.localStorage.getItem(THEME_STORAGE_KEY)) saveThemePreference(accountTheme);
     setAdminRole(result.adminRole || null);
     setCurrentPlan(result.currentPlan || { code: 'baslangic', name: 'planliyo ücretsiz', status: 'free', entitlements: {} });
     setContentProducer(result.contentProducer || { active: false, status: 'not_enrolled' });
@@ -125,6 +129,22 @@ export default function DashboardLayout({ children }) {
     const timer = setTimeout(loadAccount, 0);
     return () => clearTimeout(timer);
   }, [loadAccount]);
+
+  // The theme belongs to the dashboard only: apply it before paint, follow the
+  // OS when "system" is chosen, and restore the light public site on exit.
+  useLayoutEffect(() => {
+    const apply = () => applyThemePreference(readThemePreference());
+    apply();
+    const media = window.matchMedia('(prefers-color-scheme: dark)');
+    const followSystem = () => { if (readThemePreference() === 'system') apply(); };
+    media.addEventListener('change', followSystem);
+    window.addEventListener('storage', apply);
+    return () => {
+      media.removeEventListener('change', followSystem);
+      window.removeEventListener('storage', apply);
+      clearTheme();
+    };
+  }, []);
 
   useEffect(() => {
     const timer = setTimeout(() => {
@@ -247,7 +267,7 @@ export default function DashboardLayout({ children }) {
         <aside className={`study-sidebar ${sidebarOpen ? 'is-open' : ''}`}>
           <div className="sidebar-brand-row">
             <Link href="/dashboard" className="sidebar-brand" onClick={() => setSidebarOpen(false)}>
-              <BrandLogo markOnly={collapsed} priority />
+              <BrandLogo markOnly={collapsed} priority variant="adaptive" />
             </Link>
             <button className="icon-button sidebar-toggle" onClick={toggleSidebar} aria-label={collapsed ? 'Paneli genişlet' : 'Paneli daralt'}>
               {collapsed ? <PanelLeftOpen size={18} /> : <PanelLeftClose size={18} />}
@@ -310,6 +330,7 @@ export default function DashboardLayout({ children }) {
         </aside>
 
         <div className="study-main">
+          <DomainNotice variant="app" />
           <header className="study-topbar">
             <button className="icon-button mobile-menu-button" onClick={() => setSidebarOpen(true)} aria-label="Menüyü aç"><Menu size={21} /></button>
             <span className="topbar-context">YKS Çalışma Koçu</span>

@@ -1,6 +1,6 @@
 import { X } from 'lucide-react-native';
 import { useEffect, useState, type ReactNode } from 'react';
-import { KeyboardAvoidingView, Modal, Platform, Pressable, ScrollView, StyleSheet, View, type LayoutChangeEvent } from 'react-native';
+import { KeyboardAvoidingView, Modal, Pressable, ScrollView, StyleSheet, View, type LayoutChangeEvent } from 'react-native';
 import { Gesture, GestureDetector, GestureHandlerRootView } from 'react-native-gesture-handler';
 import Animated, { Easing, interpolate, useAnimatedStyle, useSharedValue, withTiming } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -62,7 +62,9 @@ export function Sheet({ open, onClose, title, subtitle, children, footer, scroll
   return (
     <Modal visible={visible} transparent animationType="none" statusBarTranslucent navigationBarTranslucent onRequestClose={onClose}>
       <GestureHandlerRootView style={styles.flex}>
-        <KeyboardAvoidingView style={styles.root} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
+        {/* Edge-to-edge Android ignores adjustResize inside a Modal window, so both
+            platforms pad the sheet by the keyboard height to keep fields and the footer visible. */}
+        <KeyboardAvoidingView style={styles.root} behavior="padding">
           <Animated.View style={[StyleSheet.absoluteFill, { backgroundColor: colors.overlay }, backdropStyle]}>
             <Pressable accessibilityRole="button" accessibilityLabel="Kapat" style={StyleSheet.absoluteFill} onPress={onClose} />
           </Animated.View>

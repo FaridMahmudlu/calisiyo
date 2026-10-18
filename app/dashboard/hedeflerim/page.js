@@ -185,18 +185,18 @@ export default function HedeflerimPage() {
         </form>
       </Modal>
       <style jsx>{`
-        .goal-vision { min-height: 190px; margin-bottom: 18px; padding: 28px; border: 1px solid #cfe5dc; border-radius: 16px; background: linear-gradient(135deg, #eaf8f2, #f7fbf9); background-position: center; background-size: cover; color: var(--study-ink); display: flex; align-items: flex-end; justify-content: space-between; gap: 20px; overflow: hidden; }
+        .goal-vision { min-height: 190px; margin-bottom: 18px; padding: 28px; border: 1px solid light-dark(#cfe5dc, #283530); border-radius: 16px; background: linear-gradient(135deg, light-dark(#eaf8f2, #19211e), light-dark(#f7fbf9, #141d1a)); background-position: center; background-size: cover; color: var(--study-ink); display: flex; align-items: flex-end; justify-content: space-between; gap: 20px; overflow: hidden; }
         .goal-vision.has-image { color: #fff; border-color: transparent; box-shadow: 0 18px 40px rgba(5,24,19,.14); }
         .goal-vision > div { max-width: 620px; display: grid; gap: 5px; }
-        .goal-vision span { color: var(--study-green-dark); font-size: .68rem; font-weight: 800; letter-spacing: .08em; text-transform: uppercase; }
+        .goal-vision span { color: var(--study-green-dark); font-size: .7rem; font-weight: 800; letter-spacing: .08em; text-transform: uppercase; }
         .goal-vision.has-image span { color: #a8f1d3; }
         .goal-vision h2 { margin: 0; font-size: clamp(1.35rem, 3vw, 2.2rem); letter-spacing: -.03em; }
         .goal-vision p { margin: 0; opacity: .82; font-size: .78rem; }
-        .goal-vision button { min-height: 40px; padding: 0 14px; border: 1px solid rgba(255,255,255,.45); border-radius: 10px; background: rgba(255,255,255,.92); color: #086d4f; display: inline-flex; align-items: center; gap: 7px; font: inherit; font-size: .7rem; font-weight: 800; cursor: pointer; }
+        .goal-vision button { min-height: 40px; padding: 0 14px; border: 1px solid rgba(255,255,255,.45); border-radius: 10px; background: light-dark(rgba(255,255,255,.92), rgba(18, 27, 25, 0.92)); color: light-dark(#086d4f, #77cba8); display: inline-flex; align-items: center; gap: 7px; font: inherit; font-size: .7rem; font-weight: 800; cursor: pointer; }
         .goal-image-field > span { display: flex; align-items: center; gap: 6px; }
         .goal-image-field small { margin-left: auto; color: var(--study-muted); font-weight: 500; }
-        .goal-image-selection { padding: 10px 12px; border: 1px solid var(--study-border); border-radius: 9px; background: #f7faf8; display: flex; align-items: center; justify-content: space-between; gap: 12px; font-size: .68rem; }
-        .goal-image-selection button { border: 0; background: transparent; color: #b42318; display: inline-flex; align-items: center; gap: 5px; cursor: pointer; }
+        .goal-image-selection { padding: 10px 12px; border: 1px solid var(--study-border); border-radius: 9px; background: light-dark(#f7faf8, #151e1b); display: flex; align-items: center; justify-content: space-between; gap: 12px; font-size: .7rem; }
+        .goal-image-selection button { border: 0; background: transparent; color: light-dark(#b42318, #ff8e7d); display: inline-flex; align-items: center; gap: 5px; cursor: pointer; }
         @media (max-width: 680px) { .goal-vision { min-height: 220px; padding: 22px; align-items: flex-start; flex-direction: column; justify-content: flex-end; } .goal-vision button { width: 100%; justify-content: center; } }
       `}</style>
     </div>
