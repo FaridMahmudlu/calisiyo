@@ -82,7 +82,7 @@ export default function RootLayout({ children }) {
         '@type': 'Organization',
         '@id': `${SITE.origin}/#organization`,
         name: SITE.displayName,
-        alternateName: [SITE.visualName, 'Calisiyo'],
+        alternateName: SITE.visualName,
         url: SITE.origin,
         logo: { '@type': 'ImageObject', url: `${SITE.origin}${SITE.logoPath}`, width: 512, height: 512 },
         email: SITE.supportEmail,

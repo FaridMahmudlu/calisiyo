@@ -11,8 +11,8 @@ export function GET() {
 
 ## Temel bilgiler
 
-- Resmî ad: ${SITE.displayName} (eski adı: Calisiyo)
-- Resmî alan adı: ${SITE.origin} — calisiyo.com.tr adresi kalıcı olarak buraya yönlendirilir; giriş, ödeme ve tüm işlemler yalnızca planliyo.com.tr üzerinden yapılır.
+- Resmî ad: ${SITE.displayName}
+- Resmî alan adı: ${SITE.origin}
 - Ana sayfa: ${absoluteUrl('/')}
 - Hakkımızda: ${absoluteUrl('/hakkimizda')}
 - Özellikler: ${absoluteUrl('/ozellikler')}

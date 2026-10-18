@@ -7,10 +7,6 @@ All 3D assets and geometry used in the **planliyo 3D Scroll Landing Page** compl
 - **Materials & Lighting**: Standard PBR materials (`MeshStandardMaterial`) with custom HSL/HEX colors matching planliyo design system tokens.
 
 ## 2D Static Fallback Assets
-- `study-path-hero.webp`: Original planliyo promotional graphic (Public domain / Proprietary).
-- `study-path-plan.webp`: Original planliyo promotional graphic.
-- `study-path-focus.webp`: Original planliyo promotional graphic.
-- `study-path-progress.webp`: Original planliyo promotional graphic.
 - `planliyo-mark.svg`, `planliyo-logo*.svg`: Official planliyo brand logo.
 
 ## Classroom Character Sprite Atlases

@@ -42,7 +42,7 @@ export default function HomePage() {
         '@type': 'SoftwareApplication',
         '@id': `${SITE.origin}/#application`,
         name: SITE.displayName,
-        alternateName: ['Planliyo YKS Çalışma Koçu', 'Calisiyo'],
+        alternateName: 'Planliyo YKS Çalışma Koçu',
         url: SITE.origin,
         description: 'YKS çalışma planı, kronometre, konu ve tekrar takibi, çoklu sınav deneme analizi ve gerçek çalışma istatistiklerini bir araya getiren çalışma planlama uygulaması.',
         applicationCategory: 'EducationalApplication',

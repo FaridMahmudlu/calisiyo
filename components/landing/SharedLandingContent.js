@@ -21,7 +21,6 @@ export const FAQS = [
   { question: 'Planliyo ücretsiz mi?', answer: 'planliyo ücretsiz; günlük planlama, kronometre, temel istatistikler, deneme kaydı ve çalışma sınıfı özelliklerini belirli limitlerle içerir. Kredi kartı gerekmez.' },
   { question: 'planliyo plus ne sağlar?', answer: 'planliyo plus; sınırsız istatistik geçmişi ve CSV aktarımıyla daha yüksek deneme, not, YouTube planı ve çalışma sınıfı limitleri sunar. YKS 2027 veya YKS 2028 seçeneğini 7 gün ücretsiz deneyebilirsin; otomatik yenileme yoktur.' },
   { question: 'Planliyo’nun mobil uygulaması var mı?', answer: 'Android uygulaması test aşamasında ve yakında Google Play’de yayınlanacak. Uygulamada kronometre kilit ekranında canlı geri sayar ve ana ekran widget’ları sıradaki görevini gösterir. Web sürümünü bugün telefon tarayıcından kullanabilirsin; hesabın ve verilerin her yerde aynıdır.' },
-  { question: 'Calisiyo ile Planliyo aynı mı?', answer: 'Evet. Calisiyo artık Planliyo adıyla planliyo.com.tr adresinde hizmet veriyor. Hesabın ve verilerin aynen korunur; giriş, ödeme ve tüm işlemler yalnızca planliyo.com.tr üzerinden yapılır.' },
   { question: 'Çalışma verilerim güvende mi?', answer: 'Çalışma kayıtların hesabına bağlı tutulur ve başka kullanıcıların özel verilerine erişmesini engelleyen satır düzeyi yetkilendirme kurallarıyla korunur. Verilerini dışa aktarabilir veya hesabınla birlikte kalıcı olarak silebilirsin.' },
 ];
 
