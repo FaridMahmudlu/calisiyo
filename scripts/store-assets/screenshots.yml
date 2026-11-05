@@ -1,0 +1,45 @@
+appId: tr.com.planliyo.app
+---
+- launchApp:
+    clearState: true
+- tapOn:
+    text: 'Yalnızca zorunlu'
+    optional: true
+- tapOn:
+    text: 'Giriş yap'
+    optional: true
+- extendedWaitUntil:
+    visible: 'ornek@email.com'
+    timeout: 60000
+- tapOn: 'ornek@email.com'
+- inputText: ${REVIEW_EMAIL}
+- hideKeyboard
+- tapOn:
+    text: 'Şifreyi göster'
+    optional: true
+- tapOn:
+    below: 'Şifre'
+    above: 'Şifremi unuttum'
+- inputText: ${REVIEW_PASSWORD}
+- hideKeyboard
+- tapOn: 'Giriş Yap'
+- tapOn:
+    text: 'Yalnızca zorunlu'
+    optional: true
+- extendedWaitUntil:
+    visible:
+      id: 'navigation-program'
+    timeout: 90000
+- takeScreenshot: store-01-bugun
+- tapOn:
+    id: 'navigation-program'
+- waitForAnimationToEnd
+- takeScreenshot: store-02-program
+- tapOn:
+    id: 'navigation-kronometre'
+- waitForAnimationToEnd
+- takeScreenshot: store-03-kronometre
+- tapOn:
+    id: 'navigation-menu'
+- waitForAnimationToEnd
+- takeScreenshot: store-04-menu
