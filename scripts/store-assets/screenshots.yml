@@ -36,6 +36,16 @@ appId: tr.com.planliyo.app
     visible:
       id: 'navigation-program'
     timeout: 90000
+- tapOn:
+    id: 'navigation-program'
+- waitForAnimationToEnd
+- tapOn:
+    id: 'navigation-index'
+- extendedWaitUntil:
+    visible: 'Merhaba, Deniz!.*'
+    timeout: 30000
+- waitForAnimationToEnd:
+    timeout: 10000
 - takeScreenshot: store-01-bugun
 - tapOn:
     id: 'navigation-program'
@@ -48,12 +58,12 @@ appId: tr.com.planliyo.app
 - tapOn:
     id: 'navigation-menu'
 - waitForAnimationToEnd
-- openLink: 'planliyo://haftalik-program'
-- tapOn:
-    text: Open
-    optional: true
+- tapOn: 'Haftalık Program'
 - extendedWaitUntil:
-    visible: 'Haftalık Program'
+    visible: 'Görüntülenen hafta'
+    timeout: 30000
+- extendedWaitUntil:
+    visible: 'Problemler ve soru çözümü'
     timeout: 30000
 - waitForAnimationToEnd:
     timeout: 8000
