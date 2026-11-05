@@ -47,7 +47,7 @@ jobs:
           "$MAESTRO" --device "$PLANLIYO_SIMULATOR_ID" test --test-output-dir "$RUNNER_TEMP/maestro-output" -e REVIEW_EMAIL="$REVIEW_EMAIL" -e REVIEW_PASSWORD="$REVIEW_PASSWORD" scripts/store-assets/screenshots.yml
           mkdir -p store-screenshots
           find "$RUNNER_TEMP/maestro-output" -type f -name 'store-*.png' -exec cp {} store-screenshots/ \;
-          test "$(find store-screenshots -name 'store-*.png' | wc -l | tr -d ' ')" -ge 3
+          test "$(find store-screenshots -name 'store-*.png' | wc -l | tr -d ' ')" -eq 10
           if [ -f "$RUNNER_TEMP/apple-openapi.zip" ]; then cp "$RUNNER_TEMP/apple-openapi.zip" store-screenshots/; fi
       - name: Capture a fresh launch for diagnosis if automation fails
         if: failure()

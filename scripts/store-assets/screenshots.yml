@@ -48,4 +48,52 @@ appId: tr.com.planliyo.app
 - tapOn:
     id: 'navigation-menu'
 - waitForAnimationToEnd
-- takeScreenshot: store-04-menu
+- openLink: 'planliyo://haftalik-program'
+- extendedWaitUntil:
+    visible: 'Haftalık Program'
+    timeout: 30000
+- waitForAnimationToEnd:
+    timeout: 8000
+- takeScreenshot: store-04-haftalik
+- openLink: 'planliyo://konu-takibi'
+- extendedWaitUntil:
+    visible: 'Konu Takibi'
+    timeout: 30000
+- waitForAnimationToEnd:
+    timeout: 8000
+- takeScreenshot: store-05-konu
+- openLink: 'planliyo://deneme-analizi'
+- extendedWaitUntil:
+    visible: 'Deneme Analizi'
+    timeout: 30000
+- waitForAnimationToEnd:
+    timeout: 8000
+- takeScreenshot: store-06-deneme
+- openLink: 'planliyo://istatistikler'
+- extendedWaitUntil:
+    visible: 'İstatistikler'
+    timeout: 30000
+- waitForAnimationToEnd:
+    timeout: 8000
+- takeScreenshot: store-07-istatistik
+- openLink: 'planliyo://yapamadiklari'
+- extendedWaitUntil:
+    visible: 'Yapamadığım Sorular'
+    timeout: 30000
+- waitForAnimationToEnd:
+    timeout: 8000
+- takeScreenshot: store-08-sorular
+- openLink: 'planliyo://tekrarlarim'
+- extendedWaitUntil:
+    visible: 'Tekrarlarım'
+    timeout: 30000
+- waitForAnimationToEnd:
+    timeout: 8000
+- takeScreenshot: store-09-tekrar
+- openLink: 'planliyo://not-defteri'
+- extendedWaitUntil:
+    visible: 'Not Defterim'
+    timeout: 30000
+- waitForAnimationToEnd:
+    timeout: 8000
+- takeScreenshot: store-10-notlar
