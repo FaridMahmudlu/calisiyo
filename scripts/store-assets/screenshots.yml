@@ -16,15 +16,17 @@ appId: tr.com.planliyo.app
     timeout: 60000
 - tapOn: 'ornek@email.com'
 - inputText: ${REVIEW_EMAIL}
-- hideKeyboard
+- pressKey: Enter
 - tapOn:
     text: 'Şifreyi göster'
     optional: true
 - tapOn:
     below: 'Şifre'
 - inputText: ${REVIEW_PASSWORD}
-- hideKeyboard
-- tapOn: 'Giriş Yap'
+- pressKey: Enter
+- tapOn:
+    text: 'Giriş Yap'
+    optional: true
 - tapOn:
     text: 'Yalnızca zorunlu'
     optional: true
