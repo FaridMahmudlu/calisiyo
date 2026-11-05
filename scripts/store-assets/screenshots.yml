@@ -2,6 +2,9 @@ appId: tr.com.planliyo.app
 ---
 - launchApp:
     clearState: true
+- extendedWaitUntil:
+    visible: 'Tercih senin|Giriş yap|Tekrar hoş geldin'
+    timeout: 120000
 - tapOn:
     text: 'Yalnızca zorunlu'
     optional: true
@@ -19,7 +22,6 @@ appId: tr.com.planliyo.app
     optional: true
 - tapOn:
     below: 'Şifre'
-    above: 'Şifremi unuttum'
 - inputText: ${REVIEW_PASSWORD}
 - hideKeyboard
 - tapOn: 'Giriş Yap'

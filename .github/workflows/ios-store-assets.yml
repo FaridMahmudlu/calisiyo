@@ -30,7 +30,9 @@ jobs:
           tar -xzf "$RUNNER_TEMP/planliyo-simulator.tar.gz" -C "$RUNNER_TEMP/planliyo-app"
           python3 scripts/store-assets/prepare-simulator.py '${{ matrix.device }}'
           # Also preserve the primary Apple schema so Windows does not need a local SDK.
-          curl --fail --location --retry 2 https://developer.apple.com/sample-code/app-store-connect/app-store-connect-openapi-specification.zip -o "$RUNNER_TEMP/apple-openapi.zip" || true
+          curl --fail --location --retry 2 --max-time 45 https://developer.apple.com/sample-code/app-store-connect/app-store-connect-openapi-specification.zip -o "$RUNNER_TEMP/apple-openapi.zip" || true
+          mkdir -p store-screenshots
+          if [ -f "$RUNNER_TEMP/apple-openapi.zip" ]; then cp "$RUNNER_TEMP/apple-openapi.zip" store-screenshots/; fi
       - name: Capture the actual signed-in application
         shell: bash
         env:
@@ -47,7 +49,21 @@ jobs:
           find "$RUNNER_TEMP/maestro-output" -type f -name 'store-*.png' -exec cp {} store-screenshots/ \;
           test "$(find store-screenshots -name 'store-*.png' | wc -l | tr -d ' ')" -ge 3
           if [ -f "$RUNNER_TEMP/apple-openapi.zip" ]; then cp "$RUNNER_TEMP/apple-openapi.zip" store-screenshots/; fi
+      - name: Capture a fresh launch for diagnosis if automation fails
+        if: failure()
+        shell: bash
+        run: |
+          # Restart discards any transient form input before capturing diagnostics.
+          mkdir -p store-screenshots
+          xcrun simctl terminate "$PLANLIYO_SIMULATOR_ID" tr.com.planliyo.app || true
+          xcrun simctl launch "$PLANLIYO_SIMULATOR_ID" tr.com.planliyo.app || true
+          sleep 12
+          xcrun simctl io "$PLANLIYO_SIMULATOR_ID" screenshot store-screenshots/startup-diagnostic.png || true
+          export JAVA_HOME=$(/usr/libexec/java_home -v 17)
+          MAESTRO=$(find "$RUNNER_TEMP/maestro-install" -type f -path '*/bin/maestro' | head -1)
+          "$MAESTRO" --device "$PLANLIYO_SIMULATOR_ID" hierarchy > store-screenshots/startup-hierarchy.txt || true
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        if: always()
         with:
           name: planliyo-ios-store-${{ matrix.device }}
           path: store-screenshots/
