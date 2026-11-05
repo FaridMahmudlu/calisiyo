@@ -55,6 +55,9 @@ jobs:
         run: |
           # Restart discards any transient form input before capturing diagnostics.
           mkdir -p store-screenshots
+          # Preserve only explicit, post-login feature captures, never Maestro's
+          # automatic debug screenshots, auth inputs, or environment dumps.
+          find "$RUNNER_TEMP/maestro-output" -type f -name 'store-*.png' -exec cp {} store-screenshots/ \; || true
           xcrun simctl terminate "$PLANLIYO_SIMULATOR_ID" tr.com.planliyo.app || true
           xcrun simctl launch "$PLANLIYO_SIMULATOR_ID" tr.com.planliyo.app || true
           sleep 12
