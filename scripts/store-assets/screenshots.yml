@@ -30,6 +30,8 @@ appId: tr.com.planliyo.app
 - tapOn:
     text: 'Yalnızca zorunlu'
     optional: true
+- stopApp
+- launchApp
 - extendedWaitUntil:
     visible:
       id: 'navigation-program'
